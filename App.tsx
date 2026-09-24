@@ -9,7 +9,7 @@ export default function App() {
 
   // Gunakan IP lokal mesin Anda untuk BFF Web (bukan localhost, karena emulator Android butuh 10.0.2.2)
   // Ubah 'http://10.0.2.2:3000' menjadi IP IPv4 LAN Anda jika ditest di HP fisik (misal: 'http://192.168.1.15:3000')
-  const BFF_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
+  const BFF_URL = 'http://10.33.195.43:3000'; // IP Laptop Anda (WiFi Tethering/Kampus)
 
   useEffect(() => {
     axios.get(`${BFF_URL}/api/tanks`)

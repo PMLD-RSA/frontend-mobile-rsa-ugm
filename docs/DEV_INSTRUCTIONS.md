@@ -19,6 +19,6 @@ Selamat datang di repositori Frontend (Staging). Saat ini, repositori ini **masi
 Saat mulai merancang UI dan fungsionalitas, patuhi aturan berikut:
 1. **DILARANG Membuat Kontrol Otomasi:** Sistem ini 100% murni untuk **Monitoring & Alerting 1 Arah**. Dilarang keras membuat komponen UI *Toggle Switch*, *Emergency Stop*, atau memanggil API untuk mengontrol pompa.
 2. **Keamanan MFA:** Skema autentikasi Login wajib menyediakan *layer* untuk *Multi-Factor Authentication* (MFA).
-3. **Koneksi Realtime:** Dilarang menggunakan teknik *polling* API berulang-ulang untuk mengecek ketinggian air. Wajib gunakan `WebSocket` atau `partysocket` untuk menyambung ke `ws://<server>/ws` dan mendengarkan event `LEVEL_UPDATE`.
+4. **Testing Lokal (Mobile):** Saat menjalankan aplikasi di HP fisik satu jaringan (WiFi/Hotspot), pastikan IP BFF yang dipanggil mengarah ke IPv4 laptop Anda (misal `10.x.x.x`), bukan `localhost`. Disarankan memindahkannya ke `.env` (sebagai `EXPO_PUBLIC_API_URL`).
 
 Jika Anda sudah membaca dan memahami instruksi ini, silakan mulai mengoding!

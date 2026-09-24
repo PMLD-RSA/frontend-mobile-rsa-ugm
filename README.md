@@ -1,61 +1,86 @@
-# 📱 Mobile App WP-4: Sistem Pemantauan Level Air Berbasis IoT
+# 📱 Sistem Informasi Pemantauan Level Air - Aplikasi Seluler (RSA UGM)
 
-Selamat datang di repositori Aplikasi Mobile (Android) untuk proyek riset **Sistem Informasi Pemantauan dan Pengendalian Level Air Berbasis IoT di RSA UGM**. Repositori ini didedikasikan sepenuhnya untuk mengembangkan aplikasi *smartphone* reaktif bagi para operator lapangan rumah sakit.
+Selamat datang di repositori resmi **Aplikasi Seluler (Mobile App)** untuk proyek Work Package 4 (WP-4): Sistem Informasi Pemantauan dan Pengendalian Level Air Berbasis IoT di Rumah Sakit Akademik (RSA) UGM.
 
-## 🌟 Tentang Proyek
-Aplikasi ini dirancang khusus untuk bentuk vertikal pada mobilitas petugas. Aplikasi memberikan pembaruan status level tangki secara *real-time* dengan peringatan dini (*early warning system*) yang terintegrasi secara mulus melalui arsitektur Backend-for-Frontend (BFF).
-
-## ✨ Fitur Utama
-- **Pemantauan Real-time**: Menampilkan status level tangki air secara presisi tanpa lag.
-- **Background Push Notifications**: Menerima peringatan (WARNING/CRITICAL) secara instan meskipun aplikasi sedang ditutup/tidak aktif.
-- **Visualisasi Grafik**: Riwayat penggunaan dan level air selama 24 jam terakhir.
-- **Bottom Sheet Control**: Modul pemantauan detail tangki berskala besar yang mengadopsi prinsip *single-lock* UI.
-
-## 🛠️ Tech Stack & Arsitektur (Final)
-- **Framework Utama**: **React Native via Expo** (Mempermudah *development loop* dan distribusi APK/AAB).
-- **Styling**: Native StyleSheet / NativeWind (Tailwind CSS untuk React Native).
-- **State Management**: **Zustand** (Sangat ringan dan sempurna untuk handling *push data* WebSocket).
-- **Visualisasi Grafik**: **react-native-chart-kit** (Performa rendering mulus di perangkat *mobile*).
-- **Notifikasi**: **Expo Push Notifications / FCM** (Dukungan *background push*).
-- **Integrasi API**: Berkomunikasi langsung ke *endpoint* **BFF Next.js** di repositori Web.
-
-## 🔒 Security & AAA (Autentikasi, Autorisasi, Akunting)
-- **Authentication**: Kredensial disahkan via BFF, token disandikan ketat ke dalam enkripsi bawaan OS (`SecureStore` / `EncryptedSharedPreferences`). *Dilarang menggunakan AsyncStorage.*
-- **Authorization**: Penerapan *Role-Based Access Control* (RBAC) pada elemen antarmuka (misal: menyembunyikan panel pompa bagi *Viewer*).
-- **Accounting**: Instruksi aksi kontrol dicatat transparan di *server audit* BFF.
-
-## 🔀 Panduan Kontribusi & Konvensi Git
-Untuk menjaga kerapian riwayat repositori, seluruh anggota tim diwajibkan mengikuti alur dan konvensi *commit* berikut:
-
-**Alur Branching:**
-1. **Buat Branch Fitur (`feat/...` atau `fix/...`)**: Setiap pengerjaan tugas baru **wajib** dilakukan di *branch* terpisah (misal: `feat/bottom-sheet-ui` atau `fix/push-notification`).
-2. **Pull Request ke `dev`**: Setelah fitur selesai, ajukan *Pull Request* (PR) untuk digabungkan (*merge*) ke branch `dev`. Pastikan aplikasi berjalan normal di Expo Go tanpa error.
-3. **Rilis ke `main`**: Branch `main` adalah versi produksi (*Release*). Penggabungan ke `main` **hanya** dilakukan dari branch `dev` apabila keseluruhan fitur siap di-*build* menjadi APK/AAB.
-
-**Format Pesan Commit:**
-Gunakan format standar *Conventional Commits*:
-- `feat: menambahkan setup Expo Push Notifications` (Untuk fitur baru)
-- `fix: mengatasi lag pada chart tangki air` (Untuk perbaikan *bug*)
-- `docs: memperbarui struktur folder di README` (Untuk perubahan dokumentasi)
-- `style: merapikan margin pada komponen bottom sheet` (Untuk perbaikan UI/CSS)
-
-## 🚀 Panduan Instalasi (Getting Started)
-1. **Clone Repositori**:
-   ```bash
-   git clone https://github.com/Avin1731/frontend-mobile-rsa-ugm.git
-   ```
-2. **Instalasi Dependensi**:
-   Gunakan `pnpm` (direkomendasikan) untuk menginstal paket:
-   ```bash
-   cd frontend-mobile-rsa-ugm
-   pnpm install
-   ```
-3. **Menjalankan Aplikasi (Development)**:
-   ```bash
-   pnpm start
-   ```
-   *Gunakan aplikasi Expo Go di smartphone Anda untuk memindai kode QR dan melihat pratinjau antarmuka.*
+Repositori ini memuat kode sumber untuk aplikasi berbasis Android/iOS yang digenggam oleh para staf lapangan dan pengelola rumah sakit.
 
 ---
-Untuk melihat rincian fungsional dan spesifikasi *Push Notification* aplikasi ini, silakan merujuk pada file **[Kebutuhan Proyek (Requirements)](./requirements.md)** di repositori ini.
 
+## 📖 Gambaran Umum (Overview)
+
+Aplikasi ini adalah pendamping berjalan (mobile) dari sistem pemantauan level air. Dirancang dengan antarmuka (UI) gelap (*dark mode/blue-teal*) yang elegan dari Figma, aplikasi ini memastikan para pengelola RSA UGM dapat melihat kondisi tangki, suhu, indikator kritis, serta menerima peringatan dini (alarm) secara langsung dari genggaman *smartphone* mereka, di manapun mereka berada.
+
+Alih-alih mengambil data secara langsung dan membabi-buta dari perangkat IoT, aplikasi ini bekerja cerdas dengan cara mengandalkan sistem **BFF (Backend-for-Frontend)** yang bersemayam di aplikasi Web utama. Hal ini membuat aplikasi berjalan sangat mulus, ringan, dan ramah kuota.
+
+### ✨ Fitur Utama
+1. **📊 Layar Dashboard Ringkas:** Ringkasan kondisi tangki rumah sakit secara langsung.
+2. **🚨 Notifikasi & Alarm:** Alert bahaya jika level tangki mendekati batas tumpah atau batas habis.
+3. **🧭 Navigasi Geser (Sliding Drawer):** Menu samping bergaya modern yang bisa ditarik tutup dengan sangat mulus (native Modal) untuk perpindahan fitur.
+4. **📶 Sinkronisasi Cepat:** Selalu *up-to-date* dengan keadaan sesungguhnya berkat integrasi API BFF yang optimal.
+
+---
+
+## 🛠️ Teknologi yang Digunakan (Tech Stack)
+
+Aplikasi ini menggunakan perpaduan teknologi pembuat aplikasi HP terbaik saat ini:
+- **[React Native](https://reactnative.dev/):** Bahasa utama yang memungkinkan satu kode aplikasi berjalan sempurna di HP Android maupun iPhone (iOS) secara bersamaan.
+- **[Expo](https://expo.dev/):** Mesin peluncur aplikasi yang sangat memudahkan proses pembuatan, pengujian (lewat aplikasi Expo Go), hingga ke tahap perilisan (Play Store / App Store).
+- **[Zustand](https://github.com/pmndrs/zustand):** Pengelola ingatan aplikasi (State Management) yang ringan.
+- **Axios:** Kurir pengantar pesan yang handal untuk menjemput data dari server BFF.
+
+---
+
+## ⚙️ Cara Kerja dan Integrasi BFF (Backend-for-Frontend)
+
+Aplikasi ini dirancang khusus untuk menjadi **pengonsumsi data**. Ia tidak memiliki pusingnya memproses kerumitan database.
+
+**Lalu dari mana datanya?**
+Data didapatkan lewat integrasi **BFF**. 
+BFF adalah "pelayan" yang berada di aplikasi Web (`frontend-web-rsa-ugm`). Aplikasi seluler ini hanya perlu meminta data kepada pelayan tersebut.
+- Aplikasi Mobile memanggil tautan API (Contoh: `http://[ALAMAT-IP-WEB]:3000/api/tanks`).
+- BFF di sisi web akan meramu semua data mentah, merangkumnya, lalu mengirimkan "paket matang" ke aplikasi ini.
+- Aplikasi Mobile tinggal memoles "paket matang" tersebut ke dalam tampilan layar (*Render*).
+
+---
+
+## 🚀 Panduan Instalasi (Untuk Developer)
+
+Ingin ikut serta mengembangkan aplikasi ini? Ikuti langkah-langkah mudah berikut:
+
+### Syarat Wajib (Prerequisites)
+Pastikan komputer & HP Anda siap:
+1. **Node.js** terinstal di laptop Anda.
+2. Unduh aplikasi **Expo Go** di HP Anda (Tersedia gratis di Play Store / App Store).
+
+### Langkah Instalasi
+1. **Clone Repositori:**
+   Buka terminal di laptop dan unduh kodenya.
+   ```bash
+   git clone https://github.com/PMLD-RSA/frontend-mobile-rsa-ugm.git
+   cd frontend-mobile-rsa-ugm
+   ```
+
+2. **Install Dependensi:**
+   Unduh semua bahan baku aplikasi.
+   ```bash
+   npm install
+   ```
+   *(Atau gunakan `yarn install`)*
+
+3. **Atur Koneksi BFF (Jaringan Lokal):**
+   - Pastikan laptop dan HP Anda terkoneksi ke **WiFi yang sama**.
+   - Buka `App.tsx` atau file `.env` (jika ada).
+   - Cari baris `BFF_URL` dan ganti alamat `localhost` menjadi **IP lokal laptop Anda** (Contoh: `192.168.x.x`). Jangan gunakan `localhost` karena HP tidak akan bisa mendeteksi *localhost* laptop.
+
+4. **Jalankan Mesin Expo:**
+   ```bash
+   npx expo start
+   ```
+
+5. **Uji Coba di HP Anda:**
+   - Akan muncul **Barcode / QR Code** besar di terminal atau di browser laptop Anda.
+   - Buka aplikasi **Expo Go** di HP Anda, pilih menu **Scan QR Code**, dan arahkan kamera HP ke barcode tersebut.
+   - Voila! Aplikasi sedang memuat dan akan langsung muncul di HP Anda.
+
+---
+*Dikelola oleh Tim Pengembang WP-4 RSA UGM* 🏥

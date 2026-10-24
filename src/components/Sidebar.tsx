@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, Platform, useWindowDimensions, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuthStore } from '../stores/authStore';
 
 export const MobileSidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
   const insets = useSafeAreaInsets();
+  const user = useAuthStore((s) => s.user);
   const { width } = useWindowDimensions();
   // Provide a safe fallback width just in case useWindowDimensions is 0 momentarily
   const safeWidth = width > 0 ? width : 400; 
@@ -104,8 +106,8 @@ export const MobileSidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: (
               <Text style={styles.profileAvatarIcon}>👤</Text>
             </View>
             <View>
-              <Text style={styles.profileName}>Budi</Text>
-              <Text style={styles.profileRole}>Admin</Text>
+              <Text style={styles.profileName}>{user ? user.username : 'Admin'}</Text>
+              <Text style={styles.profileRole}>{user ? user.role.toUpperCase() : 'ADMIN'}</Text>
             </View>
           </View>
         </View>

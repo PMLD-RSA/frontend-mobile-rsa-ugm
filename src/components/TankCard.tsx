@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Card, Badge } from './Card';
+import { Card, Badge, BadgeVariant } from './Card';
 import { Tank } from '../types';
 
 interface TankCardProps {
@@ -14,11 +14,11 @@ export const TankCard: React.FC<TankCardProps> = ({ tank }) => {
   const minThreshold = Number(tank.minThresholdPercent || 30);
   const maxThreshold = Number(tank.maxThresholdPercent || 90);
 
-  // Klasifikasi ambang batas sesuai PRD:
+  // Klasifikasi status sesuai PRD Mobile:
   // < minThreshold (30%) = CRITICAL (Merah)
-  // 30% - 60% = WARNING (Kuning)
+  // 30% - 60% = WARNING (Kuning/Amber)
   // > 60% = NORMAL (Hijau)
-  let variant: 'success' | 'warning' | 'critical' = 'success';
+  let variant: BadgeVariant = 'success';
   let statusText = 'NORMAL';
   let barColor = '#10b981';
 
@@ -32,21 +32,42 @@ export const TankCard: React.FC<TankCardProps> = ({ tank }) => {
     barColor = '#f59e0b';
   }
 
+  // Identifikasi modul sensor utama jika ada
+  const primaryNode = tank.nodes?.[0];
+  const nodeLabel = primaryNode?.deviceCode || 'STM32';
+  const rssiValue = primaryNode?.lastRssi != null ? `${primaryNode.lastRssi} dBm` : null;
+
   return (
     <Card key={tank.id}>
       {/* Header Kartu Tangki */}
       <View style={styles.cardHeader}>
         <View style={styles.titleArea}>
           <Text style={styles.tankName}>{tank.name}</Text>
-          <Text style={styles.location}>📍 {tank.location || 'Lokasi belum disetel'}</Text>
+          <Text style={styles.location}>
+            📍 {tank.location || 'Lokasi belum disetel'}
+          </Text>
         </View>
         <Badge text={statusText} variant={variant} />
       </View>
 
-      {/* Banner Peringatan Aktif */}
+      {/* Banner Peringatan Aktif (Jika Ada) */}
       {tank.activeAlert && (
-        <View style={styles.alertBanner}>
-          <Text style={styles.alertText}>
+        <View
+          style={[
+            styles.alertBanner,
+            tank.activeAlert.level === 'CRITICAL'
+              ? styles.alertBannerCritical
+              : styles.alertBannerWarning,
+          ]}
+        >
+          <Text
+            style={[
+              styles.alertText,
+              tank.activeAlert.level === 'CRITICAL'
+                ? styles.alertTextCritical
+                : styles.alertTextWarning,
+            ]}
+          >
             ⚠️ {tank.activeAlert.message}
           </Text>
         </View>
@@ -82,20 +103,22 @@ export const TankCard: React.FC<TankCardProps> = ({ tank }) => {
 
       {/* Detail Ambang Batas & Sensor Node */}
       <View style={styles.footer}>
-        <View>
+        <View style={styles.footerCol}>
           <Text style={styles.footerLabel}>Kapasitas Total</Text>
-          <Text style={styles.footerValue}>{(capacity / 1000).toFixed(1)}k Liter</Text>
+          <Text style={styles.footerValue}>
+            {(capacity / 1000).toFixed(1)}k L
+          </Text>
         </View>
-        <View>
+        <View style={styles.footerCol}>
           <Text style={styles.footerLabel}>Ambang Batas</Text>
           <Text style={styles.footerValue}>
             {minThreshold}% - {maxThreshold}%
           </Text>
         </View>
-        <View>
+        <View style={styles.footerCol}>
           <Text style={styles.footerLabel}>Modul Sensor</Text>
-          <Text style={styles.footerValue}>
-            {tank.nodes?.[0]?.deviceCode || 'STM32'}
+          <Text style={styles.footerValue} numberOfLines={1}>
+            {rssiValue ? `📶 ${nodeLabel}` : nodeLabel}
           </Text>
         </View>
       </View>
@@ -114,35 +137,48 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   tankName: {
-    fontSize: 17,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#0f172a',
+    letterSpacing: 0.2,
   },
   location: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#64748b',
     marginTop: 3,
   },
   alertBanner: {
-    backgroundColor: '#fffbeb',
-    borderWidth: 1,
-    borderColor: '#fde68a',
     borderRadius: 8,
-    padding: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     marginTop: 10,
+    borderWidth: 1,
+  },
+  alertBannerWarning: {
+    backgroundColor: '#fffbeb',
+    borderColor: '#fde68a',
+  },
+  alertBannerCritical: {
+    backgroundColor: '#fef2f2',
+    borderColor: '#fecaca',
   },
   alertText: {
     fontSize: 12,
+    fontWeight: '600',
+  },
+  alertTextWarning: {
     color: '#92400e',
-    fontWeight: '500',
+  },
+  alertTextCritical: {
+    color: '#991b1b',
   },
   levelContainer: {
     backgroundColor: '#f8fafc',
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    padding: 14,
-    borderRadius: 10,
-    marginVertical: 14,
+    padding: 12,
+    borderRadius: 12,
+    marginVertical: 12,
   },
   levelRow: {
     flexDirection: 'row',
@@ -151,21 +187,22 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   levelText: {
-    fontSize: 34,
-    fontWeight: 'bold',
+    fontSize: 32,
+    fontWeight: '800',
   },
   volumeBox: {
     alignItems: 'flex-end',
   },
   volumeText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: '#1e293b',
   },
   volumeSub: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#64748b',
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   progressBarTrack: {
     height: 8,
@@ -182,16 +219,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     borderTopWidth: 1,
     borderTopColor: '#f1f5f9',
-    paddingTop: 12,
+    paddingTop: 10,
+  },
+  footerCol: {
+    flex: 1,
   },
   footerLabel: {
-    fontSize: 11,
-    color: '#64748b',
+    fontSize: 10,
+    color: '#94a3b8',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
   footerValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#0f172a',
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1e293b',
     marginTop: 2,
   },
 });

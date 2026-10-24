@@ -19,31 +19,56 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
 
   return (
     <View style={styles.metricsRow}>
+      {/* Total Tangki */}
       <View style={styles.metricCard}>
         <Text style={styles.metricLabel}>Total Tangki</Text>
-        <Text style={styles.metricValue}>{tanksCount}</Text>
-        <Text style={styles.metricSub}>
-          Kapasitas {(totalCapacity / 1000).toFixed(0)}k L
+        <Text
+          style={styles.metricValue}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+        >
+          {tanksCount}
+        </Text>
+        <Text style={styles.metricSub} numberOfLines={1}>
+          {(totalCapacity / 1000).toFixed(0)}k L Kapasitas
         </Text>
       </View>
 
+      {/* Air Tertampung */}
       <View style={styles.metricCard}>
         <Text style={styles.metricLabel}>Air Tertampung</Text>
-        <Text style={styles.metricValue}>{(totalWater / 1000).toFixed(1)}k L</Text>
-        <Text style={styles.metricSub}>{percentageFilled}% Kapasitas</Text>
+        <Text
+          style={[styles.metricValue, styles.waterValue]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+        >
+          {(totalWater / 1000).toFixed(1)}k L
+        </Text>
+        <Text style={styles.metricSub} numberOfLines={1}>
+          {percentageFilled}% Terisi
+        </Text>
       </View>
 
+      {/* Peringatan Aktif */}
       <View style={styles.metricCard}>
-        <Text style={styles.metricLabel}>Peringatan Aktif</Text>
+        <Text style={styles.metricLabel}>Peringatan</Text>
         <Text
           style={[
             styles.metricValue,
-            { color: activeAlertsCount > 0 ? '#b45309' : '#166534' },
+            { color: activeAlertsCount > 0 ? '#dc2626' : '#15803d' },
           ]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
         >
           {activeAlertsCount}
         </Text>
-        <Text style={styles.metricSub}>
+        <Text
+          style={[
+            styles.metricSub,
+            { color: activeAlertsCount > 0 ? '#b91c1c' : '#166534' },
+          ]}
+          numberOfLines={1}
+        >
           {activeAlertsCount > 0 ? 'Perlu dicek' : 'Kondisi aman'}
         </Text>
       </View>
@@ -60,25 +85,35 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: '#ffffff',
     padding: 12,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e2e8f0',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
   metricLabel: {
     fontSize: 11,
     color: '#64748b',
     fontWeight: '600',
+    letterSpacing: 0.2,
   },
   metricValue: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: '#0f172a',
     marginVertical: 4,
+  },
+  waterValue: {
+    color: '#0284c7',
   },
   metricSub: {
     fontSize: 10,
     color: '#94a3b8',
+    fontWeight: '500',
   },
 });

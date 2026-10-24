@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   StyleSheet,
   Text,
@@ -14,6 +14,7 @@ import { MetricsOverview } from '../components/MetricsOverview';
 import { TankCard } from '../components/TankCard';
 import { useTankStore } from '../stores/tankStore';
 import { ENV } from '../config/env';
+import { Tank } from '../types';
 
 export const HomeScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -32,14 +33,40 @@ export const HomeScreen: React.FC = () => {
   }, [fetchTanks]);
 
   // Perhitungan ringkasan tangki
-  const totalCapacity = tanks.reduce((acc, t) => acc + Number(t.capacityLiters || 0), 0);
-  const totalWater = tanks.reduce((acc, t) => acc + Number(t.latestReading?.volumeLiters || 0), 0);
+  const totalCapacity = tanks.reduce(
+    (acc, t) => acc + Number(t.capacityLiters || 0),
+    0
+  );
+  const totalWater = tanks.reduce(
+    (acc, t) => acc + Number(t.latestReading?.volumeLiters || 0),
+    0
+  );
   const activeAlertsCount = tanks.filter((t) => t.activeAlert != null).length;
+
+  // Auto-Sort by Severity sesuai PRD-Mobile.md § 4.1:
+  // Tangki status CRITICAL ditempatkan di paling atas, diikuti WARNING, lalu NORMAL
+  const sortedTanks = useMemo(() => {
+    return [...tanks].sort((a, b) => {
+      const getSeverityRank = (t: Tank) => {
+        const level = Number(t.latestReading?.levelPercent || 0);
+        const minThreshold = Number(t.minThresholdPercent || 30);
+        if (t.activeAlert || level < minThreshold) return 3; // CRITICAL
+        if (level <= 60) return 2; // WARNING
+        return 1; // NORMAL
+      };
+      return getSeverityRank(b) - getSeverityRank(a);
+    });
+  }, [tanks]);
 
   return (
     <ScrollView
-      contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) }}
+      contentContainerStyle={{
+        paddingBottom: Math.max(insets.bottom, 24),
+        paddingHorizontal: 16,
+        paddingTop: 16,
+      }}
       style={styles.container}
+      showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -51,21 +78,26 @@ export const HomeScreen: React.FC = () => {
     >
       {/* Sub Header & Status Koneksi Web BFF */}
       <View style={styles.header}>
-        <View>
+        <View style={styles.headerTitleBox}>
           <Text style={styles.title}>Pemantauan Tangki</Text>
-          <Text style={styles.subtitle}>Data via Web BFF (:3000)</Text>
+          <Text style={styles.subtitle}>Data live via Web BFF (:3000)</Text>
         </View>
         <Badge
-          text={error ? 'BFF Offline' : 'BFF Connected'}
+          text={error ? 'BFF Offline' : 'BFF Terhubung'}
           variant={error ? 'critical' : 'success'}
         />
       </View>
 
-      {/* Error Banner jika gagal koneksi ke Web BFF */}
+      {/* Error Banner jika koneksi ke Web BFF gagal */}
       {error && (
         <View style={styles.errorBox}>
           <Text style={styles.errorText}>⚠️ {error}</Text>
-          <TouchableOpacity onPress={() => fetchTanks()} style={styles.retryBtn}>
+          <TouchableOpacity
+            onPress={() => fetchTanks()}
+            style={styles.retryBtn}
+            activeOpacity={0.7}
+            accessibilityLabel="Coba sambungkan kembali ke Web BFF"
+          >
             <Text style={styles.retryBtnText}>Coba Lagi</Text>
           </TouchableOpacity>
         </View>
@@ -79,16 +111,37 @@ export const HomeScreen: React.FC = () => {
         activeAlertsCount={activeAlertsCount}
       />
 
-      {/* Loading Indicator */}
-      {isLoading && !refreshing ? (
+      {/* State Loading Indikator */}
+      {isLoading && !refreshing && (
         <View style={styles.loadingBox}>
           <ActivityIndicator size="large" color="#0a354c" />
           <Text style={styles.loadingText}>Menghubungkan ke Web BFF...</Text>
           <Text style={styles.loadingSub}>{ENV.BFF_URL}</Text>
         </View>
-      ) : (
-        tanks.map((tank) => <TankCard key={tank.id} tank={tank} />)
       )}
+
+      {/* State Kosong (Empty State) */}
+      {!isLoading && sortedTanks.length === 0 && !error && (
+        <View style={styles.emptyBox}>
+          <Text style={styles.emptyIcon}>💧</Text>
+          <Text style={styles.emptyTitle}>Belum Ada Data Tangki</Text>
+          <Text style={styles.emptySub}>
+            Tangki belum terdaftar di database rumah sakit atau belum ada data yang dikirim dari sensor.
+          </Text>
+          <TouchableOpacity
+            onPress={() => fetchTanks()}
+            style={styles.emptyReloadBtn}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.emptyReloadText}>Muat Ulang</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Daftar Kartu Tangki (Terurut berdasarkan Tingkat Keparahan) */}
+      {sortedTanks.map((tank) => (
+        <TankCard key={tank.id} tank={tank} />
+      ))}
     </ScrollView>
   );
 };
@@ -97,19 +150,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
-    paddingHorizontal: 16,
-    paddingTop: 16,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
+  },
+  headerTitleBox: {
+    flex: 1,
+    marginRight: 10,
   },
   title: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: '#0f172a',
+    letterSpacing: -0.3,
   },
   subtitle: {
     fontSize: 12,
@@ -120,9 +176,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#fef2f2',
     borderWidth: 1,
     borderColor: '#fecaca',
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 12,
-    marginBottom: 16,
+    marginBottom: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -131,39 +187,82 @@ const styles = StyleSheet.create({
     color: '#991b1b',
     fontSize: 13,
     flex: 1,
-    marginRight: 8,
+    marginRight: 10,
+    lineHeight: 18,
   },
   retryBtn: {
     backgroundColor: '#dc2626',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
+    paddingHorizontal: 14,
     minHeight: 44,
+    borderRadius: 8,
     justifyContent: 'center',
+    alignItems: 'center',
   },
   retryBtnText: {
-    color: 'white',
+    color: '#ffffff',
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   loadingBox: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 40,
-    backgroundColor: 'white',
-    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#e2e8f0',
+    marginVertical: 10,
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: 14,
     fontSize: 14,
     color: '#0a354c',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   loadingSub: {
     marginTop: 4,
     fontSize: 11,
     color: '#94a3b8',
+  },
+  emptyBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    marginTop: 10,
+  },
+  emptyIcon: {
+    fontSize: 40,
+    marginBottom: 12,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: 6,
+  },
+  emptySub: {
+    fontSize: 12,
+    color: '#64748b',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 16,
+    maxWidth: 280,
+  },
+  emptyReloadBtn: {
+    backgroundColor: '#0a354c',
+    paddingHorizontal: 20,
+    minHeight: 44,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyReloadText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
   },
 });

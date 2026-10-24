@@ -29,7 +29,7 @@ export default function App() {
       <View style={styles.safeArea}>
         <StatusBar style="light" />
 
-        {/* Top Header */}
+        {/* Top Header: Hamburger menu '≡' selalu aktif untuk membuka Drawer */}
         <Header
           title={title}
           subtitle={subtitle}

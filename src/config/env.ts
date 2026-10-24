@@ -8,7 +8,8 @@
  */
 export const ENV = {
   // Akses ke Web BFF (Next.js Port 3000)
-  BFF_URL: process.env.EXPO_PUBLIC_BFF_URL || 'http://localhost:3000',
+  // Default fallback menggunakan IP Tailscale laptop (shiny1412: 100.67.180.76)
+  BFF_URL: process.env.EXPO_PUBLIC_BFF_URL || 'http://100.67.180.76:3000',
 
   // Akses Realtime WebSocket ke Core Backend (Fastify Port 8000)
   WS_URL: process.env.EXPO_PUBLIC_WS_URL || 'ws://100.94.192.102:8000/ws',

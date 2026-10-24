@@ -13,8 +13,8 @@ interface AuthState {
 
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
-  initAuth: () => Promise<void>;
-  ensureAuthenticated: () => Promise<string | null>;
+  initAuth: () => Promise<boolean>;
+  clearError: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -24,10 +24,59 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: false,
   error: null,
 
+  clearError: () => set({ error: null }),
+
+  /**
+   * Inisialisasi status autentikasi saat aplikasi pertama kali dimuat (Splash Screen)
+   * Mengembalikan true jika pengguna memiliki token valid, false jika harus login
+   */
   initAuth: async () => {
-    const savedToken = await getAuthToken();
-    if (savedToken) {
-      set({ token: savedToken, isAuthenticated: true });
+    try {
+      const savedToken = await getAuthToken();
+      if (!savedToken) {
+        set({ user: null, token: null, isAuthenticated: false });
+        return false;
+      }
+
+      // Verifikasi token ke endpoint Web BFF /api/auth/me
+      const res = await axios.get<ApiResponse<User>>(`${ENV.BFF_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${savedToken}` },
+        timeout: 4000,
+      });
+
+      if (res.data?.success && res.data.data) {
+        set({
+          user: res.data.data,
+          token: savedToken,
+          isAuthenticated: true,
+          error: null,
+        });
+        return true;
+      } else {
+        await removeAuthToken();
+        set({ user: null, token: null, isAuthenticated: false });
+        return false;
+      }
+    } catch {
+      // Jika BFF tidak dapat dijangkau namun token tersimpan di SecureStore,
+      // kita tetap izinkan sesi lokal aktif dengan profil fallback
+      const savedToken = await getAuthToken();
+      if (savedToken) {
+        set({
+          token: savedToken,
+          isAuthenticated: true,
+          user: get().user || {
+            id: 'local-session',
+            username: 'admin',
+            role: 'admin',
+            isActive: true,
+          },
+        });
+        return true;
+      }
+
+      set({ user: null, token: null, isAuthenticated: false });
+      return false;
     }
   },
 
@@ -57,38 +106,30 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return true;
       } else {
         set({
-          error: res.data?.message || 'Login gagal via Web BFF.',
+          error: res.data?.message || 'Login gagal. Periksa username dan password.',
           isLoading: false,
         });
         return false;
       }
     } catch (err: any) {
-      const message = err.response?.data?.message || err.message || 'Gagal terhubung ke Web BFF.';
+      const message =
+        err.response?.data?.message ||
+        err.message ||
+        'Gagal terhubung ke Web BFF. Pastikan server aktif.';
       set({ error: message, isLoading: false });
       return false;
     }
   },
 
-  logout: async () => {
-    await removeAuthToken();
-    set({ user: null, token: null, isAuthenticated: false, error: null });
-  },
-
   /**
-   * Memastikan aplikasi mobile memiliki token valid sebelum melakukan request ke Web BFF.
-   * Melakukan auto-login jika belum ada token aktif.
+   * Logout aman: membersihkan token JWT di SecureStore dan reset state sesi
    */
-  ensureAuthenticated: async () => {
-    const currentToken = get().token || (await getAuthToken());
-    if (currentToken) {
-      if (!get().token) set({ token: currentToken, isAuthenticated: true });
-      return currentToken;
+  logout: async () => {
+    try {
+      await removeAuthToken();
+    } catch (e) {
+      console.warn('Gagal menghapus token SecureStore:', e);
     }
-
-    const success = await get().login('admin', 'admin123');
-    if (success) {
-      return get().token;
-    }
-    return null;
+    set({ user: null, token: null, isAuthenticated: false, error: null });
   },
 }));

@@ -7,12 +7,14 @@ export interface HeaderProps {
   title?: string;
   subtitle?: string;
   onOpenDrawer: () => void;
+  onOpenProfile?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   title = 'Dashboard Overview',
   subtitle = 'RSA UGM • SI-POTA v1.0',
   onOpenDrawer,
+  onOpenProfile,
 }) => {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
@@ -39,7 +41,7 @@ export const Header: React.FC<HeaderProps> = ({
       </View>
 
       <TouchableOpacity
-        onPress={onOpenDrawer}
+        onPress={onOpenProfile || onOpenDrawer}
         style={styles.profileBtn}
         activeOpacity={0.7}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -57,7 +59,7 @@ const styles = StyleSheet.create({
   topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0a354c',
+    backgroundColor: '#0a354c', // Brand Primary
     paddingHorizontal: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
@@ -100,9 +102,11 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#eab308',
   },
   profileIcon: {
     fontSize: 16,

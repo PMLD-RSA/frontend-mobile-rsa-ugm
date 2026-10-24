@@ -35,6 +35,8 @@ export interface MobileSidebarProps {
   onClose: () => void;
   currentScreen?: ScreenId;
   onSelectScreen?: (screen: ScreenId) => void;
+  onOpenProfile?: () => void;
+  onLogout?: () => void;
 }
 
 export const MobileSidebar: React.FC<MobileSidebarProps> = ({
@@ -42,6 +44,8 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
   onClose,
   currentScreen = 'dashboard',
   onSelectScreen,
+  onOpenProfile,
+  onLogout,
 }) => {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
@@ -74,7 +78,6 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
   useEffect(() => {
     if (isOpen) {
       setIsRendered(true);
-      // Animasi Buka: Meluncur dari kiri dengan kurva spring natural
       Animated.spring(animProgress, {
         toValue: 1,
         damping: 28,
@@ -83,7 +86,6 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
         useNativeDriver: true,
       }).start();
     } else if (isRendered) {
-      // Animasi Tutup: Meluncur kembali ke kiri dengan kurva bezier halus
       Animated.timing(animProgress, {
         toValue: 0,
         duration: 220,
@@ -97,64 +99,74 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
     }
   }, [isOpen, isRendered, animProgress]);
 
-  // Jika drawer sedang tertutup penuh, jangan render apa pun agar hemat memori & bebas touch blockage
-  if (!isRendered) {
+  if (!isRendered && !isOpen) {
     return null;
   }
 
-  // Interpolasi posisi horizontal drawer (seluruh elemen bergerak 100% bersamaan pada sumbu X)
-  const translateX = animProgress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-DRAWER_WIDTH, 0],
-    extrapolate: 'clamp',
-  });
-
-  // Interpolasi opasitas latar belakang gelap (dari 0 ke 0.55)
-  const backdropOpacity = animProgress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 0.55],
-    extrapolate: 'clamp',
-  });
-
   const handleItemPress = (screenId: ScreenId) => {
+    onClose();
     if (onSelectScreen) {
       onSelectScreen(screenId);
     }
-    onClose();
   };
 
+  const handleProfilePress = () => {
+    onClose();
+    if (onOpenProfile) {
+      onOpenProfile();
+    }
+  };
+
+  const handleLogoutPress = () => {
+    if (onLogout) {
+      onLogout();
+    }
+  };
+
+  // Interpolasi opacity backdrop (0 -> 0.6)
+  const backdropOpacity = animProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 0.6],
+  });
+
+  // Interpolasi posisi horizontal drawer (-DRAWER_WIDTH -> 0)
+  const translateX = animProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-DRAWER_WIDTH, 0],
+  });
+
   return (
-    <View style={styles.overlay} pointerEvents="box-none">
-      {/* Dark Backdrop */}
+    <View style={styles.overlay} pointerEvents={isOpen ? 'auto' : 'none'}>
+      {/* 1. Backdrop Semi-Transparan (Murni Animasi Opacity) */}
       <Animated.View style={[styles.backdrop, { opacity: backdropOpacity }]}>
         <TouchableOpacity
           style={StyleSheet.absoluteFill}
           onPress={onClose}
           activeOpacity={1}
-          accessibilityLabel="Tutup menu samping"
+          accessibilityLabel="Tutup menu navigasi"
         />
       </Animated.View>
 
-      {/* Sliding Drawer Container: Header, menu list, dan footer profil adalah 1 kesatuan kaku */}
+      {/* 2. Sliding Drawer Panel (Murni Animasi TranslateX) */}
       <Animated.View
         style={[
           styles.drawer,
           {
             width: DRAWER_WIDTH,
-            paddingTop: Math.max(insets.top, 20),
-            paddingBottom: Math.max(insets.bottom, 20),
+            paddingTop: insets.top,
+            paddingBottom: insets.bottom,
             transform: [{ translateX }],
           },
         ]}
       >
-        {/* Header Drawer Logo */}
+        {/* Header Drawer */}
         <View style={styles.header}>
           <View style={styles.logoCircle}>
-            <Text style={styles.logoIcon}>⬡</Text>
+            <Text style={styles.logoIcon}>💧</Text>
           </View>
-          <View>
-            <Text style={styles.headerTitle}>RSA UGM</Text>
-            <Text style={styles.headerSub}>SI-POTA v1.0</Text>
+          <View style={styles.headerTextBox}>
+            <Text style={styles.headerTitle}>SI-POTA</Text>
+            <Text style={styles.headerSub}>RSA UGM • Mobile</Text>
           </View>
           <TouchableOpacity
             onPress={onClose}
@@ -179,21 +191,39 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
           ))}
         </View>
 
-        {/* Footer Profil Pengguna - Statis di dalam container drawer */}
+        {/* Footer Profil Pengguna & Tombol Keluar */}
         <View style={styles.footer}>
-          <View style={styles.profileBox}>
+          {/* Kartu Profil Klik-able */}
+          <TouchableOpacity
+            style={styles.profileBox}
+            onPress={handleProfilePress}
+            activeOpacity={0.75}
+            accessibilityLabel="Buka halaman profil"
+          >
             <View style={styles.profileAvatar}>
               <Text style={styles.profileAvatarIcon}>👤</Text>
             </View>
-            <View>
-              <Text style={styles.profileName}>
+            <View style={styles.profileInfoBox}>
+              <Text style={styles.profileName} numberOfLines={1}>
                 {user ? user.username : 'Admin'}
               </Text>
-              <Text style={styles.profileRole}>
-                {user ? user.role.toUpperCase() : 'ADMIN'}
+              <Text style={styles.profileRole} numberOfLines={1}>
+                {user ? user.role.toUpperCase() : 'ADMINISTRATOR'}
               </Text>
             </View>
-          </View>
+            <Text style={styles.profileArrow}>›</Text>
+          </TouchableOpacity>
+
+          {/* Tombol Logout */}
+          <TouchableOpacity
+            style={styles.logoutBtn}
+            onPress={handleLogoutPress}
+            activeOpacity={0.75}
+            accessibilityLabel="Keluar dari akun"
+          >
+            <Text style={styles.logoutIcon}>🚪</Text>
+            <Text style={styles.logoutText}>Keluar dari Akun</Text>
+          </TouchableOpacity>
         </View>
       </Animated.View>
     </View>
@@ -240,7 +270,7 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    backgroundColor: '#0a354c', // Dark blue-teal
+    backgroundColor: '#0a354c', // Brand Primary
     elevation: 24,
     shadowColor: '#000',
     shadowOffset: { width: 4, height: 0 },
@@ -261,63 +291,70 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#eab308',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   logoIcon: {
-    color: '#eab308',
-    fontSize: 20,
+    fontSize: 18,
+  },
+  headerTextBox: {
+    flex: 1,
   },
   headerTitle: {
-    color: 'white',
+    color: '#ffffff',
     fontWeight: 'bold',
     fontSize: 16,
+    letterSpacing: 0.5,
   },
   headerSub: {
     color: 'rgba(255,255,255,0.6)',
-    fontSize: 12,
+    fontSize: 11,
   },
   closeBtn: {
-    marginLeft: 'auto',
-    width: 44,
-    height: 44,
+    width: 36,
+    height: 36,
     justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   closeBtnText: {
-    color: 'white',
-    fontSize: 20,
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: 'bold',
   },
   menuList: {
     flex: 1,
-    padding: 10,
-    marginTop: 10,
+    paddingTop: 12,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    marginHorizontal: 12,
+    borderRadius: 10,
     marginBottom: 4,
-    minHeight: 44,
   },
   menuItemActive: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
   },
   iconContainer: {
-    marginRight: 12,
+    width: 30,
     position: 'relative',
+    marginRight: 10,
+    alignItems: 'center',
   },
   menuIcon: {
     fontSize: 18,
-    color: '#eab308',
-    opacity: 0.8,
+    color: 'rgba(255,255,255,0.6)',
   },
   menuIconActive: {
-    opacity: 1,
+    color: '#38bdf8',
   },
   menuLabel: {
     color: 'rgba(255,255,255,0.8)',
@@ -325,7 +362,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   menuLabelActive: {
-    color: 'white',
+    color: '#ffffff',
     fontWeight: 'bold',
   },
   badge: {
@@ -338,36 +375,74 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   footer: {
-    padding: 20,
+    padding: 16,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.1)',
+    gap: 10,
   },
   profileBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0c4a6e',
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   profileAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.18)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#eab308',
   },
   profileAvatarIcon: {
-    color: 'white',
+    fontSize: 18,
+  },
+  profileInfoBox: {
+    flex: 1,
   },
   profileName: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 14,
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 13,
   },
   profileRole: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 12,
+    color: 'rgba(255,255,255,0.65)',
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 1,
+    letterSpacing: 0.3,
+  },
+  profileArrow: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 20,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+    borderRadius: 10,
+    paddingVertical: 10,
+    gap: 8,
+    minHeight: 42,
+  },
+  logoutIcon: {
+    fontSize: 15,
+  },
+  logoutText: {
+    color: '#fca5a5',
+    fontWeight: '700',
+    fontSize: 13,
+    letterSpacing: 0.2,
   },
 });

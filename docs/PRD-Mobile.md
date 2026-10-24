@@ -1,13 +1,14 @@
 # 📋 Product Requirements Document — Mobile App (PRD-Mobile)
 # Integrated Hospital Water Tank Monitoring & Early Warning System (RSA UGM)
-### Platform: React Native Expo Mobile App (Android)
+### Platform: React Native Expo Mobile App (Android & iOS)
 ### Nama Aplikasi: SI-POTA Mobile v1.0
 
 > **Repositori Target Pengembangan:** `frontend-mobile-rsa-ugm`  
-> **Parent Documentation:** [`../PRD-MFE.md`](../PRD-MFE.md) *(Master Frontend PRD)* & [`../PRD.md`](../PRD.md) *(Backend Core)*  
-> **Arsitektur:** React Native 0.86, Expo SDK 57, TypeScript 6, Zustand v5, Axios, Expo SecureStore  
-> **Port Pengembangan:** Metro Bundler `http://localhost:8081` (Koneksi HP Fisik via IP LAN WiFi)  
-> **Status Dokumen:** Acuan Tunggal Spesifikasi Frontend Mobile (Android)
+> **Parent Documentation:** [`PRD-MFE.md`](./PRD-MFE.md) *(Master Frontend PRD)* & [`../../PRD.md`](../../PRD.md) *(Backend Core)*  
+> **Arsitektur:** React Native 0.88.0, Expo SDK 58, React 19.3.0, TypeScript ~6.0.3, Zustand ^5.0.16, Axios ^1.20.0, Expo SecureStore ~58.0.2, Jest ^30.5.2, ts-jest ^29.4.15  
+> **CI / Quality Gate:** GitHub Actions Multi-Stage Workflow (Healthcheck, Unit Tests, Dry Export)  
+> **Port Pengembangan:** Metro Bundler `http://localhost:8081` (Koneksi HP Fisik via IP LAN WiFi / Tailscale)  
+> **Status Dokumen:** Acuan Tunggal Spesifikasi Frontend Mobile (Android & iOS)
 
 ---
 
@@ -16,7 +17,7 @@
 ### 1.1 Visi Produk Mobile
 Aplikasi SI-POTA Mobile dirancang khusus sebagai alat pemantauan saku (*pocket glance tool*) bagi **petugas fasilitas dan teknisi lapangan** Rumah Sakit Akademik UGM yang memiliki mobilitas tinggi berpindah antar-gedung (Gedung Utama, Rawat Inap, Bedah Sentral, Laundry, dll). 
 
-Antarmuka mobile harus berorientasi **vertikal (*portrait*)**, ringan, hemat daya baterai, ramah sentuhan jari (*finger-friendly*), serta mampu memberikan **peringatan darurat instan (*realtime emergency alerts*)** langsung di genggaman tangan petugas saat berada di lapangan.
+Antarmuka mobile berorientasi **vertikal (*portrait-first*)**, ringan, hemat daya baterai, ramah sentuhan jari (*thumb-friendly*), serta mampu memberikan **peringatan darurat instan (*realtime emergency alerts*)** langsung di genggaman tangan petugas saat berada di lapangan.
 
 ### 1.2 Karakteristik Interaksi & Arsitektur Konsumsi Data
 1. **Konsumsi Data Melalui Web BFF:**
@@ -33,66 +34,107 @@ Antarmuka mobile harus berorientasi **vertikal (*portrait*)**, ringan, hemat day
 
 ## 2. Tech Stack & Lingkungan Kerja Mobile
 
+Aplikasi dibangun di atas pondasi runtime Expo modern:
+
 | Komponen / Pustaka | Versi Terpasang | Peran & Penggunaan |
 | :--- | :--- | :--- |
-| **Framework Utama** | **React Native 0.86.x via Expo SDK 57** | Fondasi pengembangan aplikasi Android native |
-| **Bahasa Pemrograman** | TypeScript 6.x | Menjamin type-safety dan pencegahan runtime error |
-| **HTTP Client** | **Axios v1.20+** | Komunikasi HTTP terpusat dengan interceptor token ke Web BFF |
-| **State Management** | **Zustand v5.0.x** | Pengelola state global klien (Tanks, Alerts, Auth, Devices) |
-| **Keamanan Kredensial**| **Expo SecureStore** (`expo-secure-store`) | Enkripsi hardware untuk menyimpan JWT Bearer Token di HP |
-| **Navigasi UI** | Custom Mobile Sliding Drawer (`Sidebar.tsx`) | Navigasi menu samping yang mulus tanpa tumpukan memori |
-| **Visualisasi Indikator**| Custom Native Gauge & Card (`Card.tsx`) | Komponen visual level air, badge status, dan sinyal RSSI |
-| **Realtime Channel** | Native `WebSocket` API | Menerima event realtime `LEVEL_UPDATE` & `ALERT_*` dari Fastify |
+| **Framework Mobile** | **React Native 0.88.0** | Engine native Android & iOS modern dengan dukungan default *Edge-to-Edge* |
+| **Ekosistem Aplikasi**| **Expo SDK 58** (`~58.0.19`) | Toolchain modern Expo dengan mekanisme Continuous Native Generation (CNG) |
+| **Bahasa Pemrograman**| **TypeScript ~6.0.3** | Menjamin type-safety dan deteksi kesalahan sejak dini |
+| **Library UI Reaktif** | **React 19.3.0** | Library rendering UI reaktif generasi terbaru |
+| **State Management** | **Zustand ^5.0.16** | Pengelola state global klien (`authStore`, `tankStore`, dll) yang ringan |
+| **HTTP Client** | **Axios ^1.20.0** | Komunikasi HTTP dengan JWT request interceptor otomatis |
+| **Penyimpanan Kredensial**| **Expo SecureStore ~58.0.2** | Enkripsi hardware native (Keystore/Keychain) untuk menyimpan JWT Bearer Token |
+| **Unit Testing Engine**| **Jest ^30.5.2 & ts-jest ^29.4.15** | Pengujian unit otomatis super cepat dengan metrik code coverage |
+| **CI / Quality Gate** | **GitHub Actions Multi-Stage** | Validasi otomatis 3 tahap (Healthcheck, Tests, dan Bundling) di cloud |
+| **Status Bar Engine** | **Expo Status Bar ~58.0.4** | Penanganan status bar yang kompatibel dengan tema terang/gelap |
+| **Safe Area Insets** | **react-native-safe-area-context ~5.10.1** | Penanganan notch, punch-hole kamera, dan navigation bar perangkat |
+| **Navigasi UI** | Custom Mobile Sliding Drawer (`Sidebar.tsx`) | Navigasi menu samping hardware-accelerated yang mulus tanpa bloatware |
+| **Realtime Channel** | Native `WebSocket` API | Menerima event realtime `LEVEL_UPDATE` & `ALERT_*` langsung dari Fastify |
 | **Runtime & Bundler** | Metro Bundler (Port 8081) | Tool kompilasi dan hot-reloading Expo Go |
 
-### Konfigurasi Jaringan & Alamat IP Lokal (`src/config/env.ts`)
-Karena emulator Android atau HP fisik tidak dapat mengakses `localhost` laptop secara langsung:
-```typescript
-// IP Host Laptop/Server Pengembangan pada jaringan WiFi yang sama
-export const ENV = {
-  // Akses ke Web BFF (Next.js Port 3000)
-  BFF_URL: process.env.EXPO_PUBLIC_BFF_URL || "http://192.168.1.15:3000",
+### 2.1 Konfigurasi Environment & Alamat IP (`src/config/env.ts`)
+Aplikasi seluler mengadopsi struktur konfigurasi yang bersih dan terisolasi. Kode aplikasi membaca variabel environment dari `.env` dengan fallback ke localhost:
 
-  // Akses Realtime WebSocket ke Core Backend (Fastify Port 8000)
-  WS_URL: process.env.EXPO_PUBLIC_WS_URL || "ws://192.168.1.15:8000/ws",
+```typescript
+export const ENV = {
+  BFF_URL: process.env.EXPO_PUBLIC_BFF_URL || "http://localhost:3000",
+  WS_URL: process.env.EXPO_PUBLIC_WS_URL || "ws://localhost:8000/ws",
 };
+```
+
+Pengembang cukup menyalin file `.env.example` menjadi `.env` dan memilih skenario koneksi yang sesuai:
+
+```env
+# Skenario 1: Browser Lokal
+EXPO_PUBLIC_BFF_URL=http://localhost:3000
+EXPO_PUBLIC_WS_URL=ws://localhost:8000/ws
+
+# Skenario 2: Android Studio Emulator
+# EXPO_PUBLIC_BFF_URL=http://10.0.2.2:3000
+# EXPO_PUBLIC_WS_URL=ws://10.0.2.2:8000/ws
+
+# Skenario 3: HP Fisik via WiFi LAN
+# EXPO_PUBLIC_BFF_URL=http://<IP_LAN_LAPTOP>:3000
+# EXPO_PUBLIC_WS_URL=ws://<IP_LAN_LAPTOP>:8000/ws
+
+# Skenario 4: HP Fisik via Tailscale VPN
+# EXPO_PUBLIC_BFF_URL=http://<IP_TAILSCALE>:3000
+# EXPO_PUBLIC_WS_URL=ws://<IP_TAILSCALE>:8000/ws
+
+# Skenario 5: Produksi Cloud
+# EXPO_PUBLIC_BFF_URL=https://<DOMAIN_BFF>.vercel.app
+# EXPO_PUBLIC_WS_URL=wss://<DOMAIN_API>/ws
 ```
 
 ---
 
 ## 3. Struktur Direktori & Arsitektur Komponen
 
-Struktur direktori pada `frontend-mobile-rsa-ugm/src` diorganisasi secara modular:
+Struktur direktori pada `frontend-mobile-rsa-ugm` diorganisasi secara modular dan teruji:
 
 ```text
-src/
-├── components/
-│   ├── Card.tsx                  # Base card & Badge status level air
-│   ├── Sidebar.tsx               # Custom Sliding Drawer navigation
-│   ├── LiquidLevelGauge.tsx      # Komponen gauge silinder tangki vertikal
-│   ├── AlertModal.tsx            # Modal darurat popup saat air < 30%
-│   ├── QuickThresholdSheet.tsx   # Bottom sheet edit threshold (F-06 ringkas)
-│   └── Header.tsx                # Custom Top Header (Status bar, Menu button, Judul)
-├── services/
-│   ├── api.ts                    # Axios client instance + SecureStore interceptor
-│   └── websocket.ts              # WebSocket listener client singleton
-├── stores/
-│   ├── tankStore.ts              # Zustand: daftar tangki & live update level
-│   ├── alertStore.ts             # Zustand: alert aktif & aksi resolve
-│   ├── authStore.ts              # Zustand: user login, role, & status auth
-│   └── deviceStore.ts            # Zustand: gateway & node status connectivity
-├── screens/
-│   ├── LoginScreen.tsx           # Layar masuk kredensial petugas
-│   ├── HomeScreen.tsx            # Beranda pemantauan tangki (Glance list)
-│   ├── TankDetailModal.tsx       # Detail spesifik tangki & grafik ringkas
-│   ├── AlertsScreen.tsx          # Riwayat alert & tombol penyelesaian
-│   ├── DevicesScreen.tsx         # Status sinyal LoRa RSSI & Hub RPi
-│   ├── AdminUsersScreen.tsx      # Kelola operator ringkas (F-07)
-│   └── AuditFeedScreen.tsx       # Timeline aktivitas terbaru (F-08)
-├── config/
-│   └── env.ts                    # IP binding configuration
-└── types/
-    └── index.ts                  # TypeScript interfaces (Tank, Alert, User, etc.)
+frontend-mobile-rsa-ugm/
+├── .github/
+│   └── workflows/
+│       └── ci.yml                # Multi-Stage CI Pipeline GitHub Actions (3 Stages)
+├── __tests__/
+│   ├── env.test.ts               # Unit test konfigurasi environment & fallback
+│   └── tankMetrics.test.ts       # Unit test kalkulasi volume, threshold & severity sorting
+├── .expo/                        # Cache dan metadata bundler Expo
+├── assets/                       # Aset ikon aplikasi, splash, dan favicon
+├── docs/                         # Acuan spesifikasi kebutuhan teknis
+│   ├── PRD-MFE.md                # Master Frontend PRD
+│   └── PRD-Mobile.md             # Acuan Tunggal Spesifikasi Mobile
+├── src/
+│   ├── components/
+│   │   ├── Card.tsx              # Komponen Kartu dasar & Badge status dot semantik
+│   │   ├── Header.tsx            # Custom Top Header dengan tombol hamburger & profil
+│   │   ├── MetricsOverview.tsx   # 3 Kartu metrik ringkasan kapasitas & alert
+│   │   ├── Sidebar.tsx           # Navigasi Sliding Drawer hardware-accelerated
+│   │   └── TankCard.tsx          # Kartu tangki dengan progress bar & modul radio LoRa
+│   ├── config/
+│   │   └── env.ts                # Konfigurasi binding IP fallback (BFF_URL & WS_URL)
+│   ├── screens/
+│   │   ├── HomeScreen.tsx        # Beranda glance list dengan Severity Auto-Sort
+│   │   └── PlaceholderScreen.tsx # Template layar modul yang sedang dalam pengembangan
+│   ├── services/
+│   │   ├── secureStore.ts        # Enkripsi hardware untuk simpan JWT Bearer Token
+│   │   └── api.ts                # Axios client terpusat dengan SecureStore interceptor
+│   ├── stores/
+│   │   ├── authStore.ts          # Zustand: autentikasi, sesi pengguna, & auto-login
+│   │   └── tankStore.ts          # Zustand: daftar tangki & live update telemetry
+│   ├── utils/
+│   │   └── tankMetrics.ts        # Logika murni perhitungan, sorting keparahan, & format volume
+│   └── types/
+│       └── index.ts              # Type definitions resmi selaras Web BFF & Drizzle
+├── .env.example                  # Template panduan konfigurasi variabel lingkungan
+├── app.json                      # Konfigurasi Expo & manifest aplikasi (CNG)
+├── App.tsx                       # Root container, SafeAreaProvider & Main Dashboard
+├── index.ts                      # Entrypoint Expo registerRootComponent
+├── jest.config.js                # Konfigurasi Jest test runner untuk TypeScript
+├── package.json                  # Dependensi proyek (Expo SDK 58, React 19, RN 0.88, Jest)
+└── tsconfig.json                 # Konfigurasi TypeScript compiler dengan tipe Jest
 ```
 
 ---
@@ -104,12 +146,12 @@ Sesuai ketetapan Master PRD, aplikasi Mobile mengimplementasikan seluruh fitur f
 ```mermaid
 flowchart TD
     subgraph MobileApp["SI-POTA Mobile v1.0"]
-        Header["Custom Header: RSA UGM • SI-POTA v1.0\n(Status Bar, Menu Icon ≡, Alert Counter)"]
+        Header["Custom Header: RSA UGM • SI-POTA v1.0\n(Status Bar, Menu Icon ≡, Profil User)"]
         Drawer["Sliding Drawer Menu\n(Beranda, Alert, Perangkat, Kelola Tangki*, Kelola Akun*, Audit*, Logout)"]
         
-        Screen1["HomeScreen (F-01 & F-02)\n- Kartu Tangki Vertikal\n- Auto-sort by Severity\n- Trend Sparkline 24h"]
+        Screen1["HomeScreen (F-01 & F-02)\n- 3 Kartu Overview (Rata-rata, Siaga, Waspada)\n- Kartu Tangki Vertikal (Progress Bar & Badges)\n- Auto-sort by Severity (CRITICAL -> WARNING -> NORMAL)"]
         Screen2["AlertModal / Screen (F-03 & F-04)\n- Banner Darurat Merah\n- Tombol Resolve Alert Lapangan"]
-        Screen3["DevicesScreen (F-05)\n- Status RPi & Sinyal LoRa RSSI"]
+        Screen3["DevicesScreen (F-05)\n- Status RPi Hub & Sinyal LoRa RSSI"]
         Screen4["QuickThresholdSheet (F-06 Ringkas*)\n- Bottom Sheet Kalibrasi Min/Max %"]
         Screen5["AdminUsersScreen (F-07 Ringkas*)\n- List Operator & Toggle Switch Aktif"]
         Screen6["AuditFeedScreen (F-08 Ringkas*)\n- Timeline Feed 20 Aksi Terakhir"]
@@ -118,6 +160,7 @@ flowchart TD
     Header --> Drawer
     Drawer --> Screen1 & Screen2 & Screen3 & Screen4 & Screen5 & Screen6
 ```
+
 *(Tanda `*` menandakan fitur administratif khusus pengguna ber-role `admin`)*.
 
 ---
@@ -126,13 +169,17 @@ flowchart TD
 * **Tujuan:** Menyajikan status ketinggian air seluruh tangki rumah sakit secara sekilas saat petugas berkeliling.
 * **Fitur Utama:**
   * **Auto-Sort by Severity:** Tangki yang berada pada kondisi darurat (**CRITICAL** $<30\%$ atau **WARNING** $30-60\%$) otomatis ditempatkan di posisi **paling atas layar**.
-  * **Komponen Kartu Tangki (`Card.tsx`):**
-    * Nama Tangki (contoh: *Tangki Atap Gedung Utama*) dan Lokasi fisik (*Lantai 5 Gedung A*).
-    * Indikator Level Persentase dengan angka besar (contoh: `72.4%`).
-    * Estimasi Volume Air (contoh: `7.240 / 10.000 L`).
-    * Badge Status Semantik: **NORMAL** (Hijau), **WARNING** (Kuning), **CRITICAL** (Merah).
+  * **Komponen Overview (`MetricsOverview.tsx`):**
+    * Rata-rata Ketinggian Air Rumah Sakit (persentase agregat).
+    * Indikator Jumlah Tangki Status Kritis / Siaga ($<30\%$).
+    * Indikator Jumlah Tangki Status Waspada ($30-60\%$).
+  * **Komponen Kartu Tangki (`TankCard.tsx`):**
+    * Nama Tangki (contoh: *Tangki Gedung Utama*) dan Lokasi fisik (*Lantai 5 Gedung A*).
+    * Indikator Level Persentase dengan angka besar tebal (contoh: `72.4%`).
+    * Estimasi Volume Air Terkini (contoh: `7.240 / 10.000 L`).
+    * Bar Progress Horizontal dengan warna semantik dinamis.
+    * Badge Status Dot Semantik: **NORMAL** (Hijau), **WARNING** (Kuning), **CRITICAL** (Merah).
     * Indikator Sinyal LoRa: Ikon radio dengan nilai RSSI (contoh: `-74 dBm`).
-    * Tombol *"Detail Tangki"* untuk membuka popup detail.
 
 ### 4.2 F-02: Tren Riwayat Air 24 Jam Ringkas (*Sparkline Trend*)
 * **Tujuan:** Memberikan gambaran sekilas apakah volume air sedang naik (terisi) atau sedang menyusut drastis.
@@ -210,16 +257,16 @@ sequenceDiagram
     App->>BFF: HTTP GET /api/tanks (Header: Bearer <token>)
     BFF-->>App: JSON Snapshot Seluruh Tangki
     App->>Store: setTanks(data)
-    Store-->>App: Render Kartu Tangki di Beranda
+    Store-->>App: Render Kartu Tangki di Beranda (Auto-Sort Severity)
 
     %% Realtime Streaming
-    App->>WS: Buka Socket 'ws://<LAN_IP>:8000/ws'
+    App->>WS: Buka Socket 'ws://<HOST_IP>:8000/ws'
     WS-->>App: Event CONNECTED
 
     loop Aliran Data Realtime
         WS->>>App: Event LEVEL_UPDATE { tankId, levelPercent, volumeLiters }
         App->>Store: updateLevel(tankId, levelPercent, volumeLiters)
-        Store-->>App: Re-render Angka & Animasi Air (Instant)
+        Store-->>App: Re-render Angka, Bar & Status (Instant)
 
         opt Jika Terjadi Level Air Kritis
             WS->>>App: Event ALERT_TRIGGERED { id, tankId, level: 'CRITICAL' }
@@ -228,7 +275,7 @@ sequenceDiagram
         end
     end
 
-    %% Fallback jika WiFi terputus
+    %% Fallback jika koneksi terputus
     opt Jika Koneksi WebSocket Putus
         App->>App: Mulai Reconnect Interval (Tiap 5 Detik)
         loop Polling Cadangan
@@ -286,7 +333,6 @@ api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      // Sesi kedaluwarsa: hapus token dan kembali ke layar login
       console.warn("[Auth] Sesi berakhir, redirect ke login");
     }
     return Promise.reject(err);
@@ -296,47 +342,65 @@ api.interceptors.response.use(
 
 ---
 
-## 7. Design System Mobile & Dark Medical Theme
+## 7. Design System Mobile — Hospital Clean Light Theme
 
-Mengadopsi nuansa medis profesional gelap (*Hospital Clean Dark UI*) yang nyaman di mata petugas saat bertugas malam:
+Aplikasi seluler mengadopsi standar desain **Hospital Clean Light Theme** yang cerah, bersih, dan profesional, selaras 100% dengan dashboard web desktop RSA UGM demi konsistensi identitas visual dan kenyamanan penggunaan lapangan di bawah pencahayaan terang:
 
 ### 7.1 Palet Warna Status & UI
-* **Brand Primary:** `#0A354C` (Warna dasar Top Header & Navigasi Drawer)
-* **Background Utama:** `#0B132B` (Latar belakang gelap layar beranda)
-* **Surface Kartu Tangki:** `#1C2541` (Latar komponen kartu dengan elevasi halus)
-* **Batas Kartu / Border:** `#3A506B`
-* **Status Normal:** `#10B981` (Hijau zamrud — level $> 60\%$)
-* **Status Warning:** `#F59E0B` (Kuning amber — level $30\% - 60\%$)
-* **Status Critical:** `#EF4444` (Merah menyala — level $< 30\%$)
-* **Teks Utama:** `#FFFFFF` (Putih terang) & **Teks Sekunder:** `#94A3B8` (Abu-abu kebiruan)
 
-### 7.2 Ergonomi Sentuhan Jari (*Touch Ergonomics*)
-* Seluruh tombol aksi (tombol menu drawer `≡`, tombol *Resolve*, tombol detail) memiliki **area sentuh minimal $44 \times 44\text{ dp}$** untuk mencegah salah tekan saat petugas menggunakan sarung tangan atau tergesa-gesa.
+| Elemen UI | Nilai Hex | Peran & Penggunaan |
+| :--- | :--- | :--- |
+| **Brand Primary** | `#0A354C` | Warna identitas resmi RSA UGM pada Top Header & Drawer Header |
+| **Background Utama** | `#F8FAFC` | Slate-50, latar belakang aplikasi yang bersih, segar, dan terang |
+| **Surface Kartu Tangki** | `#FFFFFF` | Latar putih murni pada komponen kartu dengan elevasi dan bayangan halus |
+| **Batas Garis (Border)** | `#E2E8F0` | Slate-200, pembatas halus antar-elemen tanpa mengaburkan visual |
+| **Teks Utama** | `#0F172A` | Slate-900, teks dengan kontras tinggi untuk keterbacaan optimal |
+| **Teks Sekunder / Muted**| `#64748B` | Slate-500, label informasi sekunder, timestamp, dan satuan |
+| **Status Normal** | `#10B981` | Emerald-500, indikator air aman ($> 60\%$) |
+| **Status Warning** | `#F59E0B` | Amber-500, indikator waspada ($30\% - 60\%$) |
+| **Status Critical** | `#EF4444` | Rose-500, indikator bahaya darurat ($< 30\%$) |
+
+### 7.2 Indikator Dot Badge Semantik
+Setiap kartu tangki dan ringkasan metrik dilengkapi dengan badge dot bulat kecil dengan warna semantik (`#10B981`, `#F59E0B`, `#EF4444`) untuk mempermudah pemindaian status secara instan tanpa perlu membaca teks panjang.
+
+### 7.3 Ergonomi Sentuhan Jari (*Touch Ergonomics*)
+* Seluruh tombol aksi interaktif (tombol menu drawer `≡`, kartu tangki, tombol *Resolve*, tombol detail) memiliki **area sentuh minimal $44 \times 44\text{ dp}$** untuk mencegah salah tekan saat petugas bergerak cepat atau menggunakan sarung tangan medis.
 
 ---
 
-## 8. Pipeline CI GitHub Actions (`.github/workflows/ci.yml`)
+## 8. Pipeline CI Multi-Stage GitHub Actions (`.github/workflows/ci.yml`)
 
-Repositori `frontend-mobile-rsa-ugm` diproteksi secara otomatis melalui pipeline CI untuk memvalidasi setiap Pull Request ke branch `dev` dan `main`:
+Repositori `frontend-mobile-rsa-ugm` diproteksi secara otomatis melalui pipeline Continuous Integration (CI) multi-stage dengan dependensi berantai (*chained stages*), memastikan setiap Pull Request ke branch `dev` dan `main` melalui 3 pintu kualitas sebelum diizinkan untuk di-merge:
+
+```mermaid
+flowchart LR
+    A["Stage 1: Healthcheck & Typecheck\n(tsc --noEmit & expo-doctor)"] -->|"needs: Stage 1"| B["Stage 2: Unit Tests Suite\n(Jest + Coverage Reports)"]
+    B -->|"needs: Stage 2"| C["Stage 3: Production Dry Export\n(expo export --no-bytecode)"]
+```
 
 ```yaml
-name: Mobile CI (Typecheck & Expo Dry Export)
+name: Mobile CI Multi-Stage (Strict Quality Gate)
 
 on:
   push:
     branches:
       - "feat/*"
+      - "ci/*"
+      - "fix/*"
   pull_request:
     branches:
       - dev
       - main
 
 jobs:
-  validate-mobile:
-    name: TypeScript Check & Expo Healthcheck
+  # ============================================================================
+  # STAGE 1: Static Analysis, TypeScript Types & Expo Environment Health
+  # ============================================================================
+  healthcheck-and-typecheck:
+    name: 🩺 Stage 1 - Healthcheck & Typecheck
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js 20 LTS
@@ -345,20 +409,63 @@ jobs:
           node-version: 20
           cache: "npm"
 
-      - name: Install Dependencies
+      - name: Clean Install NPM Dependencies
         run: npm ci
 
-      - name: Strict TypeScript Verification
-        run: npx tsc --noEmit
+      - name: Strict TypeScript Compilation Check
+        run: npm run typecheck
 
-      - name: Expo Compatibility Doctor
+      - name: Expo Compatibility & Dependency Health Check
         run: npx expo-doctor
 
-      - name: Dry Export Android Bundle
-        run: npx expo export --platform android
-        env:
-          EXPO_PUBLIC_BFF_URL: "http://localhost:3000"
-          EXPO_PUBLIC_WS_URL: "ws://localhost:8000/ws"
+  # ============================================================================
+  # STAGE 2: Automated Unit Testing & Code Coverage
+  # ============================================================================
+  unit-tests:
+    name: 🧪 Stage 2 - Unit Tests Suite
+    needs: healthcheck-and-typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Clean Install NPM Dependencies
+        run: npm ci
+
+      - name: Run Jest Unit Tests with Coverage Report
+        run: npm run test:ci
+
+  # ============================================================================
+  # STAGE 3: Production Bundling Verification (Dry Run)
+  # ============================================================================
+  production-dry-export:
+    name: 📦 Stage 3 - Production Dry Export
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    env:
+      EXPO_PUBLIC_BFF_URL: "http://localhost:3000"
+      EXPO_PUBLIC_WS_URL: "ws://localhost:8000/ws"
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Clean Install NPM Dependencies
+        run: npm ci
+
+      - name: Dry Export Production Bundle (Android / Cross-Platform)
+        run: npx expo export --no-bytecode
 ```
 
 ---
@@ -369,18 +476,28 @@ jobs:
    ```bash
    cd frontend-mobile-rsa-ugm
    ```
-2. Instalasi seluruh dependensi npm:
+2. Pasang seluruh dependensi:
    ```bash
    npm install
    ```
-3. Cek alamat IP LAN komputer Anda (misal `ipconfig` di Windows):
-   * Pastikan `App.tsx` atau `src/config/env.ts` mengarah ke IP LAN tersebut (contoh: `http://192.168.1.15:3000`).
-4. Jalankan bundler Expo:
+3. Salin file environment:
+   ```bash
+   cp .env.example .env
+   # Buka .env dan uncomment konfigurasi yang dituju (misal IP LAN WiFi laptop)
+   ```
+4. Jalankan bundler Metro Expo:
    ```bash
    npx expo start
    ```
-5. Scan QR Code menggunakan aplikasi **Expo Go** di ponsel pintar Android Anda (pastikan ponsel dan laptop berada di jaringan WiFi/Hotspot yang sama).
-6. Lakukan validasi mandiri sebelum mengajukan Pull Request:
+5. Buka di perangkat:
+   * **HP Fisik:** Scan QR Code via aplikasi **Expo Go** (pastikan satu WiFi dengan laptop).
+   * **Emulator Android:** Tekan tombol `a`.
+   * **Web Preview:** Tekan tombol `w`.
+6. Validasi kualitas lokal sebelum membuka Pull Request:
    ```bash
-   npx tsc --noEmit && npx expo export --platform android
+   npm run typecheck && npm test && npx expo-doctor && npx expo export --no-bytecode
    ```
+
+---
+
+*Dikelola oleh Tim Pengembang Work Package 4 (WP-4) — Rumah Sakit Akademik Universitas Gadjah Mada* 🏥

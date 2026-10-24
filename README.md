@@ -16,7 +16,7 @@ Petugas pemeliharaan fasilitas RSA UGM berpindah secara konstan antar-gedung (Ge
 
 ### Karakteristik Desain:
 * **Orientasi Vertikal (*Portrait-first*):** Tata letak yang dioptimalkan untuk penggunaan satu tangan ramah sentuhan jempol (*thumb-friendly*).
-* **Desain Tema Gelap Modern (*Dark Blue-Teal*):** Visual elegan yang selaras dengan panduan antarmuka Figma dan web dashboard utama.
+* **Desain Clean Light Medis:** Visual bersih, cerah, dan profesional yang selaras 100% dengan dashboard web desktop RSA UGM.
 * **Ringan & Hemat Kuota:** Komputasi data mentah dan filtering telah diramu di sisi backend/BFF, sehingga ponsel menerima data siap render tanpa menguras baterai.
 * **Responsif Edge-to-Edge:** Mendukung standar tampilan modern Android 15 & iOS Notch/Dynamic Island secara dinamis melalui `react-native-safe-area-context`.
 
@@ -57,6 +57,9 @@ Aplikasi dibangun di atas pondasi runtime Expo modern:
 | **Library UI Reaktif** | **React 19.3.0** | Library rendering UI reaktif generasi terbaru |
 | **State Management** | **Zustand ^5.0.16** | Pengelola state global klien (`authStore`, `tankStore`, dll) yang ringan |
 | **HTTP Client** | **Axios ^1.20.0** | Komunikasi HTTP dengan JWT request interceptor otomatis |
+| **Penyimpanan Kredensial** | **Expo SecureStore ~58.0.2** | Enkripsi hardware native (Keystore/Keychain) untuk token JWT |
+| **Unit Testing Engine**| **Jest ^30.5.2 & ts-jest ^29.4.15** | Pengujian unit otomatis super cepat dengan metrik code coverage |
+| **CI / Quality Gate** | **GitHub Actions Multi-Stage** | Validasi otomatis 3 tahap (Healthcheck, Tests, dan Bundling) di cloud |
 | **Status Bar Engine** | **Expo Status Bar ~58.0.4** | Penanganan status bar yang kompatibel dengan tema gelap/terang |
 | **Safe Area Insets** | **react-native-safe-area-context ~5.10.1** | Penanganan notch, punch-hole kamera, dan navigation bar perangkat |
 
@@ -93,15 +96,132 @@ sequenceDiagram
     Mobile->>Mobile: Update State Zustand (tankStore) & Tampilkan Peringatan
 ```
 
-### Konfigurasi Variabel Lingkungan (`src/config/env.ts`):
-Mengacu pada **PRD-Mobile.md Bagian 2**, aplikasi seluler menggunakan dua variabel lingkungan utama:
-1. **`EXPO_PUBLIC_BFF_URL` (HTTP Web BFF — Port 3000):**
-   * Seluruh pertukaran data HTTP (autentikasi, tangki, alert, user, dll) **wajib melalui Web BFF**.
-   * Web / Browser / Preview: `http://localhost:3000`
-   * Android Studio Emulator: `http://10.0.2.2:3000`
-   * HP Fisik (WiFi Sama): `http://<IP-LAN-LAPTOP>:3000` (contoh: `http://10.67.219.28:3000`)
-2. **`EXPO_PUBLIC_WS_URL` (WebSocket Realtime — Port 8000):**
-   * Koneksi soket persisten langsung ke Core Backend Fastify: `ws://<HOST>:8000/ws` untuk *realtime event push*.
+---
+
+## 🚀 Panduan Memulai untuk Tim Pengembang (Developer Onboarding)
+
+Ikuti langkah-langkah berikut saat pertama kali melakukan kloning repositori ini:
+
+### 1. Prasyarat Sistem
+* **Node.js**: Versi LTS ($\ge 20.x$).
+* **Git**: Terpasang di laptop pengembang.
+* **Aplikasi Pengujian**:
+  * **HP Fisik (Rekomendasi)**: Pasang aplikasi **Expo Go** dari Google Play Store (Android) atau App Store (iOS).
+  * **Emulator**: Atau gunakan **Android Studio Emulator**.
+
+---
+
+### 2. Kloning Repositori
+```bash
+git clone https://github.com/PMLD-RSA/frontend-mobile-rsa-ugm.git
+cd frontend-mobile-rsa-ugm
+```
+
+---
+
+### 3. Pemasangan Dependensi
+Pasang seluruh paket dependensi resmi Expo SDK 58:
+```bash
+npm install
+```
+
+---
+
+### 4. Konfigurasi Environment (`.env`)
+Salin template `.env.example` menjadi `.env`:
+
+```bash
+# Windows PowerShell
+Copy-Item .env.example .env
+
+# Linux / macOS / Git Bash
+cp .env.example .env
+```
+
+Buka file `.env`, lalu pilih salah satu skenario target dan **uncomment**:
+
+```env
+# ==============================================================================
+# ALAMAT WEB BFF NEXT.JS (Port 3000) - Pilih salah satu dan uncomment
+# ==============================================================================
+
+# 1. Local Browser / Web Preview
+EXPO_PUBLIC_BFF_URL=http://localhost:3000
+
+# 2. Android Studio Emulator
+# EXPO_PUBLIC_BFF_URL=http://10.0.2.2:3000
+
+# 3. HP Fisik (Satu jaringan WiFi) -> Ubah <IP_LAN_LAPTOP>
+# EXPO_PUBLIC_BFF_URL=http://<IP_LAN_LAPTOP>:3000
+
+# 4. HP Fisik (Via Tailscale) -> Ubah <IP_TAILSCALE_LAPTOP> (misal: 100.67.180.76)
+# EXPO_PUBLIC_BFF_URL=http://<IP_TAILSCALE_LAPTOP>:3000
+
+# 5. Production (BFF sudah di-deploy) -> Ubah <DOMAIN_BFF_ANDA>
+# EXPO_PUBLIC_BFF_URL=https://<DOMAIN_BFF_ANDA>.vercel.app
+
+
+# ==============================================================================
+# ALAMAT WEBSOCKET CORE BACKEND (Port 8000) - Pilih salah satu dan uncomment
+# ==============================================================================
+
+# 1. Local 
+EXPO_PUBLIC_WS_URL=ws://localhost:8000/ws
+
+# 2. Via Tailscale -> Ubah <IP_TAILSCALE_BACKEND>
+# EXPO_PUBLIC_WS_URL=ws://<IP_TAILSCALE_BACKEND>:8000/ws
+
+# 3. Production (Sudah di-deploy, gunakan wss://) -> Ubah <DOMAIN_API_ANDA>
+# EXPO_PUBLIC_WS_URL=wss://<DOMAIN_API_ANDA>/ws
+```
+
+> [!TIP]
+> Jika menguji dari **HP fisik**, pilih opsi **3 (LAN WiFi)** atau **4 (Tailscale)**. Hindari membiarkan `localhost` di HP fisik karena ponsel akan menghubungi dirinya sendiri dan menyebabkan status *⚠️ BFF Offline*.
+
+---
+
+### 5. Memastikan Web BFF Sedang Berjalan
+Karena Mobile mengonsumsi data melalui Web BFF, pastikan repositori **`frontend-web-rsa-ugm`** sudah berjalan di latar belakang:
+```bash
+# Di terminal frontend-web-rsa-ugm:
+pnpm run dev
+# Pastikan Web BFF aktif di port 3000 (http://localhost:3000/api/tanks)
+```
+
+---
+
+### 6. Menjalankan Server Pengembangan Mobile (Metro)
+```bash
+npx expo start
+```
+Atau jika ingin membersihkan cache bundler:
+```bash
+npx expo start -c
+```
+
+**Cara Menghubungkan:**
+* **Buka di HP Fisik:** Buka aplikasi **Expo Go**, lalu pindai (*scan*) QR Code yang muncul di terminal komputer Anda.
+* **Buka di Android Emulator:** Tekan tombol `a` pada keyboard di terminal.
+* **Buka di Browser Web:** Tekan tombol `w` pada keyboard di terminal.
+
+---
+
+### 7. Verifikasi Kualitas & Integritas Kode
+Sebelum membuat commit atau Pull Request, pastikan seluruh pemeriksaan berikut lolos:
+
+```bash
+# 1. Pengecekan Type-safety TypeScript
+npm run typecheck       # atau: npx tsc --noEmit
+
+# 2. Pengujian Unit Otomatis (Jest Suite & Coverage)
+npm test                # atau untuk CI: npm run test:ci
+
+# 3. Diagnostik Kesehatan Lingkungan Expo (20 Parameter)
+npx expo-doctor
+
+# 4. Uji Coba Ekspor Produksi (Dry Run)
+npx expo export --no-bytecode
+```
 
 ---
 
@@ -109,83 +229,65 @@ Mengacu pada **PRD-Mobile.md Bagian 2**, aplikasi seluler menggunakan dua variab
 
 ```text
 frontend-mobile-rsa-ugm/
-├── .expo/                        # Cache dan metadata Expo
-├── assets/                       # Aset ikon, favicon, dan gambar splash
-├── docs/                         # Dokumentasi acuan spesifikasi teknis
+├── .github/
+│   └── workflows/
+│       └── ci.yml                # Multi-Stage CI Pipeline GitHub Actions (3 Stages)
+├── __tests__/
+│   ├── env.test.ts               # Unit test konfigurasi environment & fallback
+│   └── tankMetrics.test.ts       # Unit test kalkulasi volume, threshold & severity sorting
+├── .expo/                        # Cache dan metadata bundler Expo
+├── assets/                       # Aset ikon aplikasi, splash, dan favicon
+├── docs/                         # Acuan spesifikasi kebutuhan teknis
 │   ├── PRD-MFE.md                # Master Frontend PRD
 │   └── PRD-Mobile.md             # Acuan Tunggal Spesifikasi Mobile
 ├── src/
 │   ├── components/
-│   │   ├── Card.tsx              # Komponen Kartu dasar & Badge status level air
-│   │   └── Sidebar.tsx           # Navigasi Sliding Drawer dengan profil pengguna
+│   │   ├── Card.tsx              # Komponen Kartu dasar & Badge status dot semantik
+│   │   ├── Header.tsx            # Custom Top Header dengan tombol hamburger & profil
+│   │   ├── MetricsOverview.tsx   # 3 Kartu metrik ringkasan kapasitas & alert
+│   │   ├── Sidebar.tsx           # Navigasi Sliding Drawer hardware-accelerated
+│   │   └── TankCard.tsx          # Kartu tangki dengan progress bar & modul radio LoRa
 │   ├── config/
-│   │   └── env.ts                # Konfigurasi binding IP (BFF_URL & WS_URL)
+│   │   └── env.ts                # Konfigurasi binding IP fallback (BFF_URL & WS_URL)
+│   ├── screens/
+│   │   ├── HomeScreen.tsx        # Beranda glance list dengan Severity Auto-Sort
+│   │   └── PlaceholderScreen.tsx # Template layar modul yang sedang dalam pengembangan
 │   ├── services/
 │   │   ├── secureStore.ts        # Enkripsi hardware untuk simpan JWT Bearer Token
-│   │   └── api.ts                # Axios client terpusat dengan SecureStore interceptor ke Web BFF
+│   │   └── api.ts                # Axios client terpusat dengan SecureStore interceptor
 │   ├── stores/
-│   │   ├── authStore.ts          # Zustand store: autentikasi, sesi JWT, & auto-login
-│   │   └── tankStore.ts          # Zustand store: daftar tangki & auto-sort by severity
+│   │   ├── authStore.ts          # Zustand: autentikasi, sesi pengguna, & auto-login
+│   │   └── tankStore.ts          # Zustand: daftar tangki & live update telemetry
+│   ├── utils/
+│   │   └── tankMetrics.ts        # Logika murni perhitungan, sorting keparahan, & format volume
 │   └── types/
-│       └── index.ts              # Type definitions resmi selaras Drizzle & Web BFF
-├── .env.example                  # Template konfigurasi EXPO_PUBLIC_BFF_URL & EXPO_PUBLIC_WS_URL
+│       └── index.ts              # Type definitions resmi selaras Web BFF & Drizzle
+├── .env.example                  # Template panduan konfigurasi variabel lingkungan
 ├── app.json                      # Konfigurasi Expo & manifest aplikasi (CNG)
 ├── App.tsx                       # Root container, SafeAreaProvider & Main Dashboard
 ├── index.ts                      # Entrypoint Expo registerRootComponent
-├── package.json                  # Dependensi proyek (Expo SDK 58, React 19, RN 0.88)
-└── tsconfig.json                 # Konfigurasi TypeScript compiler
-```
-
----
-
-## 🚀 Panduan Memulai (Developer Quickstart)
-
-### 1. Prasyarat Sistem
-* **Node.js**: Versi LTS ($\ge 20.x$).
-* **Expo Go**: Terpasang di ponsel Android/iOS fisik (tersedia di Google Play Store / Apple App Store) atau **Android Studio Emulator**.
-
-### 2. Kloning & Pemasangan Dependensi
-```bash
-# Masuk ke direktori mobile
-cd frontend-mobile-rsa-ugm
-
-# Pasang seluruh dependensi resmi SDK 58
-npm install
-```
-
-### 3. Konfigurasi Variabel Lingkungan
-Salin file template `.env.example` menjadi `.env`:
-```bash
-# Windows PowerShell
-Copy-Item .env.example .env
-```
-Sesuaikan `EXPO_PUBLIC_API_URL` pada `.env` dengan target backend yang ingin dihubungi (default mengarah ke VPS Fastify `http://100.94.192.102:8000`).
-
-### 4. Menjalankan Server Pengembangan (Metro)
-```bash
-# Menjalankan Metro bundler
-npx expo start
-```
-* **Untuk HP Fisik:** Pindai (*scan*) QR Code yang muncul di terminal menggunakan aplikasi **Expo Go**.
-* **Untuk Android Emulator:** Tekan tombol `a` di terminal.
-* **Untuk Web Preview:** Tekan tombol `w` di terminal.
-
-### 5. Verifikasi Integritas Kode
-Untuk memastikan tidak ada kesalahan tipe atau ketidakcocokan dependensi:
-```bash
-# Pengecekan TypeScript
-npx tsc --noEmit
-
-# Health check dependensi Expo SDK 58
-npx expo-doctor
+├── jest.config.js                # Konfigurasi Jest test runner untuk TypeScript
+├── package.json                  # Dependensi proyek (Expo SDK 58, React 19, RN 0.88, Jest)
+└── tsconfig.json                 # Konfigurasi TypeScript compiler dengan tipe Jest
 ```
 
 ---
 
 ## 🛡️ Kebijakan Branch & Standar Commit
-* Branch utama: `main` (Production) dan `dev` (Staging).
-* Penamaan branch fitur: `feat/<nama-fitur>`, perbaikan: `fix/<nama-isu>`, atau pembaruan konfigurasi: `chore/<nama-tugas>`.
-* Standar pesan commit: Mengikuti format **Conventional Commits** (contoh: `feat(mobile): implement glance home card with auto-severity sorting`).
+
+* **Branch Utama**:
+  * `main`: Cabang produksi (*Production Release*).
+  * `dev`: Cabang pengembangan utama (*Staging*). Seluruh Pull Request fitur ditujukan ke branch ini.
+* **Penamaan Branch**:
+  * Fitur baru: `feat/<nama-fitur>`
+  * Perbaikan bug: `fix/<nama-isu>`
+  * Konfigurasi & CI: `ci/<nama-tugas>` atau `chore/<nama-tugas>`
+* **Format Pesan Commit**:
+  Menggunakan standar **Conventional Commits**:
+  * `feat(ui): implement glance home card with auto-severity sorting`
+  * `fix(network): handle offline state gracefully in tank store`
+  * `style(theme): refine clean light theme and badge indicators`
+  * `docs(readme): update developer onboarding guide and environment setup`
 
 ---
 

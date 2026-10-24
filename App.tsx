@@ -1,18 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, ActivityIndicator, Platform, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import axios from 'axios';
 import { Card, Badge } from './src/components/Card';
 import { MobileSidebar } from './src/components/Sidebar';
 
-export default function App() {
+function MainScreen() {
+  const insets = useSafeAreaInsets();
   const [tanks, setTanks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // Gunakan IP lokal mesin Anda untuk BFF Web (bukan localhost, karena emulator Android butuh 10.0.2.2)
-  // Ubah 'http://10.0.2.2:3000' menjadi IP IPv4 LAN Anda jika ditest di HP fisik (misal: 'http://192.168.1.15:3000')
-  const BFF_URL = 'http://10.33.195.43:3000'; // IP Laptop Anda (WiFi Tethering/Kampus)
+  // Bisa dikonfigurasi melalui EXPO_PUBLIC_API_URL di file .env
+  const BFF_URL = process.env.EXPO_PUBLIC_API_URL || 'http://10.33.195.43:3000'; // Fallback default IP LAN
 
   useEffect(() => {
     axios.get(`${BFF_URL}/api/tanks`)
@@ -25,14 +27,14 @@ export default function App() {
       .finally(() => {
         setLoading(false);
       });
-  }, []);
+  }, [BFF_URL]);
 
   return (
     <View style={styles.safeArea}>
       <StatusBar style="light" />
       
       {/* Top Header matching Figma */}
-      <View style={styles.topHeader}>
+      <View style={[styles.topHeader, { paddingTop: Math.max(insets.top, 12) }]}>
         <TouchableOpacity onPress={() => setIsDrawerOpen(true)} style={styles.menuBtn}>
           <Text style={styles.menuIcon}>≡</Text>
         </TouchableOpacity>
@@ -45,7 +47,7 @@ export default function App() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.container}>
+      <ScrollView contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) }} style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>Pemantauan Tangki</Text>
           <Badge text="BFF Connected" variant="success" />
@@ -79,6 +81,14 @@ export default function App() {
   );
 }
 
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <MainScreen />
+    </SafeAreaProvider>
+  );
+}
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -90,7 +100,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#0a354c',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    paddingTop: Platform.OS === 'android' ? 40 : 12, // Status bar padding for non-SafeAreaView
   },
   menuBtn: {
     padding: 4,
@@ -130,7 +139,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
     padding: 20,
   },
-
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

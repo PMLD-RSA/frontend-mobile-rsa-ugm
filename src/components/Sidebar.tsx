@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, Platform, useWindowDimensions, Modal } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export const MobileSidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
+  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   // Provide a safe fallback width just in case useWindowDimensions is 0 momentarily
   const safeWidth = width > 0 ? width : 400; 
@@ -69,7 +71,7 @@ export const MobileSidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: (
         </Animated.View>
         
         {/* Sliding Drawer */}
-        <Animated.View style={[styles.drawer, { width: DRAWER_WIDTH, transform: [{ translateX: slideAnim }] }]}>
+        <Animated.View style={[styles.drawer, { width: DRAWER_WIDTH, paddingTop: Math.max(insets.top, 20), paddingBottom: Math.max(insets.bottom, 20), transform: [{ translateX: slideAnim }] }]}>
           {/* Header Logo */}
           <View style={styles.header}>
           <View style={styles.logoCircle}>
@@ -145,7 +147,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     backgroundColor: '#0a354c', // Dark blue-teal
-    paddingTop: Platform.OS === 'android' ? 40 : 20,
+
   },
   header: {
     flexDirection: 'row',

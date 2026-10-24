@@ -1,86 +1,192 @@
-# 📱 Sistem Informasi Pemantauan Level Air - Aplikasi Seluler (RSA UGM)
+# 📱 SI-POTA Mobile v1.0 — Aplikasi Seluler Pemantauan Tangki Air (RSA UGM)
 
-Selamat datang di repositori resmi **Aplikasi Seluler (Mobile App)** untuk proyek Work Package 4 (WP-4): Sistem Informasi Pemantauan dan Pengendalian Level Air Berbasis IoT di Rumah Sakit Akademik (RSA) UGM.
+Selamat datang di repositori resmi **Aplikasi Seluler (Mobile App)** untuk proyek **Work Package 4 (WP-4): Sistem Informasi Pemantauan dan Pengendalian Level Air Berbasis IoT di Rumah Sakit Akademik (RSA) Universitas Gadjah Mada**.
 
-Repositori ini memuat kode sumber untuk aplikasi berbasis Android/iOS yang digenggam oleh para staf lapangan dan pengelola rumah sakit.
+Aplikasi ini dibangun menggunakan **React Native (Expo SDK 58)** dan dirancang khusus sebagai alat pemantauan saku (*pocket glance tool*) bagi staf fasilitas dan teknisi lapangan yang bermobilitas tinggi di lingkungan rumah sakit.
 
----
-
-## 📖 Gambaran Umum (Overview)
-
-Aplikasi ini adalah pendamping berjalan (mobile) dari sistem pemantauan level air. Dirancang dengan antarmuka (UI) gelap (*dark mode/blue-teal*) yang elegan dari Figma, aplikasi ini memastikan para pengelola RSA UGM dapat melihat kondisi tangki, suhu, indikator kritis, serta menerima peringatan dini (alarm) secara langsung dari genggaman *smartphone* mereka, di manapun mereka berada.
-
-Alih-alih mengambil data secara langsung dan membabi-buta dari perangkat IoT, aplikasi ini bekerja cerdas dengan cara mengandalkan sistem **BFF (Backend-for-Frontend)** yang bersemayam di aplikasi Web utama. Hal ini membuat aplikasi berjalan sangat mulus, ringan, dan ramah kuota.
-
-### ✨ Fitur Utama
-1. **📊 Layar Dashboard Ringkas:** Ringkasan kondisi tangki rumah sakit secara langsung.
-2. **🚨 Notifikasi & Alarm:** Alert bahaya jika level tangki mendekati batas tumpah atau batas habis.
-3. **🧭 Navigasi Geser (Sliding Drawer):** Menu samping bergaya modern yang bisa ditarik tutup dengan sangat mulus (native Modal) untuk perpindahan fitur.
-4. **📶 Sinkronisasi Cepat:** Selalu *up-to-date* dengan keadaan sesungguhnya berkat integrasi API BFF yang optimal.
+> **Dokumen Referensi Utama:**
+> * Master Frontend PRD: [`docs/PRD-MFE.md`](docs/PRD-MFE.md)
+> * Spesifikasi Teknis Mobile: [`docs/PRD-Mobile.md`](docs/PRD-Mobile.md)
 
 ---
 
-## 🛠️ Teknologi yang Digunakan (Tech Stack)
+## 📖 Gambaran Umum & Visi Produk
 
-Aplikasi ini menggunakan perpaduan teknologi pembuat aplikasi HP terbaik saat ini:
-- **[React Native](https://reactnative.dev/):** Bahasa utama yang memungkinkan satu kode aplikasi berjalan sempurna di HP Android maupun iPhone (iOS) secara bersamaan.
-- **[Expo](https://expo.dev/):** Mesin peluncur aplikasi yang sangat memudahkan proses pembuatan, pengujian (lewat aplikasi Expo Go), hingga ke tahap perilisan (Play Store / App Store).
-- **[Zustand](https://github.com/pmndrs/zustand):** Pengelola ingatan aplikasi (State Management) yang ringan.
-- **Axios:** Kurir pengantar pesan yang handal untuk menjemput data dari server BFF.
+Petugas pemeliharaan fasilitas RSA UGM berpindah secara konstan antar-gedung (Gedung Utama/A, Rawat Inap/B, Bedah Sentral, Laundry, dsb). **SI-POTA Mobile** hadir untuk memberikan informasi ketinggian air dan peringatan dini secara cepat langsung dari genggaman ponsel.
 
----
+### Karakteristik Desain:
+* **Orientasi Vertikal (*Portrait-first*):** Tata letak yang dioptimalkan untuk penggunaan satu tangan ramah sentuhan jempol (*thumb-friendly*).
+* **Desain Tema Gelap Modern (*Dark Blue-Teal*):** Visual elegan yang selaras dengan panduan antarmuka Figma dan web dashboard utama.
+* **Ringan & Hemat Kuota:** Komputasi data mentah dan filtering telah diramu di sisi backend/BFF, sehingga ponsel menerima data siap render tanpa menguras baterai.
+* **Responsif Edge-to-Edge:** Mendukung standar tampilan modern Android 15 & iOS Notch/Dynamic Island secara dinamis melalui `react-native-safe-area-context`.
 
-## ⚙️ Cara Kerja dan Integrasi BFF (Backend-for-Frontend)
-
-Aplikasi ini dirancang khusus untuk menjadi **pengonsumsi data**. Ia tidak memiliki pusingnya memproses kerumitan database.
-
-**Lalu dari mana datanya?**
-Data didapatkan lewat integrasi **BFF**. 
-BFF adalah "pelayan" yang berada di aplikasi Web (`frontend-web-rsa-ugm`). Aplikasi seluler ini hanya perlu meminta data kepada pelayan tersebut.
-- Aplikasi Mobile memanggil tautan API (Contoh: `http://[ALAMAT-IP-WEB]:3000/api/tanks`).
-- BFF di sisi web akan meramu semua data mentah, merangkumnya, lalu mengirimkan "paket matang" ke aplikasi ini.
-- Aplikasi Mobile tinggal memoles "paket matang" tersebut ke dalam tampilan layar (*Render*).
+### ⚠️ Batasan Ruang Lingkup Mutlak (Scope Boundaries)
+1. **Monitoring & Early Warning Saja:** Aplikasi berfungsi menampilkan ketinggian air, visual progress bar, grafik ringkas 24 jam, status konektivitas radio LoRa, dan menyelesaikan peringatan (*Resolve Alert*).
+2. **DILARANG KERAS MEMBUAT KONTROL POMPA:** Seluruh saklar on/off pompa fisik, katup aktuator, atau manipulasi motor air ditiadakan dari aplikasi seluler demi menjaga keselamatan instalasi pipa rumah sakit dan mencegah salah pencet di lapangan.
 
 ---
 
-## 🚀 Panduan Instalasi (Untuk Developer)
+## ✨ Fitur Utama (Berdasarkan PRD-Mobile)
 
-Ingin ikut serta mengembangkan aplikasi ini? Ikuti langkah-langkah mudah berikut:
+Mengacu pada spesifikasi **F-01 s.d. F-08** dalam [`docs/PRD-Mobile.md`](docs/PRD-Mobile.md):
 
-### Syarat Wajib (Prerequisites)
-Pastikan komputer & HP Anda siap:
-1. **Node.js** terinstal di laptop Anda.
-2. Unduh aplikasi **Expo Go** di HP Anda (Tersedia gratis di Play Store / App Store).
+| Kode | Nama Fitur | Deskripsi & Implementasi Mobile |
+| :--- | :--- | :--- |
+| **F-01** | **Beranda Pemantauan Tangki (*Glance Home*)** | Menampilkan kartu tangki vertikal dengan **Auto-Sort by Severity** (tangki berstatus *CRITICAL* $<30\%$ dan *WARNING* $30-60\%$ otomatis diposisikan paling atas). Dilengkapi persentase angka besar, volume aktual (Liter), dan badge status. |
+| **F-02** | **Tren Riwayat Air 24 Jam Ringkas** | Visualisasi tren pergerakan air 24 jam terakhir dalam bentuk *sparkline* ringkas pada modal detail tangki. |
+| **F-03** | **Peringatan Darurat Realtime (*In-App Alert*)** | Banner merah interaktif saat air menipis, lonceng notifikasi pada header, dan getaran native saat terjadi bahaya air. |
+| **F-04** | **Penyelesaian Peringatan (*Mobile Resolve*)** | Teknisi lapangan dapat menyelesaikan status alarm langsung dari HP via endpoint `PATCH /api/alerts/:id/resolve` setelah mengecek kondisi fisik tangki. |
+| **F-05** | **Status Konektivitas Perangkat (*Devices Status*)** | Menampilkan status radio LoRa STM32, indikator sinyal RSSI (dBm), dan waktu *heartbeat* Raspberry Pi Gateway Hub. |
+| **F-06\***| **Kalibrasi Ambang Batas Ringkas (*Quick Threshold*)** | *(Khusus Admin)* Membuka *bottom sheet* untuk mengatur batas `Min Threshold %` dan `Max Threshold %` tangki secara langsung di lokasi. |
+| **F-07\***| **Kelola Operator Cepat (*Mobile User Management*)** | *(Khusus Admin)* Menampilkan daftar teknisi dengan toggle switch aktivasi/deaktivasi akun operator lapangan. |
+| **F-08\***| **Feed Aktivitas Lapangan (*Recent Activity Timeline*)** | *(Khusus Admin/Operator)* Menampilkan 20 riwayat audit aksi operasional terakhir dengan narasi ramah baca. |
 
-### Langkah Instalasi
-1. **Clone Repositori:**
-   Buka terminal di laptop dan unduh kodenya.
-   ```bash
-   git clone https://github.com/PMLD-RSA/frontend-mobile-rsa-ugm.git
-   cd frontend-mobile-rsa-ugm
-   ```
-
-2. **Install Dependensi:**
-   Unduh semua bahan baku aplikasi.
-   ```bash
-   npm install
-   ```
-   *(Atau gunakan `yarn install`)*
-
-3. **Atur Koneksi BFF (Jaringan Lokal):**
-   - Pastikan laptop dan HP Anda terkoneksi ke **WiFi yang sama**.
-   - Buka `App.tsx` atau file `.env` (jika ada).
-   - Cari baris `BFF_URL` dan ganti alamat `localhost` menjadi **IP lokal laptop Anda** (Contoh: `192.168.x.x`). Jangan gunakan `localhost` karena HP tidak akan bisa mendeteksi *localhost* laptop.
-
-4. **Jalankan Mesin Expo:**
-   ```bash
-   npx expo start
-   ```
-
-5. **Uji Coba di HP Anda:**
-   - Akan muncul **Barcode / QR Code** besar di terminal atau di browser laptop Anda.
-   - Buka aplikasi **Expo Go** di HP Anda, pilih menu **Scan QR Code**, dan arahkan kamera HP ke barcode tersebut.
-   - Voila! Aplikasi sedang memuat dan akan langsung muncul di HP Anda.
+*\*Fitur bertanda bintang hanya dapat diakses oleh pengguna dengan role `admin`.*
 
 ---
-*Dikelola oleh Tim Pengembang WP-4 RSA UGM* 🏥
+
+## 🛠️ Teknologi & Dependensi (Tech Stack)
+
+Aplikasi dibangun di atas pondasi runtime Expo modern:
+
+| Komponen / Pustaka | Versi | Peran & Penggunaan |
+| :--- | :--- | :--- |
+| **Framework Mobile** | **React Native 0.88.0** | Engine native Android & iOS modern dengan dukungan default *Edge-to-Edge* |
+| **Ekosistem Aplikasi**| **Expo SDK 58** (`~58.0.19`) | Toolchain modern Expo dengan mekanisme Continuous Native Generation (CNG) |
+| **Bahasa Pemrograman**| **TypeScript ~6.0.3** | Menjamin type-safety dan deteksi kesalahan sejak dini |
+| **Library UI Reaktif** | **React 19.3.0** | Library rendering UI reaktif generasi terbaru |
+| **State Management** | **Zustand ^5.0.16** | Pengelola state global klien (`authStore`, `tankStore`, dll) yang ringan |
+| **HTTP Client** | **Axios ^1.20.0** | Komunikasi HTTP dengan JWT request interceptor otomatis |
+| **Status Bar Engine** | **Expo Status Bar ~58.0.4** | Penanganan status bar yang kompatibel dengan tema gelap/terang |
+| **Safe Area Insets** | **react-native-safe-area-context ~5.10.1** | Penanganan notch, punch-hole kamera, dan navigation bar perangkat |
+
+---
+
+## 🌐 Arsitektur Jaringan & Integrasi Data
+
+Aplikasi seluler mengonsumsi data secara terstruktur dengan dua metode:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Mobile as SI-POTA Mobile (React Native)
+    participant BFF as Web BFF (Next.js :3000)
+    participant Core as Core Backend (Fastify :8000)
+    participant DB as TimescaleDB / Redis
+
+    Note over Mobile,Core: Alur 1: Autentikasi & Pengambilan Data (HTTP via Web BFF)
+    Mobile->>BFF: POST /api/auth/login { username, password }
+    BFF->>Core: Forward login request
+    Core-->>BFF: 200 OK { token, user }
+    BFF-->>Mobile: 200 OK { success: true, data: { token, user } }
+    
+    Mobile->>BFF: GET /api/tanks (Header: Bearer Token)
+    BFF->>Core: Forward request dengan header Authorization
+    Core->>DB: Query data tangki & telemetri sensor
+    DB-->>Core: Data tangki, latestReading, activeAlert
+    Core-->>BFF: 200 OK
+    BFF-->>Mobile: 200 OK { success: true, data: [ ... ] }
+
+    Note over Mobile,Core: Alur 2: Notifikasi & Update Realtime (WebSocket Langsung ke Core)
+    Mobile->>Core: WS Connect ws://[HOST]:8000/ws
+    Core-->>Mobile: Event: LEVEL_UPDATE / ALERT_TRIGGERED
+    Mobile->>Mobile: Update State Zustand (tankStore) & Tampilkan Peringatan
+```
+
+### Konfigurasi Variabel Lingkungan (`src/config/env.ts`):
+Mengacu pada **PRD-Mobile.md Bagian 2**, aplikasi seluler menggunakan dua variabel lingkungan utama:
+1. **`EXPO_PUBLIC_BFF_URL` (HTTP Web BFF — Port 3000):**
+   * Seluruh pertukaran data HTTP (autentikasi, tangki, alert, user, dll) **wajib melalui Web BFF**.
+   * Web / Browser / Preview: `http://localhost:3000`
+   * Android Studio Emulator: `http://10.0.2.2:3000`
+   * HP Fisik (WiFi Sama): `http://<IP-LAN-LAPTOP>:3000` (contoh: `http://10.67.219.28:3000`)
+2. **`EXPO_PUBLIC_WS_URL` (WebSocket Realtime — Port 8000):**
+   * Koneksi soket persisten langsung ke Core Backend Fastify: `ws://<HOST>:8000/ws` untuk *realtime event push*.
+
+---
+
+## 📁 Struktur Direktori Repositori
+
+```text
+frontend-mobile-rsa-ugm/
+├── .expo/                        # Cache dan metadata Expo
+├── assets/                       # Aset ikon, favicon, dan gambar splash
+├── docs/                         # Dokumentasi acuan spesifikasi teknis
+│   ├── PRD-MFE.md                # Master Frontend PRD
+│   └── PRD-Mobile.md             # Acuan Tunggal Spesifikasi Mobile
+├── src/
+│   ├── components/
+│   │   ├── Card.tsx              # Komponen Kartu dasar & Badge status level air
+│   │   └── Sidebar.tsx           # Navigasi Sliding Drawer dengan profil pengguna
+│   ├── config/
+│   │   └── env.ts                # Konfigurasi binding IP (BFF_URL & WS_URL)
+│   ├── services/
+│   │   ├── secureStore.ts        # Enkripsi hardware untuk simpan JWT Bearer Token
+│   │   └── api.ts                # Axios client terpusat dengan SecureStore interceptor ke Web BFF
+│   ├── stores/
+│   │   ├── authStore.ts          # Zustand store: autentikasi, sesi JWT, & auto-login
+│   │   └── tankStore.ts          # Zustand store: daftar tangki & auto-sort by severity
+│   └── types/
+│       └── index.ts              # Type definitions resmi selaras Drizzle & Web BFF
+├── .env.example                  # Template konfigurasi EXPO_PUBLIC_BFF_URL & EXPO_PUBLIC_WS_URL
+├── app.json                      # Konfigurasi Expo & manifest aplikasi (CNG)
+├── App.tsx                       # Root container, SafeAreaProvider & Main Dashboard
+├── index.ts                      # Entrypoint Expo registerRootComponent
+├── package.json                  # Dependensi proyek (Expo SDK 58, React 19, RN 0.88)
+└── tsconfig.json                 # Konfigurasi TypeScript compiler
+```
+
+---
+
+## 🚀 Panduan Memulai (Developer Quickstart)
+
+### 1. Prasyarat Sistem
+* **Node.js**: Versi LTS ($\ge 20.x$).
+* **Expo Go**: Terpasang di ponsel Android/iOS fisik (tersedia di Google Play Store / Apple App Store) atau **Android Studio Emulator**.
+
+### 2. Kloning & Pemasangan Dependensi
+```bash
+# Masuk ke direktori mobile
+cd frontend-mobile-rsa-ugm
+
+# Pasang seluruh dependensi resmi SDK 58
+npm install
+```
+
+### 3. Konfigurasi Variabel Lingkungan
+Salin file template `.env.example` menjadi `.env`:
+```bash
+# Windows PowerShell
+Copy-Item .env.example .env
+```
+Sesuaikan `EXPO_PUBLIC_API_URL` pada `.env` dengan target backend yang ingin dihubungi (default mengarah ke VPS Fastify `http://100.94.192.102:8000`).
+
+### 4. Menjalankan Server Pengembangan (Metro)
+```bash
+# Menjalankan Metro bundler
+npx expo start
+```
+* **Untuk HP Fisik:** Pindai (*scan*) QR Code yang muncul di terminal menggunakan aplikasi **Expo Go**.
+* **Untuk Android Emulator:** Tekan tombol `a` di terminal.
+* **Untuk Web Preview:** Tekan tombol `w` di terminal.
+
+### 5. Verifikasi Integritas Kode
+Untuk memastikan tidak ada kesalahan tipe atau ketidakcocokan dependensi:
+```bash
+# Pengecekan TypeScript
+npx tsc --noEmit
+
+# Health check dependensi Expo SDK 58
+npx expo-doctor
+```
+
+---
+
+## 🛡️ Kebijakan Branch & Standar Commit
+* Branch utama: `main` (Production) dan `dev` (Staging).
+* Penamaan branch fitur: `feat/<nama-fitur>`, perbaikan: `fix/<nama-isu>`, atau pembaruan konfigurasi: `chore/<nama-tugas>`.
+* Standar pesan commit: Mengikuti format **Conventional Commits** (contoh: `feat(mobile): implement glance home card with auto-severity sorting`).
+
+---
+
+*Dikelola oleh Tim Pengembang Work Package 4 (WP-4) — Rumah Sakit Akademik Universitas Gadjah Mada* 🏥

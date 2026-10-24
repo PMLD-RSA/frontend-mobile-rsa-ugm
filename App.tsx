@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, ActivityIndicator, Platform, TouchableOpacity, StatusBar } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, ActivityIndicator, Platform, TouchableOpacity } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import axios from 'axios';
 import { Card, Badge } from './src/components/Card';
 import { MobileSidebar } from './src/components/Sidebar';
@@ -28,7 +29,7 @@ export default function App() {
 
   return (
     <View style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#0a354c" />
+      <StatusBar style="light" />
       
       {/* Top Header matching Figma */}
       <View style={styles.topHeader}>

@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Animated,
   Easing,
+  Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
@@ -154,11 +155,17 @@ const styles = StyleSheet.create({
     borderColor: '#eab308', // Aksen Emas resmi
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 0,
+      },
+    }),
   },
   logoIcon: {
     fontSize: 42,

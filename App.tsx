@@ -41,47 +41,31 @@ export default function App() {
     setShowSplash(false);
   };
 
-  // 2. Alur Login Berhasil: Fade out Login halus -> pindah ke dashboard -> Fade in Dashboard halus
+  // 2. Alur Login Berhasil: Langsung beralih ke Dashboard dan fade-in mulus tanpa memudarkan login screen jadi bayangan transparan
   const handleLoginSuccess = () => {
+    setStage('dashboard');
+    contentFadeAnim.setValue(0);
     Animated.timing(contentFadeAnim, {
-      toValue: 0,
-      duration: 180,
-      easing: Easing.in(Easing.ease),
+      toValue: 1,
+      duration: 220,
+      easing: Easing.out(Easing.ease),
       useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (finished) {
-        setStage('dashboard');
-        Animated.timing(contentFadeAnim, {
-          toValue: 1,
-          duration: 220,
-          easing: Easing.out(Easing.ease),
-          useNativeDriver: true,
-        }).start();
-      }
-    });
+    }).start();
   };
 
-  // 3. Alur Logout: Fade out dashboard -> tutup drawer/modal & reset sesi -> Fade in Login
-  const handleLogout = () => {
+  // 3. Alur Logout: Tutup modal/drawer, reset sesi, dan beralih ke Login dengan fade-in bersih
+  const handleLogout = async () => {
+    setIsDrawerOpen(false);
+    setIsProfileOpen(false);
+    await logout();
+    setStage('login');
+    contentFadeAnim.setValue(0);
     Animated.timing(contentFadeAnim, {
-      toValue: 0,
-      duration: 180,
-      easing: Easing.in(Easing.ease),
+      toValue: 1,
+      duration: 220,
+      easing: Easing.out(Easing.ease),
       useNativeDriver: true,
-    }).start(async ({ finished }) => {
-      if (finished) {
-        setIsDrawerOpen(false);
-        setIsProfileOpen(false);
-        await logout();
-        setStage('login');
-        Animated.timing(contentFadeAnim, {
-          toValue: 1,
-          duration: 220,
-          easing: Easing.out(Easing.ease),
-          useNativeDriver: true,
-        }).start();
-      }
-    });
+    }).start();
   };
 
   const { title, subtitle } =

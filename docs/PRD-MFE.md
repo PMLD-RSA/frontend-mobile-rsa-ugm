@@ -6,7 +6,7 @@
 > **Parent Architecture (Source of Truth):** [`PRD.md`](./PRD.md) *(Backend Core Fastify v5, TimescaleDB, MQTT, WebSocket)*  
 > **Child Platform PRDs:**  
 > 1. Web Dashboard & BFF: [`web/PRD-Web.md`](./web/PRD-Web.md) $\longrightarrow$ Target Repo: `frontend-web-rsa-ugm`  
-> 2. Mobile App (Android): [`mobile/PRD-Mobile.md`](./mobile/PRD-Mobile.md) $\longrightarrow$ Target Repo: `frontend-mobile-rsa-ugm`  
+> 2. Mobile App (Android & iOS): [`mobile/PRD-Mobile.md`](./mobile/PRD-Mobile.md) $\longrightarrow$ Target Repo: `frontend-mobile-rsa-ugm`  
 > **Arsitektur Utama:** Decoupled Multi-Platform dengan **Next.js Backend-for-Frontend (BFF)**  
 > **Tim Pengembang (WP-4):** 4 Personil (2 Pengembang Web/BFF + 2 Pengembang Mobile)  
 > **Status Dokumen:** Master Guide & Acuan Tunggal Seluruh Frontend
@@ -47,13 +47,16 @@ Pilihan teknologi diselaraskan 100% dengan dependensi yang telah terpasang pada 
 
 | Layer / Kategori | Frontend Web & BFF (`frontend-web-rsa-ugm`) | Frontend Mobile (`frontend-mobile-rsa-ugm`) |
 | :--- | :--- | :--- |
-| **Framework Utama** | **Next.js 16.3.x (App Router)** | **React Native 0.86.x via Expo SDK 57** |
-| **Bahasa Pemrograman** | TypeScript 5.x | TypeScript 6.x |
-| **UI & Styling** | Tailwind CSS v4 & Lucide Icons | StyleSheet Native, Custom Dark Medical UI |
-| **State Management** | **Zustand v5** | **Zustand v5** |
-| **HTTP Client** | Native `fetch` (Server & Client) | **Axios v1.20+** |
-| **Data Visualization** | **Recharts v3** (Area & Line Time-Series) | Native SVG / Bar Gauge & Sparkline |
-| **Security Storage** | Server-side `cookies()` (HTTP-Only) | **Expo SecureStore** |
+| **Framework Utama** | **Next.js 16.3.x (App Router)** | **React Native 0.88.0 via Expo SDK 58** (`~58.0.19`) |
+| **Bahasa Pemrograman** | TypeScript 5.x | **TypeScript ~6.0.3** |
+| **Library UI Reaktif** | React 19.x | **React 19.3.0** |
+| **UI & Styling** | Tailwind CSS v4 & Lucide Icons | StyleSheet Native, **Hospital Clean Light UI** (Card, Progress Bar, Dot Badges) |
+| **State Management** | **Zustand v5** | **Zustand ^5.0.16** |
+| **HTTP Client** | Native `fetch` (Server & Client) | **Axios ^1.20.0** |
+| **Data Visualization** | **Recharts v3** (Area & Line Time-Series) | Native Horizontal Progress Bar, Metrics Overview (Sparkline planned) |
+| **Security Storage** | Server-side `cookies()` (HTTP-Only) | **Expo SecureStore (~58.0.2)** |
+| **Unit Testing Engine**| Vitest / Jest | **Jest ^30.5.2 & ts-jest ^29.4.15** |
+| **CI / Quality Gate** | GitHub Actions (Lint, Typecheck, Build) | **GitHub Actions Multi-Stage** (Healthcheck, Unit Tests, Dry Export) |
 | **Realtime Channel** | WebSocket Client (`ws://.../ws`) | WebSocket Client Native (`ws://.../ws`) |
 | **Port / Runtime** | Port `3000` (Next.js Dev Server) | Port `8081` (Metro Bundler) |
 
@@ -69,6 +72,7 @@ Pilihan teknologi diselaraskan 100% dengan dependensi yang telah terpasang pada 
   * `CORE_BACKEND_URL=http://localhost:8000` (Akses server-to-server BFF ke Fastify)
   * `NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws` (Akses langsung WebSocket dari browser)
 * **Variabel Mobile (`.env` / Konfigurasi App):**
+  * Salin dari template `.env.example` dengan fallback otomatis ke `http://localhost:3000`.
   * `EXPO_PUBLIC_BFF_URL=http://<IP_LAN_HOST>:3000` (Akses HTTP Axios ke Web BFF)
   * `EXPO_PUBLIC_WS_URL=ws://<IP_LAN_HOST>:8000/ws` (Akses WebSocket langsung ke Fastify)
 
@@ -90,7 +94,7 @@ flowchart TD
         WebPages["Next.js React Server & Client Components\n(Dashboard, Detail, Master Tanks, User Admin)"]
     end
 
-    subgraph MobileClient["Mobile Client (Expo / Android)"]
+    subgraph MobileClient["Mobile Client (Expo / Android & iOS)"]
         MobileScreens["React Native Screens\n(Glance Home, Sliding Drawer, Alert Popup)"]
         AxiosClient["Axios HTTP Client"]
         MobileWS["Native WebSocket Listener"]
@@ -124,7 +128,7 @@ Berdasarkan 8 fitur inti yang disediakan Backend (`F-01` s.d. `F-08`), berikut p
 
 | Kode Fitur | Nama Fitur | Dukungan Web | Dukungan Mobile | Role Akses Minimum | Keterangan Tampilan UI |
 | :--- | :--- | :---: | :---: | :---: | :--- |
-| **F-01** | **Live Monitoring Level Air** | ✅ | ✅ | `viewer` | **Web:** Grid kartu ultrawide & gauge silinder interaktif.<br>**Mobile:** Vertical scroll glance cards & badge status. |
+| **F-01** | **Live Monitoring Level Air** | ✅ | ✅ | `viewer` | **Web:** Grid kartu ultrawide & gauge silinder interaktif.<br>**Mobile:** Vertical scroll glance cards dengan auto-severity sort & badge status. |
 | **F-02** | **Histori & Grafik 24 Jam** | ✅ | ✅ *(Sederhana)* | `viewer` | **Web:** Grafik Recharts time-series interaktif multi-tangki.<br>**Mobile:** Grafik tren garis tunggal / sparkline ringkas per tangki. |
 | **F-03** | **Sistem Deteksi Peringatan** | ✅ | ✅ | `viewer` | **Web:** Floating emergency banner di header & halaman alert.<br>**Mobile:** Banner darurat merah & modal alert popup responsif. |
 | **F-04** | **Penyelesaian Alert (Resolve)** | ✅ | ✅ | `operator` | **Web:** Tombol "Resolve" pada tabel & panel alert.<br>**Mobile:** Tombol "Selesaikan" di kartu alert / modal saat inspeksi. |
@@ -161,7 +165,7 @@ Seluruh 24 titik integrasi API yang tercantum pada [PRD Backend](./PRD.md#60-mas
 Seluruh endpoint yang disediakan Fastify Core Backend dipetakan 1-to-1 melalui rute BFF Next.js (`frontend-web-rsa-ugm/src/app/api/`) agar klien Web dan Mobile memiliki gerbang antarmuka yang seragam:
 
 | No | Endpoint BFF (Next.js) | Target Core BE (Fastify) | Method | Min. Role | Deskripsi Fungsi & Peran Adaptasi BFF |
-| :-: | :--- | :--- | :---: | :---: | :--- |
+| :-: | :--- | :--- | :--- | :---: | :---: | :--- |
 | 1 | `/api/health` | `/health` | `GET` | Public | Cek status server BFF dan status koneksi ke Core Backend & DB. |
 | 2 | `/api/auth/login` | `/api/auth/login` | `POST` | Public | Validasi kredensial: set HTTP-Only cookie (Web) & kirim token JWT (Mobile). |
 | 3 | `/api/auth/me` | `/api/auth/me` | `GET` | Viewer | Verifikasi token aktif dari cookie/header dan kembalikan profil user. |
@@ -283,23 +287,23 @@ Mekanisme Autentikasi, Otorisasi, dan Akunting diterapkan secara terpisah sesuai
 
 ### 7.1 Identitas Visual & Palet Warna Status
 
-Mengadopsi identitas medis modern bernuansa *Hospital Clean & Dark Mode*:
+Mengadopsi identitas medis modern bernuansa **Hospital Clean Light Theme** (dengan dukungan Dark Mode opsional):
 
-| Kategori Status | Rentang Level | Hex Code (Light / Dark) | Makna Fungsional |
+| Kategori Status | Rentang Level | Hex Code (Clean Light) | Makna Fungsional |
 | :--- | :--- | :--- | :--- |
-| **Normal** | $> 60.00\%$ | `#10B981` / `#34D399` | Pasokan air aman, kapasitas optimal. |
-| **Warning** | $30.00\% - 60.00\%$ | `#F59E0B` / `#FBBF24` | Level air berkurang, perlu pemantauan debit pengisian. |
-| **Critical** | $< 30.00\%$ | `#EF4444` / `#F87171` | Kondisi darurat, suplai air terancam habis. |
-| **Brand Primary** | — | `#0A354C` / `#0F766E` | Warna dasar header, sidebar, dan brand RSA UGM. |
-| **Background** | — | `#F8FAFC` / `#0B132B` | Latar belakang dashboard utama. |
-| **Card Surface** | — | `#FFFFFF` / `#1C2541` | Latar komponen kartu tangki dan panel widget. |
+| **Normal** | $> 60.00\%$ | `#10B981` (Emerald-500) | Pasokan air aman, kapasitas optimal. |
+| **Warning** | $30.00\% - 60.00\%$ | `#F59E0B` (Amber-500) | Level air berkurang, perlu pemantauan debit pengisian. |
+| **Critical** | $< 30.00\%$ | `#EF4444` (Rose-500) | Kondisi darurat, suplai air terancam habis. |
+| **Brand Primary** | — | `#0A354C` | Warna dasar header, sidebar/drawer, dan brand RSA UGM. |
+| **Background** | — | `#F8FAFC` (Slate-50) | Latar belakang dashboard utama yang bersih dan terang. |
+| **Card Surface** | — | `#FFFFFF` (Pure White) | Latar komponen kartu tangki dengan border halus `#E2E8F0`. |
 
 ### 7.2 Tipografi & Hierarki Layout
 * **Font Family:** Inter, Roboto, atau font Sans-Serif sistem.
 * **Format Angka Volume:** Ditampilkan dengan pemisah ribuan standar Indonesia (contoh: `7.240 Liter` atau `10.000 Liter`).
 * **Format Persentase:** Presisi 1 desimal (contoh: `72.4%`).
 * **Layout Web:** Dioptimalkan untuk monitor resolusi tinggi / *ultrawide* ruang kontrol rumah sakit (grid 3 hingga 4 kolom).
-* **Layout Mobile:** Dioptimalkan untuk orientasi vertikal (*portrait*) satu kolom pada layar ponsel Android petugas (lebar 360px - 420px).
+* **Layout Mobile:** Dioptimalkan untuk orientasi vertikal (*portrait*) satu kolom pada layar ponsel petugas (lebar 360px - 420px) dengan area sentuh minimal $44 \times 44\text{ dp}$.
 
 ---
 
@@ -347,20 +351,20 @@ Mengingat repositori Frontend Web dan Mobile sangat sensitif dan dikerjakan seca
 ```mermaid
 flowchart LR
     A["1. Branch Baru\n(dari 'dev')"] --> B["2. Coding & Local Commit\n(Bertahap & Rapi)"]
-    B --> C["3. Uji Mandiri Lokal\n(tsc & build)"]
+    B --> C["3. Uji Mandiri Lokal\n(Strict Checks & Tests)"]
     C --> D["4. Push Dual-Remote\n(origin & upstream)"]
     D --> E["5. Buka Pull Request\n(Target: 'dev')"]
-    E --> F["6. GitHub Actions CI\n(Lint, Typecheck, Build)"]
+    E --> F["6. GitHub Actions CI\n(Multi-Stage Verification)"]
     F -- "❌ Ada Error" --> G["Perbaiki di Lokal &\nPush Update"]
     G --> F
     F -- "✅ Status Hijau" --> H["Review Tim &\nMerge ke 'dev'"]
 ```
 
-1. **Pembuatan Branch:** Selalu buat branch fitur baru bercabang dari commit terbaru `dev` (contoh: `feat/web-tanks-grid` atau `feat/mobile-alert-modal`).
-2. **Commit Lokal Berkala:** Lakukan commit bertahap dengan pesan yang jelas (mengikuti konvensi *Conventional Commits*: `feat: ...`, `fix: ...`, `refactor: ...`).
+1. **Pembuatan Branch:** Selalu buat branch fitur baru bercabang dari commit terbaru `dev` (contoh: `feat/web-tanks-grid` atau `ci/setup-testing-pipeline`).
+2. **Commit Lokal Berkala:** Lakukan commit bertahap dengan pesan yang jelas (mengikuti konvensi *Conventional Commits*: `feat: ...`, `fix: ...`, `refactor: ...`, `test: ...`, `ci: ...`).
 3. **Validasi Mandiri Lokal (Wajib Sebelum Push):**
    * Web: `pnpm run lint` && `npx tsc --noEmit` && `pnpm run build`
-   * Mobile: `npx tsc --noEmit` && `npx expo export --platform android`
+   * Mobile: `npm run typecheck` && `npm test` && `npx expo-doctor` && `npx expo export --no-bytecode`
 4. **Push ke Dual-Remote:** Setelah dipastikan bebas error di mesin lokal, branch fitur di-push ke kedua remote (`origin` dan `upstream`).
 5. **Buka Pull Request:** Buat PR di GitHub dengan target branch `dev`. Isi deskripsi PR dengan ringkasan fitur yang diselesaikan.
 
@@ -382,14 +386,20 @@ Pipeline CI dipasang pada file `.github/workflows/ci.yml` di masing-masing repos
   6. **Production Build Test:** `pnpm run build` (Memvalidasi kompilasi Next.js App Router, Tailwind CSS v4, dan seluruh endpoint BFF tanpa crash SSR/prerender).
 
 #### B. Pipeline CI Mobile (`frontend-mobile-rsa-ugm/.github/workflows/ci.yml`)
-* **Pemicu (*Trigger*):** Pull Request ke `dev` & `main`, serta push ke `feat/*`.
-* **Urutan Eksekusi Job:**
-  1. **Checkout Code:** `actions/checkout@v4`
-  2. **Setup Node.js:** Node.js v20 LTS dengan cache `npm`
-  3. **Install Dependencies:** `npm ci`
-  4. **Typecheck Strict:** `npx tsc --noEmit` (TypeScript 6)
-  5. **Expo Healthcheck:** `npx expo-doctor` (Memastikan kompatibilitas pustaka native Expo SDK 57)
-  6. **Dry Export Bundle:** `npx expo export --platform android` (Memverifikasi pembuatan bundle JavaScript native Android tanpa broken imports).
+* **Pemicu (*Trigger*):** Pull Request ke `dev` & `main`, serta push ke `feat/*`, `ci/*`, `fix/*`.
+* **Arsitektur Pipeline:** **Multi-Stage CI Pipeline (3 Chained Stages via `needs`)**:
+  1. **Stage 1: Healthcheck & Typecheck (`healthcheck-and-typecheck`)**
+     * Checkout code (`actions/checkout@v4`) & Setup Node.js 20 LTS.
+     * Clean install dependensi: `npm ci`.
+     * Strict TypeScript type-checking: `npm run typecheck` (`tsc --noEmit`).
+     * Expo doctor compatibility check: `npx expo-doctor` (20 parameter integritas SDK 58).
+  2. **Stage 2: Unit Testing Suite (`unit-tests`)**
+     * Bergantung pada Stage 1 (`needs: healthcheck-and-typecheck`).
+     * Eksekusi pengujian unit otomatis Jest & ts-jest: `npm run test:ci`.
+     * Menghasilkan code coverage report untuk logika murni kalkulasi tangki & konfigurasi env.
+  3. **Stage 3: Production Dry Export (`production-dry-export`)**
+     * Bergantung pada Stage 2 (`needs: unit-tests`).
+     * Memverifikasi pembuatan bundle JavaScript native Android/iOS siap rilis: `npx expo export --no-bytecode`.
 
 ---
 
@@ -406,3 +416,9 @@ Sebuah fitur dinyatakan selesai (*Done*) jika memenuhi kriteria pengujian beriku
 | 5 | **BFF Session Proxy** | Halaman Admin Web | Pengguna `operator` ditolak mengakses menu kelola master tangki dan user. |
 | 6 | **Mobile LAN Connectivity** | Axios di Expo Android | Aplikasi berhasil memuat data dari Web BFF via alamat IP LAN WiFi lokal. |
 | 7 | **Network Disconnect Fallback**| Putus koneksi server | UI menampilkan indikator koneksi terputus dan beralih ke mode auto-reconnect. |
+| 8 | **Unit Testing Coverage** | Jest Test Suites | Logika murni perhitungan tangki, threshold, dan env tervalidasi dengan coverage tinggi. |
+| 9 | **Multi-Stage CI Pipeline** | GitHub Actions | Seluruh 3 tahap CI (Healthcheck, Unit Tests, Dry Export) lolos hijau pada PR. |
+
+---
+
+*Dikelola oleh Tim Pengembang Work Package 4 (WP-4) — Rumah Sakit Akademik Universitas Gadjah Mada* 🏥

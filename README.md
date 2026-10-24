@@ -57,6 +57,9 @@ Aplikasi dibangun di atas pondasi runtime Expo modern:
 | **Library UI Reaktif** | **React 19.3.0** | Library rendering UI reaktif generasi terbaru |
 | **State Management** | **Zustand ^5.0.16** | Pengelola state global klien (`authStore`, `tankStore`, dll) yang ringan |
 | **HTTP Client** | **Axios ^1.20.0** | Komunikasi HTTP dengan JWT request interceptor otomatis |
+| **Penyimpanan Kredensial** | **Expo SecureStore ~58.0.2** | Enkripsi hardware native (Keystore/Keychain) untuk token JWT |
+| **Unit Testing Engine**| **Jest ^30.5.2 & ts-jest ^29.4.15** | Pengujian unit otomatis super cepat dengan metrik code coverage |
+| **CI / Quality Gate** | **GitHub Actions Multi-Stage** | Validasi otomatis 3 tahap (Healthcheck, Tests, dan Bundling) di cloud |
 | **Status Bar Engine** | **Expo Status Bar ~58.0.4** | Penanganan status bar yang kompatibel dengan tema gelap/terang |
 | **Safe Area Insets** | **react-native-safe-area-context ~5.10.1** | Penanganan notch, punch-hole kamera, dan navigation bar perangkat |
 
@@ -208,12 +211,15 @@ Sebelum membuat commit atau Pull Request, pastikan seluruh pemeriksaan berikut l
 
 ```bash
 # 1. Pengecekan Type-safety TypeScript
-npx tsc --noEmit
+npm run typecheck       # atau: npx tsc --noEmit
 
-# 2. Diagnostik Kesehatan Lingkungan Expo (20 Parameter)
+# 2. Pengujian Unit Otomatis (Jest Suite & Coverage)
+npm test                # atau untuk CI: npm run test:ci
+
+# 3. Diagnostik Kesehatan Lingkungan Expo (20 Parameter)
 npx expo-doctor
 
-# 3. Uji Coba Ekspor Produksi (Dry Run)
+# 4. Uji Coba Ekspor Produksi (Dry Run)
 npx expo export --no-bytecode
 ```
 
@@ -223,6 +229,12 @@ npx expo export --no-bytecode
 
 ```text
 frontend-mobile-rsa-ugm/
+├── .github/
+│   └── workflows/
+│       └── ci.yml                # Multi-Stage CI Pipeline GitHub Actions (3 Stages)
+├── __tests__/
+│   ├── env.test.ts               # Unit test konfigurasi environment & fallback
+│   └── tankMetrics.test.ts       # Unit test kalkulasi volume, threshold & severity sorting
 ├── .expo/                        # Cache dan metadata bundler Expo
 ├── assets/                       # Aset ikon aplikasi, splash, dan favicon
 ├── docs/                         # Acuan spesifikasi kebutuhan teknis
@@ -246,14 +258,17 @@ frontend-mobile-rsa-ugm/
 │   ├── stores/
 │   │   ├── authStore.ts          # Zustand: autentikasi, sesi pengguna, & auto-login
 │   │   └── tankStore.ts          # Zustand: daftar tangki & live update telemetry
+│   ├── utils/
+│   │   └── tankMetrics.ts        # Logika murni perhitungan, sorting keparahan, & format volume
 │   └── types/
 │       └── index.ts              # Type definitions resmi selaras Web BFF & Drizzle
 ├── .env.example                  # Template panduan konfigurasi variabel lingkungan
 ├── app.json                      # Konfigurasi Expo & manifest aplikasi (CNG)
 ├── App.tsx                       # Root container, SafeAreaProvider & Main Dashboard
 ├── index.ts                      # Entrypoint Expo registerRootComponent
-├── package.json                  # Dependensi proyek (Expo SDK 58, React 19, RN 0.88)
-└── tsconfig.json                 # Konfigurasi TypeScript compiler
+├── jest.config.js                # Konfigurasi Jest test runner untuk TypeScript
+├── package.json                  # Dependensi proyek (Expo SDK 58, React 19, RN 0.88, Jest)
+└── tsconfig.json                 # Konfigurasi TypeScript compiler dengan tipe Jest
 ```
 
 ---

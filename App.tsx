@@ -5,9 +5,24 @@ import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-c
 import { Header } from './src/components/Header';
 import { MobileSidebar } from './src/components/Sidebar';
 import { HomeScreen } from './src/screens/HomeScreen';
+import { PlaceholderScreen } from './src/screens/PlaceholderScreen';
+import { ScreenId } from './src/types';
+
+const SCREEN_TITLES: Record<ScreenId, { title: string; subtitle: string }> = {
+  dashboard: { title: 'Dashboard Overview', subtitle: 'RSA UGM • SI-POTA v1.0' },
+  tanks: { title: 'Manajemen Tangki', subtitle: 'F-06 • Quick Threshold' },
+  alarms: { title: 'Peringatan Darurat', subtitle: 'F-03 & F-04 • Realtime Alert' },
+  reports: { title: 'Tren & Laporan', subtitle: 'F-02 • Sparkline 24h' },
+  logs: { title: 'Audit Logs', subtitle: 'F-08 • Activity Timeline' },
+  settings: { title: 'Perangkat & Jaringan', subtitle: 'F-05 • Connectivity Status' },
+  users: { title: 'Kelola Pengguna', subtitle: 'F-07 • Operator Accounts' },
+};
 
 export default function App() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [currentScreen, setCurrentScreen] = useState<ScreenId>('dashboard');
+
+  const { title, subtitle } = SCREEN_TITLES[currentScreen] || SCREEN_TITLES.dashboard;
 
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
@@ -15,13 +30,29 @@ export default function App() {
         <StatusBar style="light" />
 
         {/* Top Header */}
-        <Header onOpenDrawer={() => setIsDrawerOpen(true)} />
+        <Header
+          title={title}
+          subtitle={subtitle}
+          onOpenDrawer={() => setIsDrawerOpen(true)}
+        />
 
         {/* Main Content */}
-        <HomeScreen />
+        {currentScreen === 'dashboard' ? (
+          <HomeScreen />
+        ) : (
+          <PlaceholderScreen
+            screenId={currentScreen}
+            onNavigate={(screen) => setCurrentScreen(screen)}
+          />
+        )}
 
         {/* Drawer Overlay */}
-        <MobileSidebar isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
+        <MobileSidebar
+          isOpen={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+          currentScreen={currentScreen}
+          onSelectScreen={(screen) => setCurrentScreen(screen)}
+        />
       </View>
     </SafeAreaProvider>
   );

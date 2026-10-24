@@ -3,12 +3,12 @@
  * Selaras dengan Skema Backend Core VPS & Web BFF
  */
 
-export type UserRole = "admin" | "operator" | "viewer";
-export type AlertLevel = "WARNING" | "CRITICAL";
-export type AlertStatus = "active" | "resolved";
-export type GatewayStatus = "online" | "offline";
-export type NodeStatus = "active" | "offline" | "error";
-export type TankStatusCategory = "NORMAL" | "WARNING" | "CRITICAL";
+export type UserRole = 'admin' | 'operator' | 'viewer';
+export type AlertLevel = 'WARNING' | 'CRITICAL';
+export type AlertStatus = 'active' | 'resolved';
+export type GatewayStatus = 'online' | 'offline';
+export type NodeStatus = 'active' | 'offline' | 'error';
+export type TankStatusCategory = 'NORMAL' | 'WARNING' | 'CRITICAL';
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
@@ -75,4 +75,26 @@ export interface User {
   role: UserRole;
   isActive: boolean;
   createdAt?: string;
+}
+
+/**
+ * Screen Identifiers untuk Navigasi Menu Mobile
+ */
+export type ScreenId =
+  | 'dashboard'
+  | 'tanks'
+  | 'alarms'
+  | 'reports'
+  | 'logs'
+  | 'settings'
+  | 'users';
+
+export interface PlaceholderConfig {
+  id: ScreenId;
+  title: string;
+  icon: string;
+  description: string;
+  prdSection: string;
+  prdUrl: string;
+  checklist: string[];
 }

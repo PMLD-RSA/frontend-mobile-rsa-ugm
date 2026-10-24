@@ -11,13 +11,37 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../stores/authStore';
+import { ScreenId } from '../types';
 
-export const MobileSidebar = ({
-  isOpen,
-  onClose,
-}: {
+interface NavMenuItem {
+  id: ScreenId;
+  icon: string;
+  label: string;
+  badge?: boolean;
+}
+
+const MENU_ITEMS: NavMenuItem[] = [
+  { id: 'dashboard', icon: '⊞', label: 'Dashboard' },
+  { id: 'tanks', icon: '⛁', label: 'Tanks' },
+  { id: 'alarms', icon: '🔔', label: 'Alarms', badge: true },
+  { id: 'reports', icon: '📊', label: 'Reports' },
+  { id: 'logs', icon: '📋', label: 'Audit Logs' },
+  { id: 'settings', icon: '⚙️', label: 'Settings' },
+  { id: 'users', icon: '👥', label: 'Users' },
+];
+
+export interface MobileSidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  currentScreen?: ScreenId;
+  onSelectScreen?: (screen: ScreenId) => void;
+}
+
+export const MobileSidebar: React.FC<MobileSidebarProps> = ({
+  isOpen,
+  onClose,
+  currentScreen = 'dashboard',
+  onSelectScreen,
 }) => {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
@@ -92,6 +116,13 @@ export const MobileSidebar = ({
     extrapolate: 'clamp',
   });
 
+  const handleItemPress = (screenId: ScreenId) => {
+    if (onSelectScreen) {
+      onSelectScreen(screenId);
+    }
+    onClose();
+  };
+
   return (
     <View style={styles.overlay} pointerEvents="box-none">
       {/* Dark Backdrop */}
@@ -138,13 +169,14 @@ export const MobileSidebar = ({
 
         {/* Menu Items */}
         <View style={styles.menuList}>
-          <MenuItem icon="⊞" label="Dashboard" active />
-          <MenuItem icon="⛁" label="Tanks" />
-          <MenuItem icon="🔔" label="Alarms" badge />
-          <MenuItem icon="📊" label="Reports" />
-          <MenuItem icon="📋" label="Audit Logs" />
-          <MenuItem icon="⚙️" label="Settings" />
-          <MenuItem icon="👥" label="Users" />
+          {MENU_ITEMS.map((item) => (
+            <MenuItem
+              key={item.id}
+              item={item}
+              active={currentScreen === item.id}
+              onPress={handleItemPress}
+            />
+          ))}
         </View>
 
         {/* Footer Profil Pengguna - Statis di dalam container drawer */}
@@ -168,20 +200,27 @@ export const MobileSidebar = ({
   );
 };
 
-const MenuItem = ({ icon, label, active, badge }: any) => (
+interface MenuItemProps {
+  item: NavMenuItem;
+  active: boolean;
+  onPress: (id: ScreenId) => void;
+}
+
+const MenuItem: React.FC<MenuItemProps> = ({ item, active, onPress }) => (
   <TouchableOpacity
     style={[styles.menuItem, active && styles.menuItemActive]}
     activeOpacity={0.7}
-    accessibilityLabel={label}
+    onPress={() => onPress(item.id)}
+    accessibilityLabel={item.label}
   >
     <View style={styles.iconContainer}>
       <Text style={[styles.menuIcon, active && styles.menuIconActive]}>
-        {icon}
+        {item.icon}
       </Text>
-      {badge && <View style={styles.badge} />}
+      {item.badge && <View style={styles.badge} />}
     </View>
     <Text style={[styles.menuLabel, active && styles.menuLabelActive]}>
-      {label}
+      {item.label}
     </Text>
   </TouchableOpacity>
 );

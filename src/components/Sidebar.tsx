@@ -1,81 +1,154 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, Platform, useWindowDimensions, Modal } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Animated,
+  Easing,
+  useWindowDimensions,
+  BackHandler,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../stores/authStore';
+import { ScreenId } from '../types';
 
-export const MobileSidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
+interface NavMenuItem {
+  id: ScreenId;
+  icon: string;
+  label: string;
+  badge?: boolean;
+}
+
+const MENU_ITEMS: NavMenuItem[] = [
+  { id: 'dashboard', icon: '⊞', label: 'Dashboard' },
+  { id: 'tanks', icon: '⛁', label: 'Tanks' },
+  { id: 'alarms', icon: '🔔', label: 'Alarms', badge: true },
+  { id: 'reports', icon: '📊', label: 'Reports' },
+  { id: 'logs', icon: '📋', label: 'Audit Logs' },
+  { id: 'settings', icon: '⚙️', label: 'Settings' },
+  { id: 'users', icon: '👥', label: 'Users' },
+];
+
+export interface MobileSidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+  currentScreen?: ScreenId;
+  onSelectScreen?: (screen: ScreenId) => void;
+}
+
+export const MobileSidebar: React.FC<MobileSidebarProps> = ({
+  isOpen,
+  onClose,
+  currentScreen = 'dashboard',
+  onSelectScreen,
+}) => {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
   const { width } = useWindowDimensions();
-  // Provide a safe fallback width just in case useWindowDimensions is 0 momentarily
-  const safeWidth = width > 0 ? width : 400; 
+
+  // Batasi lebar drawer proporsional terhadap layar (maksimal 320dp)
+  const safeWidth = width > 0 ? width : 400;
   const DRAWER_WIDTH = Math.min(safeWidth * 0.75, 320);
 
-  const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  // Single progress value (0 = Tertutup di -DRAWER_WIDTH, 1 = Terbuka di 0)
+  const animProgress = useRef(new Animated.Value(0)).current;
+  const [isRendered, setIsRendered] = useState(isOpen);
 
-  const [modalVisible, setModalVisible] = useState(isOpen);
-
-  // 1. Handle Mounting and Unmounting
+  // Menangani tombol hardware Back di Android agar menutup drawer
   useEffect(() => {
     if (isOpen) {
-      setModalVisible(true);
-    } else {
-      // If closing, animate out FIRST, then hide modal
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: -DRAWER_WIDTH,
-          duration: 250,
-          easing: Easing.in(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        })
-      ]).start(() => {
-        setModalVisible(false);
+      const backAction = () => {
+        onClose();
+        return true;
+      };
+      const backHandler = BackHandler.addEventListener(
+        'hardwareBackPress',
+        backAction
+      );
+      return () => backHandler.remove();
+    }
+  }, [isOpen, onClose]);
+
+  // Mengelola animasi Buka dan Tutup secara murni pada sumbu X
+  useEffect(() => {
+    if (isOpen) {
+      setIsRendered(true);
+      // Animasi Buka: Meluncur dari kiri dengan kurva spring natural
+      Animated.spring(animProgress, {
+        toValue: 1,
+        damping: 28,
+        stiffness: 260,
+        mass: 0.85,
+        useNativeDriver: true,
+      }).start();
+    } else if (isRendered) {
+      // Animasi Tutup: Meluncur kembali ke kiri dengan kurva bezier halus
+      Animated.timing(animProgress, {
+        toValue: 0,
+        duration: 220,
+        easing: Easing.bezier(0.36, 0.66, 0.04, 1),
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished) {
+          setIsRendered(false);
+        }
       });
     }
-  }, [isOpen, DRAWER_WIDTH, fadeAnim, slideAnim]);
+  }, [isOpen, isRendered, animProgress]);
 
-  // 2. Handle Animation In (ONLY AFTER component is mounted)
-  useEffect(() => {
-    if (modalVisible && isOpen) {
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 300,
-          easing: Easing.out(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        })
-      ]).start();
+  // Jika drawer sedang tertutup penuh, jangan render apa pun agar hemat memori & bebas touch blockage
+  if (!isRendered) {
+    return null;
+  }
+
+  // Interpolasi posisi horizontal drawer (seluruh elemen bergerak 100% bersamaan pada sumbu X)
+  const translateX = animProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-DRAWER_WIDTH, 0],
+    extrapolate: 'clamp',
+  });
+
+  // Interpolasi opasitas latar belakang gelap (dari 0 ke 0.55)
+  const backdropOpacity = animProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 0.55],
+    extrapolate: 'clamp',
+  });
+
+  const handleItemPress = (screenId: ScreenId) => {
+    if (onSelectScreen) {
+      onSelectScreen(screenId);
     }
-  }, [modalVisible, isOpen, fadeAnim, slideAnim]);
+    onClose();
+  };
 
   return (
-    <Modal
-      transparent={true}
-      visible={modalVisible}
-      onRequestClose={onClose}
-      animationType="none"
-    >
-      <View style={styles.overlay}>
-        {/* Dark Backdrop */}
-        <Animated.View style={[styles.backdrop, { opacity: fadeAnim }]}>
-          <TouchableOpacity style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }} onPress={onClose} activeOpacity={1} />
-        </Animated.View>
-        
-        {/* Sliding Drawer */}
-        <Animated.View style={[styles.drawer, { width: DRAWER_WIDTH, paddingTop: Math.max(insets.top, 20), paddingBottom: Math.max(insets.bottom, 20), transform: [{ translateX: slideAnim }] }]}>
-          {/* Header Logo */}
-          <View style={styles.header}>
+    <View style={styles.overlay} pointerEvents="box-none">
+      {/* Dark Backdrop */}
+      <Animated.View style={[styles.backdrop, { opacity: backdropOpacity }]}>
+        <TouchableOpacity
+          style={StyleSheet.absoluteFill}
+          onPress={onClose}
+          activeOpacity={1}
+          accessibilityLabel="Tutup menu samping"
+        />
+      </Animated.View>
+
+      {/* Sliding Drawer Container: Header, menu list, dan footer profil adalah 1 kesatuan kaku */}
+      <Animated.View
+        style={[
+          styles.drawer,
+          {
+            width: DRAWER_WIDTH,
+            paddingTop: Math.max(insets.top, 20),
+            paddingBottom: Math.max(insets.bottom, 20),
+            transform: [{ translateX }],
+          },
+        ]}
+      >
+        {/* Header Drawer Logo */}
+        <View style={styles.header}>
           <View style={styles.logoCircle}>
             <Text style={styles.logoIcon}>⬡</Text>
           </View>
@@ -83,65 +156,84 @@ export const MobileSidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: (
             <Text style={styles.headerTitle}>RSA UGM</Text>
             <Text style={styles.headerSub}>SI-POTA v1.0</Text>
           </View>
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+          <TouchableOpacity
+            onPress={onClose}
+            style={styles.closeBtn}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityLabel="Tutup menu"
+          >
             <Text style={styles.closeBtnText}>✕</Text>
           </TouchableOpacity>
         </View>
 
         {/* Menu Items */}
         <View style={styles.menuList}>
-          <MenuItem icon="⊞" label="Dashboard" active />
-          <MenuItem icon="⛁" label="Tanks" />
-          <MenuItem icon="🔔" label="Alarms" badge />
-          <MenuItem icon="📊" label="Reports" />
-          <MenuItem icon="📋" label="Audit Logs" />
-          <MenuItem icon="⚙️" label="Settings" />
-          <MenuItem icon="👥" label="Users" />
+          {MENU_ITEMS.map((item) => (
+            <MenuItem
+              key={item.id}
+              item={item}
+              active={currentScreen === item.id}
+              onPress={handleItemPress}
+            />
+          ))}
         </View>
 
-        {/* Footer Profile */}
+        {/* Footer Profil Pengguna - Statis di dalam container drawer */}
         <View style={styles.footer}>
           <View style={styles.profileBox}>
             <View style={styles.profileAvatar}>
               <Text style={styles.profileAvatarIcon}>👤</Text>
             </View>
             <View>
-              <Text style={styles.profileName}>{user ? user.username : 'Admin'}</Text>
-              <Text style={styles.profileRole}>{user ? user.role.toUpperCase() : 'ADMIN'}</Text>
+              <Text style={styles.profileName}>
+                {user ? user.username : 'Admin'}
+              </Text>
+              <Text style={styles.profileRole}>
+                {user ? user.role.toUpperCase() : 'ADMIN'}
+              </Text>
             </View>
           </View>
         </View>
       </Animated.View>
     </View>
-  </Modal>
   );
 };
 
-const MenuItem = ({ icon, label, active, badge }: any) => (
-  <TouchableOpacity style={[styles.menuItem, active && styles.menuItemActive]}>
+interface MenuItemProps {
+  item: NavMenuItem;
+  active: boolean;
+  onPress: (id: ScreenId) => void;
+}
+
+const MenuItem: React.FC<MenuItemProps> = ({ item, active, onPress }) => (
+  <TouchableOpacity
+    style={[styles.menuItem, active && styles.menuItemActive]}
+    activeOpacity={0.7}
+    onPress={() => onPress(item.id)}
+    accessibilityLabel={item.label}
+  >
     <View style={styles.iconContainer}>
-      <Text style={[styles.menuIcon, active && styles.menuIconActive]}>{icon}</Text>
-      {badge && <View style={styles.badge} />}
+      <Text style={[styles.menuIcon, active && styles.menuIconActive]}>
+        {item.icon}
+      </Text>
+      {item.badge && <View style={styles.badge} />}
     </View>
-    <Text style={[styles.menuLabel, active && styles.menuLabelActive]}>{label}</Text>
+    <Text style={[styles.menuLabel, active && styles.menuLabelActive]}>
+      {item.label}
+    </Text>
   </TouchableOpacity>
 );
 
 const styles = StyleSheet.create({
   overlay: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
+    ...StyleSheet.absoluteFill,
+    zIndex: 9999,
+    elevation: 24,
   },
   backdrop: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    ...StyleSheet.absoluteFill,
+    backgroundColor: '#000000',
   },
   drawer: {
     position: 'absolute',
@@ -149,7 +241,14 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     backgroundColor: '#0a354c', // Dark blue-teal
-
+    elevation: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    zIndex: 10000,
+    flexDirection: 'column',
+    justifyContent: 'space-between',
   },
   header: {
     flexDirection: 'row',
@@ -183,7 +282,10 @@ const styles = StyleSheet.create({
   },
   closeBtn: {
     marginLeft: 'auto',
-    padding: 5,
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   closeBtnText: {
     color: 'white',
@@ -200,6 +302,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     marginBottom: 4,
+    minHeight: 44,
   },
   menuItemActive: {
     backgroundColor: 'rgba(255,255,255,0.1)',
@@ -210,7 +313,7 @@ const styles = StyleSheet.create({
   },
   menuIcon: {
     fontSize: 18,
-    color: '#eab308', // Yellow icons
+    color: '#eab308',
     opacity: 0.8,
   },
   menuIconActive: {
@@ -231,7 +334,7 @@ const styles = StyleSheet.create({
     right: -4,
     width: 8,
     height: 8,
-    backgroundColor: 'red',
+    backgroundColor: '#ef4444',
     borderRadius: 4,
   },
   footer: {
@@ -242,7 +345,7 @@ const styles = StyleSheet.create({
   profileBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0c4a6e', // Lighter blue for active box
+    backgroundColor: '#0c4a6e',
     padding: 12,
     borderRadius: 8,
   },
@@ -266,5 +369,5 @@ const styles = StyleSheet.create({
   profileRole: {
     color: 'rgba(255,255,255,0.6)',
     fontSize: 12,
-  }
+  },
 });

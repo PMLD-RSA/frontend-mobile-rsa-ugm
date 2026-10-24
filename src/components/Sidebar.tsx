@@ -1,151 +1,284 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, Platform, useWindowDimensions, Modal } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Animated,
+  Easing,
+  useWindowDimensions,
+  BackHandler,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuthStore } from '../stores/authStore';
+import { ScreenId } from '../types';
 
-export const MobileSidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
+interface NavMenuItem {
+  id: ScreenId;
+  icon: string;
+  label: string;
+  badge?: boolean;
+}
+
+const MENU_ITEMS: NavMenuItem[] = [
+  { id: 'dashboard', icon: '⊞', label: 'Dashboard' },
+  { id: 'tanks', icon: '⛁', label: 'Tanks' },
+  { id: 'alarms', icon: '🔔', label: 'Alarms', badge: true },
+  { id: 'reports', icon: '📊', label: 'Reports' },
+  { id: 'logs', icon: '📋', label: 'Audit Logs' },
+  { id: 'settings', icon: '⚙️', label: 'Settings' },
+  { id: 'users', icon: '👥', label: 'Users' },
+];
+
+export interface MobileSidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+  currentScreen?: ScreenId;
+  onSelectScreen?: (screen: ScreenId) => void;
+  onOpenProfile?: () => void;
+  onLogout?: () => void;
+}
+
+export const MobileSidebar: React.FC<MobileSidebarProps> = ({
+  isOpen,
+  onClose,
+  currentScreen = 'dashboard',
+  onSelectScreen,
+  onOpenProfile,
+  onLogout,
+}) => {
+  const insets = useSafeAreaInsets();
+  const user = useAuthStore((s) => s.user);
   const { width } = useWindowDimensions();
-  // Provide a safe fallback width just in case useWindowDimensions is 0 momentarily
-  const safeWidth = width > 0 ? width : 400; 
+
+  // Batasi lebar drawer proporsional terhadap layar (maksimal 320dp)
+  const safeWidth = width > 0 ? width : 400;
   const DRAWER_WIDTH = Math.min(safeWidth * 0.75, 320);
 
-  const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  // Single progress value (0 = Tertutup di -DRAWER_WIDTH, 1 = Terbuka di 0)
+  const animProgress = useRef(new Animated.Value(0)).current;
+  const [isRendered, setIsRendered] = useState(isOpen);
 
-  const [modalVisible, setModalVisible] = useState(isOpen);
-
-  // 1. Handle Mounting and Unmounting
+  // Menangani tombol hardware Back di Android agar menutup drawer
   useEffect(() => {
     if (isOpen) {
-      setModalVisible(true);
-    } else {
-      // If closing, animate out FIRST, then hide modal
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: -DRAWER_WIDTH,
-          duration: 250,
-          easing: Easing.in(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        })
-      ]).start(() => {
-        setModalVisible(false);
+      const backAction = () => {
+        onClose();
+        return true;
+      };
+      const backHandler = BackHandler.addEventListener(
+        'hardwareBackPress',
+        backAction
+      );
+      return () => backHandler.remove();
+    }
+  }, [isOpen, onClose]);
+
+  // Mengelola animasi Buka dan Tutup secara murni pada sumbu X
+  useEffect(() => {
+    if (isOpen) {
+      setIsRendered(true);
+      Animated.spring(animProgress, {
+        toValue: 1,
+        damping: 28,
+        stiffness: 260,
+        mass: 0.85,
+        useNativeDriver: true,
+      }).start();
+    } else if (isRendered) {
+      Animated.timing(animProgress, {
+        toValue: 0,
+        duration: 220,
+        easing: Easing.bezier(0.36, 0.66, 0.04, 1),
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished) {
+          setIsRendered(false);
+        }
       });
     }
-  }, [isOpen, DRAWER_WIDTH, fadeAnim, slideAnim]);
+  }, [isOpen, isRendered, animProgress]);
 
-  // 2. Handle Animation In (ONLY AFTER component is mounted)
-  useEffect(() => {
-    if (modalVisible && isOpen) {
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 300,
-          easing: Easing.out(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        })
-      ]).start();
+  if (!isRendered && !isOpen) {
+    return null;
+  }
+
+  const handleItemPress = (screenId: ScreenId) => {
+    onClose();
+    if (onSelectScreen) {
+      onSelectScreen(screenId);
     }
-  }, [modalVisible, isOpen, fadeAnim, slideAnim]);
+  };
+
+  const handleProfilePress = () => {
+    onClose();
+    if (onOpenProfile) {
+      onOpenProfile();
+    }
+  };
+
+  const handleLogoutPress = () => {
+    if (onLogout) {
+      onLogout();
+    }
+  };
+
+  // Interpolasi opacity backdrop (0 -> 0.6)
+  const backdropOpacity = animProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 0.6],
+  });
+
+  // Interpolasi posisi horizontal drawer (-DRAWER_WIDTH -> 0)
+  const translateX = animProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-DRAWER_WIDTH, 0],
+  });
 
   return (
-    <Modal
-      transparent={true}
-      visible={modalVisible}
-      onRequestClose={onClose}
-      animationType="none"
-    >
-      <View style={styles.overlay}>
-        {/* Dark Backdrop */}
-        <Animated.View style={[styles.backdrop, { opacity: fadeAnim }]}>
-          <TouchableOpacity style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }} onPress={onClose} activeOpacity={1} />
-        </Animated.View>
-        
-        {/* Sliding Drawer */}
-        <Animated.View style={[styles.drawer, { width: DRAWER_WIDTH, transform: [{ translateX: slideAnim }] }]}>
-          {/* Header Logo */}
-          <View style={styles.header}>
+    <View style={styles.overlay} pointerEvents={isOpen ? 'auto' : 'none'}>
+      {/* 1. Backdrop Semi-Transparan (Murni Animasi Opacity) */}
+      <Animated.View style={[styles.backdrop, { opacity: backdropOpacity }]}>
+        <TouchableOpacity
+          style={StyleSheet.absoluteFill}
+          onPress={onClose}
+          activeOpacity={1}
+          accessibilityLabel="Tutup menu navigasi"
+        />
+      </Animated.View>
+
+      {/* 2. Sliding Drawer Panel (Murni Animasi TranslateX) */}
+      <Animated.View
+        style={[
+          styles.drawer,
+          {
+            width: DRAWER_WIDTH,
+            paddingTop: insets.top,
+            paddingBottom: insets.bottom,
+            transform: [{ translateX }],
+          },
+        ]}
+      >
+        {/* Header Drawer */}
+        <View style={styles.header}>
           <View style={styles.logoCircle}>
-            <Text style={styles.logoIcon}>⬡</Text>
+            <Text style={styles.logoIcon}>💧</Text>
           </View>
-          <View>
-            <Text style={styles.headerTitle}>RSA UGM</Text>
-            <Text style={styles.headerSub}>SI-POTA v1.0</Text>
+          <View style={styles.headerTextBox}>
+            <Text style={styles.headerTitle}>SI-POTA</Text>
+            <Text style={styles.headerSub}>RSA UGM • Mobile</Text>
           </View>
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+          <TouchableOpacity
+            onPress={onClose}
+            style={styles.closeBtn}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityLabel="Tutup menu"
+          >
             <Text style={styles.closeBtnText}>✕</Text>
           </TouchableOpacity>
         </View>
 
         {/* Menu Items */}
         <View style={styles.menuList}>
-          <MenuItem icon="⊞" label="Dashboard" active />
-          <MenuItem icon="⛁" label="Tanks" />
-          <MenuItem icon="🔔" label="Alarms" badge />
-          <MenuItem icon="📊" label="Reports" />
-          <MenuItem icon="📋" label="Audit Logs" />
-          <MenuItem icon="⚙️" label="Settings" />
-          <MenuItem icon="👥" label="Users" />
+          {MENU_ITEMS.map((item) => (
+            <MenuItem
+              key={item.id}
+              item={item}
+              active={currentScreen === item.id}
+              onPress={handleItemPress}
+            />
+          ))}
         </View>
 
-        {/* Footer Profile */}
+        {/* Footer Profil Pengguna & Tombol Keluar */}
         <View style={styles.footer}>
-          <View style={styles.profileBox}>
+          {/* Kartu Profil Klik-able */}
+          <TouchableOpacity
+            style={styles.profileBox}
+            onPress={handleProfilePress}
+            activeOpacity={0.75}
+            accessibilityLabel="Buka halaman profil"
+          >
             <View style={styles.profileAvatar}>
               <Text style={styles.profileAvatarIcon}>👤</Text>
             </View>
-            <View>
-              <Text style={styles.profileName}>Budi</Text>
-              <Text style={styles.profileRole}>Admin</Text>
+            <View style={styles.profileInfoBox}>
+              <Text style={styles.profileName} numberOfLines={1}>
+                {user ? user.username : 'Admin'}
+              </Text>
+              <Text style={styles.profileRole} numberOfLines={1}>
+                {user ? user.role.toUpperCase() : 'ADMINISTRATOR'}
+              </Text>
             </View>
-          </View>
+            <Text style={styles.profileArrow}>›</Text>
+          </TouchableOpacity>
+
+          {/* Tombol Logout */}
+          <TouchableOpacity
+            style={styles.logoutBtn}
+            onPress={handleLogoutPress}
+            activeOpacity={0.75}
+            accessibilityLabel="Keluar dari akun"
+          >
+            <Text style={styles.logoutIcon}>🚪</Text>
+            <Text style={styles.logoutText}>Keluar dari Akun</Text>
+          </TouchableOpacity>
         </View>
       </Animated.View>
     </View>
-  </Modal>
   );
 };
 
-const MenuItem = ({ icon, label, active, badge }: any) => (
-  <TouchableOpacity style={[styles.menuItem, active && styles.menuItemActive]}>
+interface MenuItemProps {
+  item: NavMenuItem;
+  active: boolean;
+  onPress: (id: ScreenId) => void;
+}
+
+const MenuItem: React.FC<MenuItemProps> = ({ item, active, onPress }) => (
+  <TouchableOpacity
+    style={[styles.menuItem, active && styles.menuItemActive]}
+    activeOpacity={0.7}
+    onPress={() => onPress(item.id)}
+    accessibilityLabel={item.label}
+  >
     <View style={styles.iconContainer}>
-      <Text style={[styles.menuIcon, active && styles.menuIconActive]}>{icon}</Text>
-      {badge && <View style={styles.badge} />}
+      <Text style={[styles.menuIcon, active && styles.menuIconActive]}>
+        {item.icon}
+      </Text>
+      {item.badge && <View style={styles.badge} />}
     </View>
-    <Text style={[styles.menuLabel, active && styles.menuLabelActive]}>{label}</Text>
+    <Text style={[styles.menuLabel, active && styles.menuLabelActive]}>
+      {item.label}
+    </Text>
   </TouchableOpacity>
 );
 
 const styles = StyleSheet.create({
   overlay: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
+    ...StyleSheet.absoluteFill,
+    zIndex: 9999,
+    elevation: 24,
   },
   backdrop: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    ...StyleSheet.absoluteFill,
+    backgroundColor: '#000000',
   },
   drawer: {
     position: 'absolute',
     left: 0,
     top: 0,
     bottom: 0,
-    backgroundColor: '#0a354c', // Dark blue-teal
-    paddingTop: Platform.OS === 'android' ? 40 : 20,
+    backgroundColor: '#0a354c', // Brand Primary
+    elevation: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    zIndex: 10000,
+    flexDirection: 'column',
+    justifyContent: 'space-between',
   },
   header: {
     flexDirection: 'row',
@@ -158,59 +291,70 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#eab308',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   logoIcon: {
-    color: '#eab308',
-    fontSize: 20,
+    fontSize: 18,
+  },
+  headerTextBox: {
+    flex: 1,
   },
   headerTitle: {
-    color: 'white',
+    color: '#ffffff',
     fontWeight: 'bold',
     fontSize: 16,
+    letterSpacing: 0.5,
   },
   headerSub: {
     color: 'rgba(255,255,255,0.6)',
-    fontSize: 12,
+    fontSize: 11,
   },
   closeBtn: {
-    marginLeft: 'auto',
-    padding: 5,
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   closeBtnText: {
-    color: 'white',
-    fontSize: 20,
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: 'bold',
   },
   menuList: {
     flex: 1,
-    padding: 10,
-    marginTop: 10,
+    paddingTop: 12,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    marginHorizontal: 12,
+    borderRadius: 10,
     marginBottom: 4,
   },
   menuItemActive: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
   },
   iconContainer: {
-    marginRight: 12,
+    width: 30,
     position: 'relative',
+    marginRight: 10,
+    alignItems: 'center',
   },
   menuIcon: {
     fontSize: 18,
-    color: '#eab308', // Yellow icons
-    opacity: 0.8,
+    color: 'rgba(255,255,255,0.6)',
   },
   menuIconActive: {
-    opacity: 1,
+    color: '#38bdf8',
   },
   menuLabel: {
     color: 'rgba(255,255,255,0.8)',
@@ -218,7 +362,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   menuLabelActive: {
-    color: 'white',
+    color: '#ffffff',
     fontWeight: 'bold',
   },
   badge: {
@@ -227,40 +371,78 @@ const styles = StyleSheet.create({
     right: -4,
     width: 8,
     height: 8,
-    backgroundColor: 'red',
+    backgroundColor: '#ef4444',
     borderRadius: 4,
   },
   footer: {
-    padding: 20,
+    padding: 16,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.1)',
+    gap: 10,
   },
   profileBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0c4a6e', // Lighter blue for active box
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   profileAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.18)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#eab308',
   },
   profileAvatarIcon: {
-    color: 'white',
+    fontSize: 18,
+  },
+  profileInfoBox: {
+    flex: 1,
   },
   profileName: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 14,
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 13,
   },
   profileRole: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 12,
-  }
+    color: 'rgba(255,255,255,0.65)',
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 1,
+    letterSpacing: 0.3,
+  },
+  profileArrow: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 20,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+    borderRadius: 10,
+    paddingVertical: 10,
+    gap: 8,
+    minHeight: 42,
+  },
+  logoutIcon: {
+    fontSize: 15,
+  },
+  logoutText: {
+    color: '#fca5a5',
+    fontWeight: '700',
+    fontSize: 13,
+    letterSpacing: 0.2,
+  },
 });

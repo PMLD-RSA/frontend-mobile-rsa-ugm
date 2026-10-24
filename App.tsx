@@ -1,186 +1,176 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, ActivityIndicator, Platform, TouchableOpacity, StatusBar } from 'react-native';
-import axios from 'axios';
-import { Card, Badge } from './src/components/Card';
+import React, { useState, useRef } from 'react';
+import { StyleSheet, View, Animated, Easing } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
+import { Header } from './src/components/Header';
 import { MobileSidebar } from './src/components/Sidebar';
+import { HomeScreen } from './src/screens/HomeScreen';
+import { PlaceholderScreen } from './src/screens/PlaceholderScreen';
+import { SplashScreen } from './src/screens/SplashScreen';
+import { LoginScreen } from './src/screens/LoginScreen';
+import { ProfileScreen } from './src/screens/ProfileScreen';
+import { useAuthStore } from './src/stores/authStore';
+import { useTankStore } from './src/stores/tankStore';
+import { ScreenId } from './src/types';
+
+const SCREEN_TITLES: Record<ScreenId, { title: string; subtitle: string }> = {
+  dashboard: { title: 'Dashboard Overview', subtitle: 'RSA UGM • SI-POTA v1.0' },
+  tanks: { title: 'Manajemen Tangki', subtitle: 'F-06 • Quick Threshold' },
+  alarms: { title: 'Peringatan Darurat', subtitle: 'F-03 & F-04 • Realtime Alert' },
+  reports: { title: 'Tren & Laporan', subtitle: 'F-02 • Sparkline 24h' },
+  logs: { title: 'Audit Logs', subtitle: 'F-08 • Activity Timeline' },
+  settings: { title: 'Perangkat & Jaringan', subtitle: 'F-05 • Connectivity Status' },
+  users: { title: 'Kelola Pengguna', subtitle: 'F-07 • Operator Accounts' },
+};
+
+type AppStage = 'login' | 'dashboard';
 
 export default function App() {
-  const [tanks, setTanks] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [showSplash, setShowSplash] = useState(true);
+  const [stage, setStage] = useState<AppStage>('login');
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [currentScreen, setCurrentScreen] = useState<ScreenId>('dashboard');
 
-  // Gunakan IP lokal mesin Anda untuk BFF Web (bukan localhost, karena emulator Android butuh 10.0.2.2)
-  // Ubah 'http://10.0.2.2:3000' menjadi IP IPv4 LAN Anda jika ditest di HP fisik (misal: 'http://192.168.1.15:3000')
-  const BFF_URL = 'http://10.33.195.43:3000'; // IP Laptop Anda (WiFi Tethering/Kampus)
+  const { logout } = useAuthStore();
 
-  useEffect(() => {
-    axios.get(`${BFF_URL}/api/tanks`)
-      .then(res => {
-        setTanks(res.data.data);
-      })
-      .catch(err => {
-        console.error("Gagal konek ke BFF. Pastikan Web Staging berjalan di port 3000", err);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, []);
+  // Opacity untuk Dashboard (0 = tersembunyi di balik login, 1 = tampil penuh di atas login)
+  const dashboardFadeAnim = useRef(new Animated.Value(0)).current;
+
+  // 1. Selesai Splash: Cukup lepas overlay splash (Login Screen sudah siap di bawahnya)
+  const handleSplashFinish = () => {
+    setShowSplash(false);
+  };
+
+  // 2. Alur Login Berhasil:
+  // Render Dashboard di atas LoginScreen secara absolut, lalu cross-dissolve fade-in 0 -> 1.
+  // LoginScreen tetap tenang di bawahnya tanpa jump, flash, atau pergeseran posisi.
+  const handleLoginSuccess = () => {
+    // Mulai pre-fetch tank telemetri lebih awal agar saat dashboard tampil data sudah siap
+    useTankStore.getState().fetchTanks();
+
+    setIsTransitioning(true);
+    setStage('dashboard');
+    Animated.timing(dashboardFadeAnim, {
+      toValue: 1,
+      duration: 280,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (finished) {
+        setIsTransitioning(false);
+      }
+    });
+  };
+
+  // 3. Alur Logout:
+  // Tutup drawer/modal, aktifkan LoginScreen di layer bawah, lalu fade-out Dashboard 1 -> 0.
+  const handleLogout = async () => {
+    setIsDrawerOpen(false);
+    setIsProfileOpen(false);
+    setIsTransitioning(true);
+    await logout();
+
+    Animated.timing(dashboardFadeAnim, {
+      toValue: 0,
+      duration: 240,
+      easing: Easing.in(Easing.ease),
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (finished) {
+        setStage('login');
+        setIsTransitioning(false);
+      }
+    });
+  };
+
+  const { title, subtitle } =
+    SCREEN_TITLES[currentScreen] || SCREEN_TITLES.dashboard;
+
+  const renderLogin = stage === 'login' || isTransitioning;
+  const renderDashboard = stage === 'dashboard' || isTransitioning;
 
   return (
-    <View style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#0a354c" />
-      
-      {/* Top Header matching Figma */}
-      <View style={styles.topHeader}>
-        <TouchableOpacity onPress={() => setIsDrawerOpen(true)} style={styles.menuBtn}>
-          <Text style={styles.menuIcon}>≡</Text>
-        </TouchableOpacity>
-        <View style={styles.headerTitleBox}>
-          <Text style={styles.headerTitleMain}>Dashboard Overview</Text>
-          <Text style={styles.headerTitleSub}>RSA UGM • SI-POTA v1.0</Text>
-        </View>
-        <TouchableOpacity style={styles.profileBtn}>
-          <Text style={styles.profileIcon}>👤</Text>
-        </TouchableOpacity>
-      </View>
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+      <View style={styles.safeArea}>
+        <StatusBar
+          style={
+            showSplash || (stage === 'dashboard' && !isTransitioning)
+              ? 'light'
+              : 'dark'
+          }
+        />
 
-      <ScrollView style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Pemantauan Tangki</Text>
-          <Badge text="BFF Connected" variant="success" />
-        </View>
-
-        {loading ? (
-          <ActivityIndicator size="large" color="#0a354c" style={{ marginTop: 50 }} />
-        ) : (
-          tanks.map(tank => (
-            <Card key={tank.id}>
-              <Text style={styles.tankName}>{tank.name}</Text>
-              <Text style={styles.location}>{tank.location}</Text>
-              
-              <View style={styles.levelContainer}>
-                <Text style={styles.levelText}>75%</Text>
-                <Text style={styles.levelSub}>LEVEL AIR AKTUAL</Text>
-              </View>
-
-              <View style={styles.footer}>
-                <Text style={styles.footerText}>Kapasitas: {(tank.capacityLiters/1000).toFixed(1)}k L</Text>
-                <Text style={styles.footerTextError}>Min: {tank.minThresholdPercent}%</Text>
-              </View>
-            </Card>
-          ))
+        {/* LAYER 1: LOGIN SCREEN (Layer bawah stabil tanpa pergeseran layout) */}
+        {renderLogin && (
+          <View style={StyleSheet.absoluteFill}>
+            <LoginScreen onLoginSuccess={handleLoginSuccess} />
+          </View>
         )}
-      </ScrollView>
 
-      {/* Drawer Overlay */}
-      <MobileSidebar isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
-    </View>
+        {/* LAYER 2: DASHBOARD & KONTEN UTAMA (Layer atas dengan cross-dissolve opacity) */}
+        {renderDashboard && (
+          <Animated.View
+            style={[
+              StyleSheet.absoluteFill,
+              styles.dashboardWrapper,
+              { opacity: dashboardFadeAnim },
+            ]}
+          >
+            {/* Top Header */}
+            <Header
+              title={title}
+              subtitle={subtitle}
+              onOpenDrawer={() => setIsDrawerOpen(true)}
+              onOpenProfile={() => setIsProfileOpen(true)}
+            />
+
+            {/* Main Content */}
+            {currentScreen === 'dashboard' ? (
+              <HomeScreen />
+            ) : (
+              <PlaceholderScreen
+                screenId={currentScreen}
+                onNavigate={(screen) => setCurrentScreen(screen)}
+              />
+            )}
+
+            {/* Drawer Samping */}
+            <MobileSidebar
+              isOpen={isDrawerOpen}
+              onClose={() => setIsDrawerOpen(false)}
+              currentScreen={currentScreen}
+              onSelectScreen={(screen) => setCurrentScreen(screen)}
+              onOpenProfile={() => setIsProfileOpen(true)}
+              onLogout={handleLogout}
+            />
+
+            {/* Modal Layar Profil */}
+            <ProfileScreen
+              isOpen={isProfileOpen}
+              onClose={() => setIsProfileOpen(false)}
+              onLogout={handleLogout}
+            />
+          </Animated.View>
+        )}
+
+        {/* LAYER 3: SPLASH SCREEN (Murni Overlay di Atas Layar saat start-up) */}
+        {showSplash && (
+          <SplashScreen onFinish={handleSplashFinish} />
+        )}
+      </View>
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f8fafc', 
+    backgroundColor: '#f8fafc',
   },
-  topHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0a354c',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingTop: Platform.OS === 'android' ? 40 : 12, // Status bar padding for non-SafeAreaView
-  },
-  menuBtn: {
-    padding: 4,
-  },
-  menuIcon: {
-    color: 'white',
-    fontSize: 28,
-  },
-  headerTitleBox: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  headerTitleMain: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  headerTitleSub: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 11,
-  },
-  profileBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  profileIcon: {
-    color: 'white',
-    fontSize: 14,
-  },
-  container: {
+  dashboardWrapper: {
     flex: 1,
     backgroundColor: '#f8fafc',
-    padding: 20,
   },
-
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1e293b',
-  },
-  tankName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#0f172a',
-  },
-  location: {
-    fontSize: 14,
-    color: '#64748b',
-    marginTop: 2,
-  },
-  levelContainer: {
-    backgroundColor: '#f1f5f9',
-    padding: 20,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginVertical: 16,
-  },
-  levelText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#2563eb',
-  },
-  levelSub: {
-    fontSize: 10,
-    color: '#64748b',
-    marginTop: 4,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
-    paddingTop: 12,
-  },
-  footerText: {
-    fontSize: 12,
-    color: '#475569',
-  },
-  footerTextError: {
-    fontSize: 12,
-    color: '#b45309',
-  }
 });

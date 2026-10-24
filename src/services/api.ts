@@ -1,26 +1,40 @@
 import axios from 'axios';
-import { API_BASE_URL, useAuthStore } from '../stores/authStore';
+import { getAuthToken } from './secureStore';
+import { ENV } from '../config/env';
 import { Tank, ApiResponse } from '../types';
 
-export const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 5000,
+/**
+ * Axios client terpusat dengan interceptor token ke Next.js Web BFF
+ * Mengacu pada PRD-Mobile.md Bagian 6.2
+ */
+export const api = axios.create({
+  baseURL: ENV.BFF_URL,
+  timeout: 10000,
 });
 
-// Interceptor untuk menyematkan Authorization Bearer Token
-apiClient.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token;
+api.interceptors.request.use(async (config) => {
+  const token = await getAuthToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
-export async function fetchTanksApi(): Promise<Tank[]> {
-  // Pastikan token sudah siap
-  await useAuthStore.getState().ensureAuthenticated();
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401) {
+      console.warn('[Auth] Sesi berakhir atau token tidak valid di Web BFF');
+    }
+    return Promise.reject(err);
+  }
+);
 
-  const response = await apiClient.get<ApiResponse<Tank[]>>('/api/tanks');
+/**
+ * Mengambil daftar tangki dari Next.js Web BFF (/api/tanks)
+ */
+export async function fetchTanksApi(): Promise<Tank[]> {
+  const response = await api.get<ApiResponse<Tank[]>>('/api/tanks');
   if (response.data && response.data.success && Array.isArray(response.data.data)) {
     return response.data.data;
   }

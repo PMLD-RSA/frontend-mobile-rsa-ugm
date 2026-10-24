@@ -71,31 +71,37 @@ sequenceDiagram
     autonumber
     participant Mobile as SI-POTA Mobile (React Native)
     participant BFF as Web BFF (Next.js :3000)
-    participant Core as Core Backend VPS (Fastify :8000)
+    participant Core as Core Backend (Fastify :8000)
     participant DB as TimescaleDB / Redis
 
-    Note over Mobile,Core: Alur 1: Autentikasi & Pengambilan Data (HTTP)
-    Mobile->>Core: POST /api/auth/login { username, password }
-    Core-->>Mobile: 200 OK { token, user: { role: 'admin' } }
+    Note over Mobile,Core: Alur 1: Autentikasi & Pengambilan Data (HTTP via Web BFF)
+    Mobile->>BFF: POST /api/auth/login { username, password }
+    BFF->>Core: Forward login request
+    Core-->>BFF: 200 OK { token, user }
+    BFF-->>Mobile: 200 OK { success: true, data: { token, user } }
     
-    Mobile->>Core: GET /api/tanks (Header: Bearer Token)
-    Core->>DB: Query tangki & pembacaan telemetri terakhir
+    Mobile->>BFF: GET /api/tanks (Header: Bearer Token)
+    BFF->>Core: Forward request dengan header Authorization
+    Core->>DB: Query data tangki & telemetri sensor
     DB-->>Core: Data tangki, latestReading, activeAlert
-    Core-->>Mobile: 200 OK { success: true, data: [ ... ] }
+    Core-->>BFF: 200 OK
+    BFF-->>Mobile: 200 OK { success: true, data: [ ... ] }
 
-    Note over Mobile,Core: Alur 2: Notifikasi & Update Realtime (WebSocket)
+    Note over Mobile,Core: Alur 2: Notifikasi & Update Realtime (WebSocket Langsung ke Core)
     Mobile->>Core: WS Connect ws://[HOST]:8000/ws
     Core-->>Mobile: Event: LEVEL_UPDATE / ALERT_TRIGGERED
-    Mobile->>Mobile: Update State Zustand & Tampilkan Peringatan
+    Mobile->>Mobile: Update State Zustand (tankStore) & Tampilkan Peringatan
 ```
 
-### Opsi URL Target Backend (`EXPO_PUBLIC_API_URL`):
-1. **Langsung ke Core Backend VPS (Rekomendasi Uji Lapangan):**
-   * Target: `http://100.94.192.102:8000` (Fastify VPS via Tailscale / Jaringan Kampus).
-2. **Melalui Web BFF Lokal (Staging / Proxy Pengembangan):**
-   * Dari Emulator Android Studio: `http://10.0.2.2:3000`
-   * Dari Perangkat Fisik (WiFi Sama): `http://<IP-LAN-LAPTOP>:3000`
-   * Dari Browser / Web Preview: `http://localhost:3000`
+### Konfigurasi Variabel Lingkungan (`src/config/env.ts`):
+Mengacu pada **PRD-Mobile.md Bagian 2**, aplikasi seluler menggunakan dua variabel lingkungan utama:
+1. **`EXPO_PUBLIC_BFF_URL` (HTTP Web BFF — Port 3000):**
+   * Seluruh pertukaran data HTTP (autentikasi, tangki, alert, user, dll) **wajib melalui Web BFF**.
+   * Web / Browser / Preview: `http://localhost:3000`
+   * Android Studio Emulator: `http://10.0.2.2:3000`
+   * HP Fisik (WiFi Sama): `http://<IP-LAN-LAPTOP>:3000` (contoh: `http://10.67.219.28:3000`)
+2. **`EXPO_PUBLIC_WS_URL` (WebSocket Realtime — Port 8000):**
+   * Koneksi soket persisten langsung ke Core Backend Fastify: `ws://<HOST>:8000/ws` untuk *realtime event push*.
 
 ---
 
@@ -107,18 +113,22 @@ frontend-mobile-rsa-ugm/
 ├── assets/                       # Aset ikon, favicon, dan gambar splash
 ├── docs/                         # Dokumentasi acuan spesifikasi teknis
 │   ├── PRD-MFE.md                # Master Frontend PRD
-│   └── PRD-Mobile.md             # Spesifikasi detail kebutuhan aplikasi mobile
+│   └── PRD-Mobile.md             # Acuan Tunggal Spesifikasi Mobile
 ├── src/
 │   ├── components/
-│   │   ├── Card.tsx              # Komponen Kartu dasar & Badge status
+│   │   ├── Card.tsx              # Komponen Kartu dasar & Badge status level air
 │   │   └── Sidebar.tsx           # Navigasi Sliding Drawer dengan profil pengguna
+│   ├── config/
+│   │   └── env.ts                # Konfigurasi binding IP (BFF_URL & WS_URL)
 │   ├── services/
-│   │   └── api.ts                # Axios client terkonfigurasi Bearer Token interceptor
+│   │   ├── secureStore.ts        # Enkripsi hardware untuk simpan JWT Bearer Token
+│   │   └── api.ts                # Axios client terpusat dengan SecureStore interceptor ke Web BFF
 │   ├── stores/
-│   │   └── authStore.ts          # Zustand store: autentikasi, sesi JWT, & auto-login
+│   │   ├── authStore.ts          # Zustand store: autentikasi, sesi JWT, & auto-login
+│   │   └── tankStore.ts          # Zustand store: daftar tangki & auto-sort by severity
 │   └── types/
-│       └── index.ts              # Type definitions selaras backend Drizzle & Web
-├── .env.example                  # Contoh template variabel lingkungan
+│       └── index.ts              # Type definitions resmi selaras Drizzle & Web BFF
+├── .env.example                  # Template konfigurasi EXPO_PUBLIC_BFF_URL & EXPO_PUBLIC_WS_URL
 ├── app.json                      # Konfigurasi Expo & manifest aplikasi (CNG)
 ├── App.tsx                       # Root container, SafeAreaProvider & Main Dashboard
 ├── index.ts                      # Entrypoint Expo registerRootComponent

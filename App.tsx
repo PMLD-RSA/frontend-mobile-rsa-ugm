@@ -12,46 +12,29 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card, Badge } from './src/components/Card';
 import { MobileSidebar } from './src/components/Sidebar';
-import { Tank } from './src/types';
-import { fetchTanksApi } from './src/services/api';
-import { useAuthStore, API_BASE_URL } from './src/stores/authStore';
+import { useTankStore } from './src/stores/tankStore';
+import { useAuthStore } from './src/stores/authStore';
+import { ENV } from './src/config/env';
 
 function MainScreen() {
   const insets = useSafeAreaInsets();
-  const [tanks, setTanks] = useState<Tank[]>([]);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
+  const { tanks, isLoading, error, fetchTanks } = useTankStore();
   const user = useAuthStore((s) => s.user);
 
-  const loadData = useCallback(async (isPullToRefresh = false) => {
-    if (isPullToRefresh) {
-      setRefreshing(true);
-    } else {
-      setLoading(true);
-    }
-    setErrorMessage(null);
-
-    try {
-      const data = await fetchTanksApi();
-      setTanks(data);
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Gagal memuat data dari server VPS';
-      setErrorMessage(msg);
-      console.error('Error fetching tanks from VPS:', err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    fetchTanks();
+  }, [fetchTanks]);
 
-  // Perhitungan ringkasan tangki
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchTanks();
+    setRefreshing(false);
+  }, [fetchTanks]);
+
+  // Metrik ringkasan dashboard
   const totalCapacity = tanks.reduce((acc, t) => acc + Number(t.capacityLiters || 0), 0);
   const totalWater = tanks.reduce((acc, t) => acc + Number(t.latestReading?.volumeLiters || 0), 0);
   const activeAlertsCount = tanks.filter((t) => t.activeAlert != null).length;
@@ -60,19 +43,21 @@ function MainScreen() {
     <View style={styles.safeArea}>
       <StatusBar style="light" />
 
-      {/* Top Header matching Figma */}
+      {/* Top Header sesuai PRD Section 7 & Figma */}
       <View style={[styles.topHeader, { paddingTop: Math.max(insets.top, 12) }]}>
         <TouchableOpacity
           onPress={() => setIsDrawerOpen(true)}
           style={styles.menuBtn}
-          accessibilityLabel="Buka menu"
+          accessibilityLabel="Buka menu navigasi"
         >
           <Text style={styles.menuIcon}>≡</Text>
         </TouchableOpacity>
+
         <View style={styles.headerTitleBox}>
           <Text style={styles.headerTitleMain}>Dashboard Overview</Text>
           <Text style={styles.headerTitleSub}>RSA UGM • SI-POTA v1.0</Text>
         </View>
+
         <TouchableOpacity
           onPress={() => setIsDrawerOpen(true)}
           style={styles.profileBtn}
@@ -88,29 +73,29 @@ function MainScreen() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => loadData(true)}
+            onRefresh={onRefresh}
             colors={['#0a354c']}
             tintColor="#0a354c"
           />
         }
       >
-        {/* Sub Header & VPS Status */}
+        {/* Sub Header & Status Koneksi Web BFF */}
         <View style={styles.header}>
           <View>
             <Text style={styles.title}>Pemantauan Tangki</Text>
-            <Text style={styles.subtitle}>Data Sensor Live (VPS Core)</Text>
+            <Text style={styles.subtitle}>Data via Web BFF (:3000)</Text>
           </View>
           <Badge
-            text={errorMessage ? 'VPS Offline' : 'VPS Connected'}
-            variant={errorMessage ? 'critical' : 'success'}
+            text={error ? 'BFF Offline' : 'BFF Connected'}
+            variant={error ? 'critical' : 'success'}
           />
         </View>
 
-        {/* Error Banner jika gagal koneksi */}
-        {errorMessage && (
+        {/* Error Banner jika gagal koneksi ke Web BFF */}
+        {error && (
           <View style={styles.errorBox}>
-            <Text style={styles.errorText}>⚠️ {errorMessage}</Text>
-            <TouchableOpacity onPress={() => loadData()} style={styles.retryBtn}>
+            <Text style={styles.errorText}>⚠️ {error}</Text>
+            <TouchableOpacity onPress={() => fetchTanks()} style={styles.retryBtn}>
               <Text style={styles.retryBtnText}>Coba Lagi</Text>
             </TouchableOpacity>
           </View>
@@ -144,11 +129,11 @@ function MainScreen() {
         </View>
 
         {/* Loading Indicator */}
-        {loading ? (
+        {isLoading && !refreshing ? (
           <View style={styles.loadingBox}>
             <ActivityIndicator size="large" color="#0a354c" />
-            <Text style={styles.loadingText}>Menghubungkan ke Backend VPS...</Text>
-            <Text style={styles.loadingSub}>{API_BASE_URL}</Text>
+            <Text style={styles.loadingText}>Menghubungkan ke Web BFF...</Text>
+            <Text style={styles.loadingSub}>{ENV.BFF_URL}</Text>
           </View>
         ) : (
           tanks.map((tank) => {
@@ -158,7 +143,7 @@ function MainScreen() {
             const minThreshold = Number(tank.minThresholdPercent || 30);
             const maxThreshold = Number(tank.maxThresholdPercent || 90);
 
-            // Kategori status PRD:
+            // Klasifikasi ambang batas sesuai PRD:
             // < minThreshold (30%) = CRITICAL (Merah)
             // 30% - 60% = WARNING (Kuning)
             // > 60% = NORMAL (Hijau)
@@ -210,7 +195,7 @@ function MainScreen() {
                     </View>
                   </View>
 
-                  {/* Progress Bar Visualizer */}
+                  {/* Visual Progress Bar */}
                   <View style={styles.progressBarTrack}>
                     <View
                       style={[
@@ -276,7 +261,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   menuBtn: {
-    padding: 6,
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   menuIcon: {
     color: 'white',
@@ -285,7 +273,7 @@ const styles = StyleSheet.create({
   },
   headerTitleBox: {
     flex: 1,
-    marginLeft: 14,
+    marginLeft: 8,
   },
   headerTitleMain: {
     color: 'white',
@@ -297,17 +285,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   profileBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   profileIcon: {
-    fontSize: 16,
+    fontSize: 18,
   },
   container: {
     flex: 1,
@@ -350,9 +334,11 @@ const styles = StyleSheet.create({
   },
   retryBtn: {
     backgroundColor: '#dc2626',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 6,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   retryBtnText: {
     color: 'white',

@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import axios from 'axios';
 import { User, ApiResponse } from '../types';
-
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://100.94.192.102:8000';
+import { ENV } from '../config/env';
+import { saveAuthToken, getAuthToken, removeAuthToken } from '../services/secureStore';
 
 interface AuthState {
   user: User | null;
@@ -12,7 +12,8 @@ interface AuthState {
   error: string | null;
 
   login: (username: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
+  initAuth: () => Promise<void>;
   ensureAuthenticated: () => Promise<string | null>;
 }
 
@@ -23,17 +24,29 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: false,
   error: null,
 
+  initAuth: async () => {
+    const savedToken = await getAuthToken();
+    if (savedToken) {
+      set({ token: savedToken, isAuthenticated: true });
+    }
+  },
+
+  /**
+   * Login ke Web BFF (/api/auth/login)
+   * Menyimpan token JWT ke Hardware SecureStore
+   */
   login: async (username: string, password: string) => {
     set({ isLoading: true, error: null });
     try {
       const res = await axios.post<ApiResponse<{ token: string; user: User }>>(
-        `${API_BASE_URL}/api/auth/login`,
+        `${ENV.BFF_URL}/api/auth/login`,
         { username, password },
-        { timeout: 5000 }
+        { timeout: 8000 }
       );
 
       const payload = res.data?.data;
       if (res.data?.success && payload?.token) {
+        await saveAuthToken(payload.token);
         set({
           user: payload.user,
           token: payload.token,
@@ -44,30 +57,33 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return true;
       } else {
         set({
-          error: res.data?.message || 'Login gagal.',
+          error: res.data?.message || 'Login gagal via Web BFF.',
           isLoading: false,
         });
         return false;
       }
     } catch (err: any) {
-      const message = err.response?.data?.message || err.message || 'Gagal terhubung ke server.';
+      const message = err.response?.data?.message || err.message || 'Gagal terhubung ke Web BFF.';
       set({ error: message, isLoading: false });
       return false;
     }
   },
 
-  logout: () => {
+  logout: async () => {
+    await removeAuthToken();
     set({ user: null, token: null, isAuthenticated: false, error: null });
   },
 
   /**
-   * Memastikan aplikasi memiliki token aktif.
-   * Jika belum ada token, melakukan auto-login dengan kredensial default admin/admin123
-   * agar aplikasi mobile langsung live dan menampilkan data tangki dari VPS.
+   * Memastikan aplikasi mobile memiliki token valid sebelum melakukan request ke Web BFF.
+   * Melakukan auto-login jika belum ada token aktif.
    */
   ensureAuthenticated: async () => {
-    const currentToken = get().token;
-    if (currentToken) return currentToken;
+    const currentToken = get().token || (await getAuthToken());
+    if (currentToken) {
+      if (!get().token) set({ token: currentToken, isAuthenticated: true });
+      return currentToken;
+    }
 
     const success = await get().login('admin', 'admin123');
     if (success) {

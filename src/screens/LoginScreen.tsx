@@ -9,8 +9,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Keyboard,
 } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
 import { useAuthStore } from '../stores/authStore';
 
 export interface LoginScreenProps {
@@ -26,6 +26,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const { login, isLoading, error, clearError } = useAuthStore();
 
   const handleLogin = async () => {
+    Keyboard.dismiss();
     if (!username.trim() || !password.trim()) {
       return;
     }
@@ -52,8 +53,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
       style={styles.keyboardContainer}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <StatusBar style="dark" />
-
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"

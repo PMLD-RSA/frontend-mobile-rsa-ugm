@@ -7,7 +7,6 @@ import {
   Easing,
   Platform,
 } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
 
 export interface SplashScreenProps {
   onFinish: () => void;
@@ -80,8 +79,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
 
   return (
     <Animated.View style={[styles.container, { opacity: containerOpacity }]}>
-      <StatusBar style="light" />
-
       {/* Area Tengah: Logo & Brand Identitas RSA UGM */}
       <View style={styles.content}>
         <Animated.View

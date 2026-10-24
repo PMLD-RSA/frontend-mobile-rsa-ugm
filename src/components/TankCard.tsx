@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Card, Badge, BadgeVariant } from './Card';
+import { Card, Badge } from './Card';
 import { Tank } from '../types';
+import { getTankStatusCategory, formatKiloLiters } from '../utils/tankMetrics';
 
 interface TankCardProps {
   tank: Tank;
@@ -14,23 +15,11 @@ export const TankCard: React.FC<TankCardProps> = ({ tank }) => {
   const minThreshold = Number(tank.minThresholdPercent || 30);
   const maxThreshold = Number(tank.maxThresholdPercent || 90);
 
-  // Klasifikasi status sesuai PRD Mobile:
-  // < minThreshold (30%) = CRITICAL (Merah)
-  // 30% - 60% = WARNING (Kuning/Amber)
-  // > 60% = NORMAL (Hijau)
-  let variant: BadgeVariant = 'success';
-  let statusText = 'NORMAL';
-  let barColor = '#10b981';
-
-  if (level < minThreshold) {
-    variant = 'critical';
-    statusText = 'CRITICAL';
-    barColor = '#ef4444';
-  } else if (level <= 60) {
-    variant = 'warning';
-    statusText = 'WARNING';
-    barColor = '#f59e0b';
-  }
+  // Menggunakan helper murni tankMetrics
+  const { variant, statusText, barColor } = getTankStatusCategory(
+    level,
+    minThreshold
+  );
 
   // Identifikasi modul sensor utama jika ada
   const primaryNode = tank.nodes?.[0];
@@ -105,9 +94,7 @@ export const TankCard: React.FC<TankCardProps> = ({ tank }) => {
       <View style={styles.footer}>
         <View style={styles.footerCol}>
           <Text style={styles.footerLabel}>Kapasitas Total</Text>
-          <Text style={styles.footerValue}>
-            {(capacity / 1000).toFixed(1)}k L
-          </Text>
+          <Text style={styles.footerValue}>{formatKiloLiters(capacity)}</Text>
         </View>
         <View style={styles.footerCol}>
           <Text style={styles.footerLabel}>Ambang Batas</Text>

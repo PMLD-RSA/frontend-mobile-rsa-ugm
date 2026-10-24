@@ -14,7 +14,10 @@ import { MetricsOverview } from '../components/MetricsOverview';
 import { TankCard } from '../components/TankCard';
 import { useTankStore } from '../stores/tankStore';
 import { ENV } from '../config/env';
-import { Tank } from '../types';
+import {
+  sortTanksBySeverity,
+  calculateMetricsOverview,
+} from '../utils/tankMetrics';
 
 export const HomeScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -32,31 +35,14 @@ export const HomeScreen: React.FC = () => {
     setRefreshing(false);
   }, [fetchTanks]);
 
-  // Perhitungan ringkasan tangki
-  const totalCapacity = tanks.reduce(
-    (acc, t) => acc + Number(t.capacityLiters || 0),
-    0
+  // Perhitungan ringkasan tangki via helper murni
+  const { totalCapacity, totalWater, activeAlertsCount } = useMemo(
+    () => calculateMetricsOverview(tanks),
+    [tanks]
   );
-  const totalWater = tanks.reduce(
-    (acc, t) => acc + Number(t.latestReading?.volumeLiters || 0),
-    0
-  );
-  const activeAlertsCount = tanks.filter((t) => t.activeAlert != null).length;
 
-  // Auto-Sort by Severity sesuai PRD-Mobile.md § 4.1:
-  // Tangki status CRITICAL ditempatkan di paling atas, diikuti WARNING, lalu NORMAL
-  const sortedTanks = useMemo(() => {
-    return [...tanks].sort((a, b) => {
-      const getSeverityRank = (t: Tank) => {
-        const level = Number(t.latestReading?.levelPercent || 0);
-        const minThreshold = Number(t.minThresholdPercent || 30);
-        if (t.activeAlert || level < minThreshold) return 3; // CRITICAL
-        if (level <= 60) return 2; // WARNING
-        return 1; // NORMAL
-      };
-      return getSeverityRank(b) - getSeverityRank(a);
-    });
-  }, [tanks]);
+  // Auto-Sort by Severity sesuai PRD-Mobile.md § 4.1
+  const sortedTanks = useMemo(() => sortTanksBySeverity(tanks), [tanks]);
 
   return (
     <ScrollView

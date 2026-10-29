@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { Tank } from '../types';
 import { fetchTanksApi } from '../services/api';
+import { updateTankThresholdApi } from '../services/api';
+import { useAuthStore } from './authStore';
 import { sortTanksBySeverity } from '../utils/tankMetrics';
 
 interface TankState {
@@ -10,6 +12,11 @@ interface TankState {
 
   fetchTanks: () => Promise<void>;
   updateLevel: (tankId: string, levelPercent: number | string, volumeLiters: number | string) => void;
+  updateThreshold: (
+    tankId: string,
+    minThresholdPercent: number,
+    maxThresholdPercent: number
+  ) => Promise<boolean>;
 }
 
 export const useTankStore = create<TankState>((set) => ({
@@ -49,5 +56,46 @@ export const useTankStore = create<TankState>((set) => ({
         };
       }),
     }));
+  },
+
+  updateThreshold: async (tankId, minThresholdPercent, maxThresholdPercent) => {
+    if (useAuthStore.getState().user?.role !== 'admin') {
+      set({ error: 'Hanya Admin yang dapat mengubah ambang batas tangki' });
+      return false;
+    }
+
+    set({ isLoading: true, error: null });
+    try {
+      const updatedTank = await updateTankThresholdApi(tankId, {
+        minThresholdPercent,
+        maxThresholdPercent,
+      });
+      set((state) => ({
+        tanks: sortTanksBySeverity(
+          state.tanks.map((tank) => (tank.id === tankId ? { ...tank, ...updatedTank } : tank))
+        ),
+        isLoading: false,
+        error: null,
+      }));
+      return true;
+    } catch (err: unknown) {
+      const message =
+        typeof err === 'object' &&
+        err !== null &&
+        'response' in err &&
+        typeof err.response === 'object' &&
+        err.response !== null &&
+        'data' in err.response &&
+        typeof err.response.data === 'object' &&
+        err.response.data !== null &&
+        'message' in err.response.data &&
+        typeof err.response.data.message === 'string'
+          ? err.response.data.message
+          : err instanceof Error
+            ? err.message
+            : 'Gagal memperbarui ambang batas tangki';
+      set({ isLoading: false, error: message });
+      return false;
+    }
   },
 }));

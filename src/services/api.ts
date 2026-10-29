@@ -40,3 +40,23 @@ export async function fetchTanksApi(): Promise<Tank[]> {
   }
   return [];
 }
+
+export interface UpdateTankThresholdPayload {
+  minThresholdPercent: number;
+  maxThresholdPercent: number;
+}
+
+/**
+ * Memperbarui ambang batas tangki melalui Web BFF.
+ */
+export async function updateTankThresholdApi(
+  tankId: string,
+  payload: UpdateTankThresholdPayload
+): Promise<Tank> {
+  const response = await api.put<ApiResponse<Tank>>(`/api/tanks/${encodeURIComponent(tankId)}`, payload);
+  if (response.data?.success && response.data.data) {
+    return response.data.data;
+  }
+
+  throw new Error(response.data?.message || response.data?.error || 'Gagal memperbarui ambang batas tangki');
+}

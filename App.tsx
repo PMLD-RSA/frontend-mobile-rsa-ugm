@@ -10,6 +10,8 @@ import { SplashScreen } from './src/screens/SplashScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { TankManagementScreen } from './src/screens/TankManagementScreen';
+import { AlarmsScreen } from './src/screens/AlarmsScreen';
+import { EmergencyAlertBanner } from './src/components/EmergencyAlertBanner';
 import { useAuthStore } from './src/stores/authStore';
 import { useTankStore } from './src/stores/tankStore';
 import { ScreenId } from './src/types';
@@ -126,12 +128,15 @@ export default function App() {
               onOpenDrawer={() => setIsDrawerOpen(true)}
               onOpenProfile={() => setIsProfileOpen(true)}
             />
+            <EmergencyAlertBanner />
 
             {/* Main Content */}
             {currentScreen === 'dashboard' ? (
               <HomeScreen />
             ) : currentScreen === 'tanks' ? (
               <TankManagementScreen onNavigate={(screen) => setCurrentScreen(screen)} />
+            ) : currentScreen === 'alarms' ? (
+              <AlarmsScreen onNavigate={(screen) => setCurrentScreen(screen)} />
             ) : (
               <PlaceholderScreen
                 screenId={currentScreen}

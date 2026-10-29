@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { getAuthToken } from './secureStore';
 import { ENV } from '../config/env';
-import { Tank, ApiResponse } from '../types';
+import { Alert, Tank, ApiResponse } from '../types';
 
 /**
  * Axios client terpusat dengan interceptor token ke Next.js Web BFF
@@ -59,4 +59,30 @@ export async function updateTankThresholdApi(
   }
 
   throw new Error(response.data?.message || response.data?.error || 'Gagal memperbarui ambang batas tangki');
+}
+
+/**
+ * Mengambil daftar alert dari Next.js Web BFF (/api/alerts).
+ */
+export async function fetchAlertsApi(): Promise<Alert[]> {
+  const response = await api.get<ApiResponse<Alert[]>>('/api/alerts');
+  if (response.data?.success && Array.isArray(response.data.data)) {
+    return response.data.data;
+  }
+
+  throw new Error(response.data?.message || response.data?.error || 'Gagal mengambil daftar peringatan');
+}
+
+/**
+ * Menyelesaikan alert setelah petugas mengonfirmasi pemeriksaan fisik.
+ */
+export async function resolveAlertApi(alertId: number): Promise<Alert> {
+  const response = await api.patch<ApiResponse<Alert>>(
+    `/api/alerts/${encodeURIComponent(String(alertId))}/resolve`
+  );
+  if (response.data?.success && response.data.data) {
+    return response.data.data;
+  }
+
+  throw new Error(response.data?.message || response.data?.error || 'Gagal menyelesaikan peringatan');
 }

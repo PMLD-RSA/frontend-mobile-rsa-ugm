@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { getAuthToken } from './secureStore';
 import { ENV } from '../config/env';
-import { Alert, Tank, ApiResponse } from '../types';
+import { Alert, ReadingRange, Tank, ApiResponse, WaterLevelReading } from '../types';
 
 /**
  * Axios client terpusat dengan interceptor token ke Next.js Web BFF
@@ -85,4 +85,22 @@ export async function resolveAlertApi(alertId: number): Promise<Alert> {
   }
 
   throw new Error(response.data?.message || response.data?.error || 'Gagal menyelesaikan peringatan');
+}
+
+/**
+ * Mengambil riwayat pembacaan level air dari Web BFF.
+ */
+export async function fetchTankReadingsApi(
+  tankId: string,
+  range: ReadingRange
+): Promise<WaterLevelReading[]> {
+  const response = await api.get<ApiResponse<WaterLevelReading[]>>(
+    `/api/tanks/${encodeURIComponent(tankId)}/readings`,
+    { params: { range } }
+  );
+  if (response.data?.success && Array.isArray(response.data.data)) {
+    return response.data.data;
+  }
+
+  throw new Error(response.data?.message || response.data?.error || 'Gagal mengambil riwayat pembacaan tangki');
 }

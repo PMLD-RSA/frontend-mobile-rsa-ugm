@@ -9,6 +9,7 @@ export type AlertStatus = 'active' | 'resolved';
 export type GatewayStatus = 'online' | 'offline';
 export type NodeStatus = 'active' | 'offline' | 'error';
 export type TankStatusCategory = 'NORMAL' | 'WARNING' | 'CRITICAL';
+export type ReadingRange = '24h' | '7d';
 
 export interface ApiResponse<T = unknown> {
   success: boolean;

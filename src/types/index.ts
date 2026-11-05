@@ -10,6 +10,7 @@ export type GatewayStatus = 'online' | 'offline';
 export type NodeStatus = 'active' | 'offline' | 'error';
 export type TankStatusCategory = 'NORMAL' | 'WARNING' | 'CRITICAL';
 export type ReadingRange = '24h' | '7d';
+export type AuditLogCategory = 'AUTH' | 'TANK' | 'ALERT' | 'USER' | 'OTHER';
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
@@ -76,6 +77,18 @@ export interface User {
   role: UserRole;
   isActive: boolean;
   createdAt?: string;
+}
+
+export interface AuditLog {
+  id: number | string;
+  userId?: string | null;
+  username?: string | null;
+  action: string;
+  category?: AuditLogCategory | string | null;
+  entity?: string | null;
+  entityId?: string | null;
+  description?: string | null;
+  createdAt: string;
 }
 
 /**

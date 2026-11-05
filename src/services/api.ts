@@ -1,7 +1,14 @@
 import axios from 'axios';
 import { getAuthToken } from './secureStore';
 import { ENV } from '../config/env';
-import { Alert, ReadingRange, Tank, ApiResponse, WaterLevelReading } from '../types';
+import {
+  Alert,
+  ApiResponse,
+  AuditLog,
+  ReadingRange,
+  Tank,
+  WaterLevelReading,
+} from '../types';
 
 /**
  * Axios client terpusat dengan interceptor token ke Next.js Web BFF
@@ -103,4 +110,19 @@ export async function fetchTankReadingsApi(
   }
 
   throw new Error(response.data?.message || response.data?.error || 'Gagal mengambil riwayat pembacaan tangki');
+}
+
+/**
+ * Mengambil 20 aktivitas operasional terbaru dari Web BFF.
+ */
+export async function fetchAuditLogsApi(limit: number = 20): Promise<AuditLog[]> {
+  const safeLimit = Math.min(Math.max(Math.floor(limit), 1), 20);
+  const response = await api.get<ApiResponse<AuditLog[]>>('/api/audit-logs', {
+    params: { limit: safeLimit },
+  });
+  if (response.data?.success && Array.isArray(response.data.data)) {
+    return response.data.data;
+  }
+
+  throw new Error(response.data?.message || response.data?.error || 'Gagal mengambil audit log');
 }

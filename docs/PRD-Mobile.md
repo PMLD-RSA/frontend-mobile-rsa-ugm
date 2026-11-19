@@ -23,8 +23,9 @@ Antarmuka mobile berorientasi **vertikal (*portrait-first*)**, ringan, hemat day
 1. **Konsumsi Data Melalui Web BFF:**
    * Aplikasi Mobile **TIDAK** menembak langsung endpoint mentah Core Backend Fastify, melainkan berkomunikasi secara terpusat melalui **Next.js Web BFF (`http://<LAN_IP>:3000/api/*`)**.
    * *Keuntungan:* Data mentah dari sensor sudah dibersihkan, dihitung persentasenya, dan distrukturkan oleh server BFF, sehingga beban komputasi dan memori pada *smartphone* petugas menjadi sangat minim.
-2. **Koneksi Realtime Langsung (WebSocket):**
-   * Untuk mendengarkan pembaruan level air tanpa delay (*zero-latency*), aplikasi mobile membuka koneksi socket persisten langsung ke Core Backend: `ws://<LAN_IP>:8000/ws`.
+2. **Koneksi Realtime Langsung (WebSocket Terautentikasi):**
+   * Untuk mendengarkan pembaruan level air tanpa delay (*zero-latency*), aplikasi mobile membuka koneksi socket persisten langsung ke Core Backend: `ws://<LAN_IP>:8000/ws?token=<jwt>`.
+   * Payload `LEVEL_UPDATE` & `NODE_STATUS` dari Core BE menggunakan `snake_case` dan dipetakan di sisi klien ke state `camelCase`.
 
 ### 1.3 Batasan Ruang Lingkup Mutlak (Scope Boundaries)
 * **Monitoring & Early Warning Saja:** Aplikasi mobile murni berfungsi membaca level air, mendeteksi peringatan darurat, melakukan penyelesaian alert (*Resolve Alert*), memeriksa status sinyal radio sensor LoRa, dan menyediakan fungsi administratif ringkas bagi Admin.
@@ -108,26 +109,47 @@ frontend-mobile-rsa-ugm/
 │   └── PRD-Mobile.md             # Acuan Tunggal Spesifikasi Mobile
 ├── src/
 │   ├── components/
-│   │   ├── Card.tsx              # Komponen Kartu dasar & Badge status dot semantik
-│   │   ├── Header.tsx            # Custom Top Header dengan tombol hamburger & profil
-│   │   ├── MetricsOverview.tsx   # 3 Kartu metrik ringkasan kapasitas & alert
-│   │   ├── Sidebar.tsx           # Navigasi Sliding Drawer hardware-accelerated
-│   │   └── TankCard.tsx          # Kartu tangki dengan progress bar & modul radio LoRa
+│   │   ├── Card.tsx                 # Komponen Kartu dasar & Badge status dot semantik
+│   │   ├── EmergencyAlertBanner.tsx # Banner darurat floating & haptic vibration
+│   │   ├── Header.tsx               # Custom Top Header dengan tombol hamburger & profil
+│   │   ├── MetricsOverview.tsx      # 3 Kartu metrik ringkasan kapasitas & alert
+│   │   ├── Sidebar.tsx              # Navigasi Sliding Drawer hardware-accelerated (RBAC)
+│   │   └── TankCard.tsx             # Kartu tangki dengan progress bar & modul radio LoRa
 │   ├── config/
-│   │   └── env.ts                # Konfigurasi binding IP fallback (BFF_URL & WS_URL)
+│   │   └── env.ts                   # Konfigurasi binding IP fallback (BFF_URL & WS_URL)
 │   ├── screens/
-│   │   ├── HomeScreen.tsx        # Beranda glance list dengan Severity Auto-Sort
-│   │   └── PlaceholderScreen.tsx # Template layar modul yang sedang dalam pengembangan
+│   │   ├── SplashScreen.tsx         # Splash overlay + pemicu initAuth()
+│   │   ├── LoginScreen.tsx          # Layar login & penyimpanan JWT ke SecureStore
+│   │   ├── HomeScreen.tsx           # Beranda glance list dengan Severity Auto-Sort
+│   │   ├── TankManagementScreen.tsx # F-06: Edit Quick Threshold tangki (Admin)
+│   │   ├── AlarmsScreen.tsx         # F-03 & F-04: Daftar alert & Resolve (Op/Admin)
+│   │   ├── ReportsScreen.tsx        # F-02: Tren grafik 24h/7d per tangki
+│   │   ├── AuditLogsScreen.tsx      # F-08: Timeline feed aktivitas (Admin)
+│   │   ├── DevicesScreen.tsx        # F-05: Status Gateway RPi & Sensor Node LoRa
+│   │   ├── UsersScreen.tsx          # F-07: Kelola status & reset sandi user (Admin)
+│   │   ├── ProfileScreen.tsx        # Modal profil pengguna aktif & logout
+│   │   └── PlaceholderScreen.tsx    # Fallback template layar cadangan
 │   ├── services/
-│   │   ├── secureStore.ts        # Enkripsi hardware untuk simpan JWT Bearer Token
-│   │   └── api.ts                # Axios client terpusat dengan SecureStore interceptor
+│   │   ├── secureStore.ts           # Enkripsi hardware untuk simpan JWT Bearer Token
+│   │   ├── api.ts                   # Axios client terpusat dengan SecureStore interceptor
+│   │   └── alertSocket.ts           # Koneksi WebSocket ?token=<jwt> & event dispatcher
 │   ├── stores/
-│   │   ├── authStore.ts          # Zustand: autentikasi, sesi pengguna, & auto-login
-│   │   └── tankStore.ts          # Zustand: daftar tangki & live update telemetry
+│   │   ├── authStore.ts             # Zustand: autentikasi, sesi pengguna, & initAuth
+│   │   ├── tankStore.ts             # Zustand: daftar tangki & live update telemetry
+│   │   ├── alertStore.ts            # Zustand: daftar alert aktif/riwayat & resolve
+│   │   ├── deviceStore.ts           # Zustand: status gateway & sensor nodes
+│   │   ├── reportStore.ts           # Zustand: histori pembacaan per tangki
+│   │   ├── auditLogStore.ts         # Zustand: log aktivitas terbaru
+│   │   └── userStore.ts             # Zustand: manajemen status & sandi operator
 │   ├── utils/
-│   │   └── tankMetrics.ts        # Logika murni perhitungan, sorting keparahan, & format volume
+│   │   ├── tankMetrics.ts           # Logika perhitungan, sorting keparahan, & format volume
+│   │   ├── tankThreshold.ts         # Validasi batas threshold min/max
+│   │   ├── reportMetrics.ts         # Agregasi min/max/avg & sparkline data
+│   │   ├── deviceSignal.ts          # Pemetaan kekuatan sinyal RSSI LoRa
+│   │   ├── auditLog.ts              # Kategorisasi & format narasi audit log
+│   │   └── userManagement.ts        # Filter user & generator sandi sementara
 │   └── types/
-│       └── index.ts              # Type definitions resmi selaras Web BFF & Drizzle
+│       └── index.ts                 # Type definitions resmi selaras Web BFF & Core BE
 ├── .env.example                  # Template panduan konfigurasi variabel lingkungan
 ├── app.json                      # Konfigurasi Expo & manifest aplikasi (CNG)
 ├── App.tsx                       # Root container, SafeAreaProvider & Main Dashboard
@@ -181,9 +203,9 @@ flowchart TD
     * Badge Status Dot Semantik: **NORMAL** (Hijau), **WARNING** (Kuning), **CRITICAL** (Merah).
     * Indikator Sinyal LoRa: Ikon radio dengan nilai RSSI (contoh: `-74 dBm`).
 
-### 4.2 F-02: Tren Riwayat Air 24 Jam Ringkas (*Sparkline Trend*)
+### 4.2 F-02: Tren Riwayat Air 24 Jam / 7 Hari Ringkas (*Sparkline Trend*)
 * **Tujuan:** Memberikan gambaran sekilas apakah volume air sedang naik (terisi) atau sedang menyusut drastis.
-* **Bentuk di Mobile:** Bukan grafik kompleks multi-layer desktop, melainkan **grafik garis ringkas (*sparkline*)** atau bar visual 24 jam terakhir yang tertanam langsung di modal detail tangki.
+* **Bentuk di Mobile:** Mengambil data dari `GET /api/tanks/:id/readings?hours=24&limit=500` (atau `hours=168` untuk 7 hari), diurutkan kronologis `ASC`, lalu ditampilkan sebagai **grafik garis/bar ringkas (*sparkline*)** beserta metrik ringkasan (`Latest`, `Min`, `Max`, `Avg`).
 
 ### 4.3 F-03: Peringatan Darurat Realtime (*In-App Emergency Alert*)
 * **Tujuan:** Menyiagakan petugas di lapangan sesegera mungkin saat air menipis.
@@ -192,8 +214,8 @@ flowchart TD
   * **Haptic Vibration & Sound:** Memicu getaran native ponsel saat event WebSocket `ALERT_TRIGGERED` diterima.
   * **Lonceng Peringatan:** Badge angka merah pada header yang menunjukkan jumlah alert aktif.
 
-### 4.4 F-04: Penyelesaian Peringatan Langsung di Lapangan (*Mobile Resolve*)
-* **Tujuan:** Memberikan kemudahan bagi teknisi untuk menyelesaikan alert langsung dari ponsel setelah selesai mengecek kondisi tangki fisik di atap gedung.
+### 4.4 F-04: Penyelesaian Peringatan Langsung di Lapangan (*Mobile Resolve* — Operator & Admin)
+* **Tujuan:** Memberikan kemudahan bagi teknisi (`operator`/`admin`) untuk menyelesaikan alert langsung dari ponsel setelah selesai mengecek kondisi tangki fisik di atap gedung. Role `viewer` tidak melihat tombol Resolve (*read-only*).
 * **Alur Interaksi:**
   1. Petugas membuka daftar alert atau mengklik alert banner.
   2. Menekan tombol besar **"Selesaikan Peringatan (Resolve)"**.
@@ -217,24 +239,24 @@ flowchart TD
     * Input batas bawah bahaya: `Min Threshold (%)` (default: 30%).
     * Input batas atas: `Max Threshold (%)` (default: 90%).
     * Tombol *"Simpan Perubahan"*.
-  * Mengirim request `PUT /api/tanks/:id` ke Web BFF tanpa harus membuka laptop.
+  * Mengirim request `PATCH /api/tanks/:id` (atau `PUT /api/tanks/:id`) ke Web BFF tanpa harus membuka laptop.
 
 ### 4.7 F-07: Manajemen Pengguna Ringkas (*Mobile Operator Management* — Khusus Admin)
 * **Tujuan:** Memberikan kontrol darurat kepada Admin untuk mengaktifkan/menonaktifkan akun operator langsung dari HP.
 * **Bentuk di Mobile:**
-  * Layar *Kelola Pengguna* diakses dari Sliding Drawer Admin.
-  * Menampilkan daftar nama operator dalam bentuk kartu ringkas.
-  * Terdapat **Switch / Toggle Switch (Aktif / Nonaktif)** di setiap baris akun.
-  * Tombol *"Reset Sandi"* cepat yang menghasilkan kata sandi sementara jika ada operator di lapangan yang terkunci akunnya.
+  * Layar *Kelola Pengguna* diakses dari Sliding Drawer Admin (`GET /api/users`).
+  * Menampilkan daftar nama pengguna dalam bentuk kartu ringkas.
+  * Terdapat **Switch / Toggle Switch (Aktif / Nonaktif)** (`PATCH /api/users/:id` `{ isActive }`) di setiap baris akun.
+  * Tombol *"Reset Sandi"* cepat (`PATCH /api/users/:id` `{ password }`) yang menghasilkan kata sandi sementara jika ada operator di lapangan yang terkunci akunnya.
 
-### 4.8 F-08: Feed Aktivitas Terbaru (*Recent Activity Timeline* — Khusus Op/Admin)
-* **Tujuan:** Memberikan transparansi operasional tanpa membebani ponsel dengan data ribuan baris.
+### 4.8 F-08: Feed Aktivitas Terbaru (*Recent Activity Timeline* — Khusus Admin)
+* **Tujuan:** Memberikan transparansi operasional tanpa membebani ponsel dengan data ribuan baris (selaras RBAC Core BE `/api/audit-logs` yang dibatasi untuk `admin`).
 * **Bentuk di Mobile:**
   * Menyajikan **Timeline Feed 10–20 log aktivitas terakhir** berbasis data dari `GET /api/audit-logs?limit=20`.
-  * Format naratif ramah baca:
-    * *"Budi Santoso menyelesaikan Alert Tangki Atap (12 mnt lalu)"*
-    * *"Admin memperbarui ambang batas Tangki Bedah ke 35% (1 jam lalu)"*
-    * *"Teknisi login dari IP 192.168.1.45 (2 jam lalu)"*
+  * Merender field resmi BE (`action`, `entity`, `detail`, `userId`, `createdAt`) dalam format kartu naratif ramah baca:
+    * *"RESOLVE_ALERT: Alert level CRITICAL diselesaikan secara manual oleh admin (12 mnt lalu)"*
+    * *"UPDATE_TANK: Memperbarui data/threshold tangki Tangki Atap Gedung Utama (1 jam lalu)"*
+    * *"LOGIN: User admin berhasil login (2 jam lalu)"*
 
 ---
 
@@ -251,32 +273,39 @@ sequenceDiagram
     participant BFF as Next.js Web BFF (:3000)
     participant WS as Fastify WebSocket Core (:8000)
 
-    %% Initial Load
-    App->>Secure: Baca Token JWT Tersimpan
-    Secure-->>App: Kembalikan 'auth_token'
+    %% Initial Load & Auto-Login
+    App->>Secure: Baca Token JWT Tersimpan ('sipota_auth_token')
+    Secure-->>App: Kembalikan token
+    App->>BFF: GET /api/auth/me (Header: Bearer <token>)
+    BFF-->>App: Validasi sesi & profil User
     App->>BFF: HTTP GET /api/tanks (Header: Bearer <token>)
     BFF-->>App: JSON Snapshot Seluruh Tangki
     App->>Store: setTanks(data)
     Store-->>App: Render Kartu Tangki di Beranda (Auto-Sort Severity)
 
     %% Realtime Streaming
-    App->>WS: Buka Socket 'ws://<HOST_IP>:8000/ws'
-    WS-->>App: Event CONNECTED
+    App->>WS: Buka Socket 'ws://<HOST_IP>:8000/ws?token=<jwt>'
+    WS-->>App: { type: "CONNECTED", user, timestamp }
 
     loop Aliran Data Realtime
-        WS->>>App: Event LEVEL_UPDATE { tankId, levelPercent, volumeLiters }
-        App->>Store: updateLevel(tankId, levelPercent, volumeLiters)
+        WS->>>App: { type: "LEVEL_UPDATE", data: { tank_id, level_percent, volume_liters, rssi } }
+        App->>Store: updateLevel(tank_id, level_percent, volume_liters)
         Store-->>App: Re-render Angka, Bar & Status (Instant)
 
         opt Jika Terjadi Level Air Kritis
-            WS->>>App: Event ALERT_TRIGGERED { id, tankId, level: 'CRITICAL' }
+            WS->>>App: { type: "ALERT_TRIGGERED", data: { id, tankId, level: 'CRITICAL', message } }
             App->>Store: addAlert(alertData)
             App->>App: Picu Getaran Haptic & Tampilkan Alert Banner Merah
+        end
+
+        opt Saat Kondisi Kembali Normal / Di-resolve
+            WS->>>App: { type: "ALERT_RESOLVED", data: { id, tankId, status, resolvedAt } }
+            App->>Store: markAlertResolved(id)
         end
     end
 
     %% Fallback jika koneksi terputus
-    opt Jika Koneksi WebSocket Putus
+    opt Jika Koneksi WebSocket Putus (bukan 1008)
         App->>App: Mulai Reconnect Interval (Tiap 5 Detik)
         loop Polling Cadangan
             App->>BFF: GET /api/readings/latest
@@ -331,14 +360,16 @@ api.interceptors.request.use(async (config) => {
 
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
+  async (err) => {
     if (err.response?.status === 401) {
-      console.warn("[Auth] Sesi berakhir, redirect ke login");
+      // Bersihkan token kadaluwarsa di SecureStore dan reset authStore agar kembali ke LoginScreen
+      await removeAuthToken();
     }
     return Promise.reject(err);
   }
 );
 ```
+> **Catatan Keamanan Sesi Startup (`initAuth`):** Saat aplikasi dibuka, `initAuth()` memvalidasi token tersimpan melalui `GET /api/auth/me`. Jika BFF tidak terjangkau atau token invalid (`401`), aplikasi **dilarang** memalsukan role `admin` secara lokal; arahkan pengguna kembali ke layar Login.
 
 ---
 

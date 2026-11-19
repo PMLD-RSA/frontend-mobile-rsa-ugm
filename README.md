@@ -33,15 +33,17 @@ Mengacu pada spesifikasi **F-01 s.d. F-08** dalam [`docs/PRD-Mobile.md`](docs/PR
 | Kode | Nama Fitur | Deskripsi & Implementasi Mobile |
 | :--- | :--- | :--- |
 | **F-01** | **Beranda Pemantauan Tangki (*Glance Home*)** | Menampilkan kartu tangki vertikal dengan **Auto-Sort by Severity** (tangki berstatus *CRITICAL* $<30\%$ dan *WARNING* $30-60\%$ otomatis diposisikan paling atas). Dilengkapi persentase angka besar, volume aktual (Liter), dan badge status. |
-| **F-02** | **Tren Riwayat Air 24 Jam Ringkas** | Visualisasi tren pergerakan air 24 jam terakhir dalam bentuk *sparkline* ringkas pada modal detail tangki. |
+| **F-02** | **Tren Riwayat Air Ringkas** | Visualisasi tren 24 jam / 7 hari dalam bentuk *sparkline* ringkas (`GET /api/tanks/:id/readings?hours=24\|168&limit=500`). |
 | **F-03** | **Peringatan Darurat Realtime (*In-App Alert*)** | Banner merah interaktif saat air menipis, lonceng notifikasi pada header, dan getaran native saat terjadi bahaya air. |
-| **F-04** | **Penyelesaian Peringatan (*Mobile Resolve*)** | Teknisi lapangan dapat menyelesaikan status alarm langsung dari HP via endpoint `PATCH /api/alerts/:id/resolve` setelah mengecek kondisi fisik tangki. |
+| **F-04** | **Penyelesaian Peringatan (*Mobile Resolve*)** | *(Operator & Admin)* Teknisi lapangan dapat menyelesaikan status alarm via `PATCH /api/alerts/:id/resolve`. Role `viewer` bersifat read-only. |
 | **F-05** | **Status Konektivitas Perangkat (*Devices Status*)** | Menampilkan status radio LoRa STM32, indikator sinyal RSSI (dBm), dan waktu *heartbeat* Raspberry Pi Gateway Hub. |
-| **F-06\***| **Kalibrasi Ambang Batas Ringkas (*Quick Threshold*)** | *(Khusus Admin)* Membuka *bottom sheet* untuk mengatur batas `Min Threshold %` dan `Max Threshold %` tangki secara langsung di lokasi. |
-| **F-07\***| **Kelola Operator Cepat (*Mobile User Management*)** | *(Khusus Admin)* Menampilkan daftar teknisi dengan toggle switch aktivasi/deaktivasi akun operator lapangan. |
-| **F-08\***| **Feed Aktivitas Lapangan (*Recent Activity Timeline*)** | *(Khusus Admin/Operator)* Menampilkan 20 riwayat audit aksi operasional terakhir dengan narasi ramah baca. |
+| **F-06\***| **Kalibrasi Ambang Batas Ringkas (*Quick Threshold*)** | *(Khusus Admin)* Membuka *bottom sheet* untuk mengatur batas `Min Threshold %` dan `Max Threshold %` tangki (`PATCH`/`PUT /api/tanks/:id`). |
+| **F-07\***| **Kelola Pengguna Cepat (*Mobile User Management*)** | *(Khusus Admin)* Daftar pengguna dengan toggle aktif/nonaktif dan reset sandi (`PATCH /api/users/:id`). |
+| **F-08\***| **Feed Aktivitas Lapangan (*Recent Activity Timeline*)** | *(Khusus Admin, mengikuti RBAC `GET /api/audit-logs`)* Menampilkan 20 riwayat audit aksi terakhir (`action`, `entity`, `detail`, `createdAt`). |
 
 *\*Fitur bertanda bintang hanya dapat diakses oleh pengguna dengan role `admin`.*
+
+> **Sinkronisasi dokumen:** `docs/PRD-MFE.md` dan `docs/PRD-Mobile.md` sudah disesuaikan dengan kontrak Core Backend (`backend-rsa-ugm`). Target yang masih harus disinkronkan di kode: WebSocket wajib `?token=<jwt>` + handler `LEVEL_UPDATE`/`NODE_STATUS`, query grafik `?hours=` (bukan `?range=`), pemanggilan `initAuth()` saat startup, RBAC drawer/screen, serta arah `EXPO_PUBLIC_BFF_URL` ke Web BFF (`:3000`).
 
 ---
 
@@ -90,9 +92,10 @@ sequenceDiagram
     Core-->>BFF: 200 OK
     BFF-->>Mobile: 200 OK { success: true, data: [ ... ] }
 
-    Note over Mobile,Core: Alur 2: Notifikasi & Update Realtime (WebSocket Langsung ke Core)
-    Mobile->>Core: WS Connect ws://[HOST]:8000/ws
-    Core-->>Mobile: Event: LEVEL_UPDATE / ALERT_TRIGGERED
+    Note over Mobile,Core: Alur 2: Notifikasi & Update Realtime (WebSocket Langsung ke Core, wajib token)
+    Mobile->>Core: WS Connect ws://[HOST]:8000/ws?token=<jwt>
+    Core-->>Mobile: { type: "CONNECTED" }
+    Core-->>Mobile: { type: "LEVEL_UPDATE" (snake_case) / "ALERT_TRIGGERED" / "ALERT_RESOLVED" / "NODE_STATUS" }
     Mobile->>Mobile: Update State Zustand (tankStore) & Tampilkan Peringatan
 ```
 
@@ -237,31 +240,17 @@ frontend-mobile-rsa-ugm/
 │   └── tankMetrics.test.ts       # Unit test kalkulasi volume, threshold & severity sorting
 ├── .expo/                        # Cache dan metadata bundler Expo
 ├── assets/                       # Aset ikon aplikasi, splash, dan favicon
-├── docs/                         # Acuan spesifikasi kebutuhan teknis
+├── docs/                         # Acuan spesifikasi kebutuhan teknis (disinkronkan dengan Core BE)
 │   ├── PRD-MFE.md                # Master Frontend PRD
 │   └── PRD-Mobile.md             # Acuan Tunggal Spesifikasi Mobile
 ├── src/
-│   ├── components/
-│   │   ├── Card.tsx              # Komponen Kartu dasar & Badge status dot semantik
-│   │   ├── Header.tsx            # Custom Top Header dengan tombol hamburger & profil
-│   │   ├── MetricsOverview.tsx   # 3 Kartu metrik ringkasan kapasitas & alert
-│   │   ├── Sidebar.tsx           # Navigasi Sliding Drawer hardware-accelerated
-│   │   └── TankCard.tsx          # Kartu tangki dengan progress bar & modul radio LoRa
-│   ├── config/
-│   │   └── env.ts                # Konfigurasi binding IP fallback (BFF_URL & WS_URL)
-│   ├── screens/
-│   │   ├── HomeScreen.tsx        # Beranda glance list dengan Severity Auto-Sort
-│   │   └── PlaceholderScreen.tsx # Template layar modul yang sedang dalam pengembangan
-│   ├── services/
-│   │   ├── secureStore.ts        # Enkripsi hardware untuk simpan JWT Bearer Token
-│   │   └── api.ts                # Axios client terpusat dengan SecureStore interceptor
-│   ├── stores/
-│   │   ├── authStore.ts          # Zustand: autentikasi, sesi pengguna, & auto-login
-│   │   └── tankStore.ts          # Zustand: daftar tangki & live update telemetry
-│   ├── utils/
-│   │   └── tankMetrics.ts        # Logika murni perhitungan, sorting keparahan, & format volume
-│   └── types/
-│       └── index.ts              # Type definitions resmi selaras Web BFF & Drizzle
+│   ├── components/               # Card, Header, Sidebar, TankCard, MetricsOverview, EmergencyAlertBanner
+│   ├── config/env.ts             # Konfigurasi binding IP fallback (BFF_URL & WS_URL)
+│   ├── screens/                  # Home, TankManagement, Alarms, Reports, AuditLogs, Devices, Users, Profile, Splash, Login
+│   ├── services/                 # api.ts (Axios), secureStore.ts (JWT), alertSocket.ts (WebSocket)
+│   ├── stores/                   # Zustand: auth, tank, alert, device, report, auditLog, user
+│   ├── utils/                    # tankMetrics, tankThreshold, reportMetrics, deviceSignal, auditLog, userManagement
+│   └── types/index.ts            # Type definitions selaras Web BFF & Core BE
 ├── .env.example                  # Template panduan konfigurasi variabel lingkungan
 ├── app.json                      # Konfigurasi Expo & manifest aplikasi (CNG)
 ├── App.tsx                       # Root container, SafeAreaProvider & Main Dashboard

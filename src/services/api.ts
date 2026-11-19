@@ -152,3 +152,41 @@ export async function fetchNodesApi(): Promise<SensorNode[]> {
   }
   throw new Error(response.data?.message || response.data?.error || 'Gagal mengambil data sensor node');
 }
+
+
+/**
+ * Mengambil daftar pengguna/operator dari Web BFF (/api/users).
+ */
+export async function fetchUsersApi(): Promise<User[]> {
+  const response = await api.get<ApiResponse<User[]>>('/api/users');
+  if (response.data?.success && Array.isArray(response.data.data)) {
+    return response.data.data;
+  }
+  throw new Error(response.data?.message || response.data?.error || 'Gagal mengambil daftar pengguna');
+}
+
+/**
+ * Memperbarui status aktif/nonaktif akun pengguna via Web BFF.
+ */
+export async function updateUserStatusApi(userId: string, isActive: boolean): Promise<User> {
+  const response = await api.patch<ApiResponse<User>>(`/api/users/${encodeURIComponent(userId)}`, {
+    isActive,
+  });
+  if (response.data?.success && response.data.data) {
+    return response.data.data;
+  }
+  throw new Error(response.data?.message || response.data?.error || 'Gagal memperbarui status pengguna');
+}
+
+/**
+ * Melakukan reset kata sandi darurat pengguna di lapangan via Web BFF.
+ */
+export async function resetUserPasswordApi(userId: string, newPassword: string): Promise<User> {
+  const response = await api.patch<ApiResponse<User>>(`/api/users/${encodeURIComponent(userId)}`, {
+    password: newPassword,
+  });
+  if (response.data?.success && response.data.data) {
+    return response.data.data;
+  }
+  throw new Error(response.data?.message || response.data?.error || 'Gagal mereset kata sandi pengguna');
+}

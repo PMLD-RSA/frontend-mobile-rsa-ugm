@@ -45,13 +45,25 @@ export interface Alert {
 export interface SensorNode {
   id: string;
   tankId?: string | null;
+  tankName?: string | null;
   gatewayId?: string | null;
+  gatewayCode?: string | null;
   deviceCode: string;
   sensorType: string;
   status: NodeStatus;
   lastRssi?: number | null;
   lastSeen?: string | null;
   createdAt?: string;
+}
+
+export interface Gateway {
+  id: string;
+  deviceCode: string;
+  status: GatewayStatus;
+  lastHeartbeat?: string | null;
+  createdAt?: string;
+  nodesCount?: number;
+  nodes?: SensorNode[];
 }
 
 export interface Tank {

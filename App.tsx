@@ -14,6 +14,7 @@ import { AlarmsScreen } from './src/screens/AlarmsScreen';
 import { EmergencyAlertBanner } from './src/components/EmergencyAlertBanner';
 import { ReportsScreen } from './src/screens/ReportsScreen';
 import { AuditLogsScreen } from './src/screens/AuditLogsScreen';
+import { DevicesScreen } from './src/screens/DevicesScreen';
 import { useAuthStore } from './src/stores/authStore';
 import { useTankStore } from './src/stores/tankStore';
 import { ScreenId } from './src/types';
@@ -143,6 +144,8 @@ export default function App() {
               <ReportsScreen onNavigate={(screen) => setCurrentScreen(screen)} />
             ) : currentScreen === 'logs' ? (
               <AuditLogsScreen onNavigate={(screen) => setCurrentScreen(screen)} />
+            ) : currentScreen === 'settings' ? (
+              <DevicesScreen onNavigate={(screen) => setCurrentScreen(screen)} />
             ) : (
               <PlaceholderScreen
                 screenId={currentScreen}

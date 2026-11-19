@@ -5,8 +5,11 @@ import {
   Alert,
   ApiResponse,
   AuditLog,
+  Gateway,
+  SensorNode,
   ReadingRange,
   Tank,
+  User,
   WaterLevelReading,
 } from '../types';
 
@@ -125,4 +128,27 @@ export async function fetchAuditLogsApi(limit: number = 20): Promise<AuditLog[]>
   }
 
   throw new Error(response.data?.message || response.data?.error || 'Gagal mengambil audit log');
+}
+
+
+/**
+ * Mengambil daftar Raspberry Pi Gateway Hub dari Web BFF (/api/gateways).
+ */
+export async function fetchGatewaysApi(): Promise<Gateway[]> {
+  const response = await api.get<ApiResponse<Gateway[]>>('/api/gateways');
+  if (response.data?.success && Array.isArray(response.data.data)) {
+    return response.data.data;
+  }
+  throw new Error(response.data?.message || response.data?.error || 'Gagal mengambil data gateway');
+}
+
+/**
+ * Mengambil daftar sensor node LoRa STM32 dari Web BFF (/api/nodes).
+ */
+export async function fetchNodesApi(): Promise<SensorNode[]> {
+  const response = await api.get<ApiResponse<SensorNode[]>>('/api/nodes');
+  if (response.data?.success && Array.isArray(response.data.data)) {
+    return response.data.data;
+  }
+  throw new Error(response.data?.message || response.data?.error || 'Gagal mengambil data sensor node');
 }

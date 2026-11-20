@@ -11,6 +11,7 @@ import {
   ScrollView,
   Keyboard,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../stores/authStore';
 
 export interface LoginScreenProps {
@@ -59,31 +60,31 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.animatedWrapper}>
-          {/* Header & Logo RSA UGM */}
+          {/* Header & Logo SV UGM */}
           <View style={styles.headerBox}>
             <View style={styles.logoBadge}>
-              <Text style={styles.logoIcon}>💧</Text>
+              <Ionicons name="water" size={34} color="#FECB28" />
             </View>
             <Text style={styles.appTitle}>SI-POTA</Text>
             <Text style={styles.appSubtitle}>
               Sistem Informasi Pemantauan Tangki Air
             </Text>
             <Text style={styles.hospitalTag}>
-              Rumah Sakit Akademik UGM
+              Sekolah Vokasi UGM
             </Text>
           </View>
 
-          {/* Kartu Form Login (Clean Light Medical Surface) */}
+          {/* Kartu Form Login (Clean Light Academic Surface) */}
           <View style={styles.card}>
             <Text style={styles.cardHeader}>Masuk ke Akun</Text>
             <Text style={styles.cardDescription}>
-              Gunakan akun staf atau teknisi resmi fasilitas RSA UGM.
+              Gunakan akun staf atau teknisi resmi fasilitas Sekolah Vokasi UGM.
             </Text>
 
             {/* Banner Pesan Error */}
             {error && (
               <View style={styles.errorBanner}>
-                <Text style={styles.errorIcon}>⚠️</Text>
+                <Ionicons name="alert-circle" size={18} color="#F21E1E" style={{ marginRight: 6 }} />
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             )}
@@ -92,7 +93,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Nama Pengguna (Username)</Text>
               <View style={styles.inputContainer}>
-                <Text style={styles.fieldIcon}>👤</Text>
+                <Ionicons name="person-outline" size={18} color="#0077B6" style={styles.fieldIcon} />
                 <TextInput
                   style={styles.textInput}
                   placeholder="Masukkan username Anda"
@@ -112,7 +113,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Kata Sandi (Password)</Text>
               <View style={styles.inputContainer}>
-                <Text style={styles.fieldIcon}>🔒</Text>
+                <Ionicons name="lock-closed-outline" size={18} color="#0077B6" style={styles.fieldIcon} />
                 <TextInput
                   style={styles.textInput}
                   placeholder="Masukkan kata sandi"
@@ -132,7 +133,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   activeOpacity={0.7}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                  <Text style={styles.eyeIcon}>{showPassword ? '👁️' : '🙈'}</Text>
+                  <Ionicons
+                    name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                    size={18}
+                    color="#64748B"
+                  />
                 </TouchableOpacity>
               </View>
             </View>
@@ -174,7 +179,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 onPress={() => handleSelectQuickRole('admin', 'admin123')}
                 activeOpacity={0.7}
               >
-                <Text style={styles.roleDot}>👑</Text>
+                <Ionicons
+                  name="shield-checkmark"
+                  size={14}
+                  color={username === 'admin' ? '#0077B6' : '#64748B'}
+                  style={{ marginRight: 4 }}
+                />
                 <Text style={styles.rolePillText}>Admin</Text>
               </TouchableOpacity>
 
@@ -186,7 +196,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 onPress={() => handleSelectQuickRole('operator', 'operator123')}
                 activeOpacity={0.7}
               >
-                <Text style={styles.roleDot}>🔧</Text>
+                <Ionicons
+                  name="construct"
+                  size={14}
+                  color={username === 'operator' ? '#0077B6' : '#64748B'}
+                  style={{ marginRight: 4 }}
+                />
                 <Text style={styles.rolePillText}>Operator</Text>
               </TouchableOpacity>
 
@@ -198,16 +213,24 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 onPress={() => handleSelectQuickRole('viewer', 'viewer123')}
                 activeOpacity={0.7}
               >
-                <Text style={styles.roleDot}>👁️</Text>
+                <Ionicons
+                  name="eye"
+                  size={14}
+                  color={username === 'viewer' ? '#0077B6' : '#64748B'}
+                  style={{ marginRight: 4 }}
+                />
                 <Text style={styles.rolePillText}>Viewer</Text>
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Footer Info Keamanan */}
-          <Text style={styles.footerSecurityNote}>
-            🔒 Sesi terenkripsi hardware via Expo SecureStore.
-          </Text>
+          <View style={styles.footerSecurityRow}>
+            <Ionicons name="lock-closed-outline" size={13} color="#64748B" style={{ marginRight: 4 }} />
+            <Text style={styles.footerSecurityNote}>
+              Sesi terenkripsi hardware via Expo SecureStore.
+            </Text>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -448,10 +471,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1e293b',
   },
+  footerSecurityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+  },
   footerSecurityNote: {
     fontSize: 11,
     color: '#94a3b8',
-    marginTop: 20,
     textAlign: 'center',
   },
 });

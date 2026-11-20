@@ -12,7 +12,7 @@ export interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   title = 'Dashboard Overview',
-  subtitle = 'RSA UGM • SI-POTA v1.0',
+  subtitle = 'Sekolah Vokasi UGM • SI-POTA v1.0',
   onOpenDrawer,
   onOpenProfile,
 }) => {
@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
   topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0a354c', // Brand Primary
+    backgroundColor: '#0a3f5c', // Primary Navy sesuai design.md § 3.1
     paddingHorizontal: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,

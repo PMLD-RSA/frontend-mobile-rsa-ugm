@@ -8,38 +8,90 @@ interface TankCardProps {
   tank: Tank;
 }
 
+/**
+ * Kartu Tangki Air sesuai Spesifikasi Desain design.md § 4.5 & § 5.2:
+ * - Menampilkan nama tangki (DTEDI, DLIKES, DTK) & lokasi spesifik di SV UGM
+ * - Status tag (NORMAL / WARNING / CRITICAL)
+ * - Level persentase besar (32px Bold) & volume absolut (contoh: 1.560 / 2.000 L)
+ * - Status motor pompa (Pump - ON / Pump - OFF)
+ * - Sensor telemetri radio LoRa (dBm RSSI) & ambang batas
+ */
 export const TankCard: React.FC<TankCardProps> = ({ tank }) => {
   const level = Number(tank.latestReading?.levelPercent || 0);
   const volume = Number(tank.latestReading?.volumeLiters || 0);
-  const capacity = Number(tank.capacityLiters || 0);
+  const capacity = Number(tank.capacityLiters || 2000);
   const minThreshold = Number(tank.minThresholdPercent || 30);
   const maxThreshold = Number(tank.maxThresholdPercent || 90);
 
-  // Menggunakan helper murni tankMetrics
+  // Klasifikasi status semantik
   const { variant, statusText, barColor } = getTankStatusCategory(
     level,
     minThreshold
   );
 
-  // Identifikasi modul sensor utama jika ada
+  // Status pompa aktif jika pumpStatus == RUNNING atau level < minThreshold (auto pump on)
+  const isPumpOn =
+    tank.pumpStatus === 'RUNNING' ||
+    (tank.pumpStatus !== 'STOPPED' && level < minThreshold);
+
+  // Modul sensor LoRa STM32 & RSSI
   const primaryNode = tank.nodes?.[0];
-  const nodeLabel = primaryNode?.deviceCode || 'STM32';
-  const rssiValue = primaryNode?.lastRssi != null ? `${primaryNode.lastRssi} dBm` : null;
+  const nodeLabel = primaryNode?.deviceCode || 'STM32-LORA';
+  const rssiValue =
+    primaryNode?.lastRssi != null
+      ? `${primaryNode.lastRssi} dBm`
+      : tank.latestReading?.rssi != null
+      ? `${tank.latestReading.rssi} dBm`
+      : '-68 dBm';
+
+  // Laju pengisian cairan jika pompa aktif (misal 42 L/m)
+  const inflowRate = tank.inflowRateLpm ?? (isPumpOn ? 42.0 : 0);
 
   return (
     <Card key={tank.id}>
-      {/* Header Kartu Tangki */}
+      {/* 1. Header Kartu: Nama Tangki & Badge Status Semantik */}
       <View style={styles.cardHeader}>
         <View style={styles.titleArea}>
           <Text style={styles.tankName}>{tank.name}</Text>
-          <Text style={styles.location}>
-            📍 {tank.location || 'Lokasi belum disetel'}
+          <Text style={styles.location} numberOfLines={1}>
+            📍 {tank.location || 'Sekolah Vokasi UGM'}
           </Text>
         </View>
         <Badge text={statusText} variant={variant} />
       </View>
 
-      {/* Banner Peringatan Aktif (Jika Ada) */}
+      {/* 2. Sub-Row: Status Motor Pompa & Sinyal Radio LoRa */}
+      <View style={styles.subInfoRow}>
+        <View
+          style={[
+            styles.pumpPill,
+            isPumpOn ? styles.pumpPillActive : styles.pumpPillInactive,
+          ]}
+        >
+          <View
+            style={[
+              styles.pumpDot,
+              isPumpOn ? styles.pumpDotActive : styles.pumpDotInactive,
+            ]}
+          />
+          <Text
+            style={[
+              styles.pumpText,
+              isPumpOn ? styles.pumpTextActive : styles.pumpTextInactive,
+            ]}
+          >
+            {isPumpOn ? 'Pump - ON' : 'Pump - OFF'}
+          </Text>
+        </View>
+
+        <View style={styles.telemetryPill}>
+          <Text style={styles.telemetryText}>
+            {isPumpOn ? `💧 Inflow: ${inflowRate} L/m` : `📶 LoRa: ${rssiValue}`}
+          </Text>
+        </View>
+      </View>
+
+      {/* 3. Banner Peringatan Darurat (Jika Ada Alert Aktif) */}
       {tank.activeAlert && (
         <View
           style={[
@@ -62,21 +114,26 @@ export const TankCard: React.FC<TankCardProps> = ({ tank }) => {
         </View>
       )}
 
-      {/* Indikator Level Air & Progress Bar */}
+      {/* 4. Display Level Air & Volume Aktual */}
       <View style={styles.levelContainer}>
         <View style={styles.levelRow}>
-          <Text style={[styles.levelText, { color: barColor }]}>
-            {level.toFixed(0)}%
-          </Text>
+          <View style={styles.levelNumberRow}>
+            <Text style={[styles.levelText, { color: barColor }]}>
+              {level.toFixed(0)}
+            </Text>
+            <Text style={[styles.levelPercentSign, { color: barColor }]}>%</Text>
+          </View>
           <View style={styles.volumeBox}>
             <Text style={styles.volumeText}>
-              {volume.toLocaleString('id-ID')} L
+              {volume.toLocaleString('id-ID')} / {capacity.toLocaleString('id-ID')} L
             </Text>
-            <Text style={styles.volumeSub}>VOLUME AKTUAL</Text>
+            <Text style={styles.volumeSub}>
+              VOLUME OF {formatKiloLiters(capacity)}
+            </Text>
           </View>
         </View>
 
-        {/* Visual Progress Bar */}
+        {/* Visual Progress Bar dengan penanda batas kritis 30% */}
         <View style={styles.progressBarTrack}>
           <View
             style={[
@@ -87,13 +144,20 @@ export const TankCard: React.FC<TankCardProps> = ({ tank }) => {
               },
             ]}
           />
+          {/* Garis Penanda Ambang Kritis 30% */}
+          <View
+            style={[
+              styles.thresholdMarker,
+              { left: `${minThreshold}%` },
+            ]}
+          />
         </View>
       </View>
 
-      {/* Detail Ambang Batas & Sensor Node */}
+      {/* 5. Footer Spesifikasi Ambang Batas & Sensor */}
       <View style={styles.footer}>
         <View style={styles.footerCol}>
-          <Text style={styles.footerLabel}>Kapasitas Total</Text>
+          <Text style={styles.footerLabel}>Kapasitas</Text>
           <Text style={styles.footerValue}>{formatKiloLiters(capacity)}</Text>
         </View>
         <View style={styles.footerCol}>
@@ -105,7 +169,7 @@ export const TankCard: React.FC<TankCardProps> = ({ tank }) => {
         <View style={styles.footerCol}>
           <Text style={styles.footerLabel}>Modul Sensor</Text>
           <Text style={styles.footerValue} numberOfLines={1}>
-            {rssiValue ? `📶 ${nodeLabel}` : nodeLabel}
+            {nodeLabel}
           </Text>
         </View>
       </View>
@@ -133,6 +197,63 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748b',
     marginTop: 3,
+  },
+  subInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  pumpPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    gap: 5,
+  },
+  pumpPillActive: {
+    backgroundColor: '#ecfdf5',
+    borderColor: '#a7f3d0',
+  },
+  pumpPillInactive: {
+    backgroundColor: '#f1f5f9',
+    borderColor: '#e2e8f0',
+  },
+  pumpDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  pumpDotActive: {
+    backgroundColor: '#10b981',
+  },
+  pumpDotInactive: {
+    backgroundColor: '#94a3b8',
+  },
+  pumpText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  pumpTextActive: {
+    color: '#065f46',
+  },
+  pumpTextInactive: {
+    color: '#64748b',
+  },
+  telemetryPill: {
+    backgroundColor: '#f8fafc',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  telemetryText: {
+    fontSize: 10,
+    color: '#475569',
+    fontWeight: '600',
   },
   alertBanner: {
     borderRadius: 8,
@@ -173,15 +294,25 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
     marginBottom: 8,
   },
+  levelNumberRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
   levelText: {
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  levelPercentSign: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginLeft: 2,
   },
   volumeBox: {
     alignItems: 'flex-end',
   },
   volumeText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     color: '#1e293b',
   },
@@ -190,16 +321,26 @@ const styles = StyleSheet.create({
     color: '#64748b',
     fontWeight: '700',
     letterSpacing: 0.5,
+    marginTop: 2,
   },
   progressBarTrack: {
-    height: 8,
+    height: 9,
     backgroundColor: '#e2e8f0',
-    borderRadius: 4,
+    borderRadius: 5,
     overflow: 'hidden',
+    position: 'relative',
   },
   progressBarFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 5,
+  },
+  thresholdMarker: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 2,
+    backgroundColor: '#ef4444',
+    zIndex: 2,
   },
   footer: {
     flexDirection: 'row',

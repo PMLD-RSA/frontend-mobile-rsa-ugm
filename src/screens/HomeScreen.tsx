@@ -9,7 +9,6 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Badge } from '../components/Card';
 import { MetricsOverview } from '../components/MetricsOverview';
 import { TankCard } from '../components/TankCard';
 import { useTankStore } from '../stores/tankStore';
@@ -19,6 +18,13 @@ import {
   calculateMetricsOverview,
 } from '../utils/tankMetrics';
 
+/**
+ * HomeScreen (Dashboard Overview) sesuai Spesifikasi design.md § 5.2
+ * - Lokasi: Sekolah Vokasi UGM (DTEDI, DLIKES, DTK)
+ * - 4 Grid KPI Metric Cards
+ * - Live Sync Badge (#0F172A, #34D399)
+ * - Auto-sort by severity (CRITICAL -> WARNING -> NORMAL)
+ */
 export const HomeScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
@@ -35,13 +41,13 @@ export const HomeScreen: React.FC = () => {
     setRefreshing(false);
   }, [fetchTanks]);
 
-  // Perhitungan ringkasan tangki via helper murni
-  const { totalCapacity, totalWater, activeAlertsCount } = useMemo(
+  // Perhitungan 4 Grid KPI Metrik via helper murni tankMetrics
+  const metrics = useMemo(
     () => calculateMetricsOverview(tanks),
     [tanks]
   );
 
-  // Auto-Sort by Severity sesuai PRD-Mobile.md § 4.1
+  // Auto-Sort by Severity sesuai PRD-Mobile.md § 4.1 & design.md § 5.2
   const sortedTanks = useMemo(() => sortTanksBySeverity(tanks), [tanks]);
 
   return (
@@ -57,24 +63,45 @@ export const HomeScreen: React.FC = () => {
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
-          colors={['#0a354c']}
-          tintColor="#0a354c"
+          colors={['#0a3f5c']}
+          tintColor="#0a3f5c"
         />
       }
     >
-      {/* Sub Header & Status Koneksi Web BFF */}
+      {/* 1. Header Banner & Live Sync Status Capsule */}
       <View style={styles.header}>
         <View style={styles.headerTitleBox}>
-          <Text style={styles.title}>Pemantauan Tangki</Text>
-          <Text style={styles.subtitle}>Data live via Web BFF (:3000)</Text>
+          <Text style={styles.title}>Pemantauan Tangki SV UGM</Text>
+          <Text style={styles.subtitle}>
+            Zonasi Gedung DTEDI • DLIKES • DTK
+          </Text>
         </View>
-        <Badge
-          text={error ? 'BFF Offline' : 'BFF Terhubung'}
-          variant={error ? 'critical' : 'success'}
-        />
+
+        {/* Live Sync Badge sesuai design.md § 4.4 */}
+        <View
+          style={[
+            styles.liveSyncBadge,
+            error ? styles.liveSyncBadgeError : null,
+          ]}
+        >
+          <View
+            style={[
+              styles.liveDot,
+              error ? styles.liveDotError : styles.liveDotSuccess,
+            ]}
+          />
+          <Text
+            style={[
+              styles.liveSyncText,
+              error ? styles.liveSyncTextError : null,
+            ]}
+          >
+            {error ? 'BFF Offline' : '• LIVE UPDATE'}
+          </Text>
+        </View>
       </View>
 
-      {/* Error Banner jika koneksi ke Web BFF gagal */}
+      {/* 2. Error Banner jika koneksi ke Web BFF gagal */}
       {error && (
         <View style={styles.errorBox}>
           <Text style={styles.errorText}>⚠️ {error}</Text>
@@ -89,18 +116,28 @@ export const HomeScreen: React.FC = () => {
         </View>
       )}
 
-      {/* Ringkasan Metrik Dashboard */}
+      {/* 3. Ringkasan Metrik Dashboard (4 Grid KPI sesuai design.md § 5.2) */}
       <MetricsOverview
         tanksCount={tanks.length}
-        totalCapacity={totalCapacity}
-        totalWater={totalWater}
-        activeAlertsCount={activeAlertsCount}
+        criticalAlertsCount={metrics.criticalAlertsCount}
+        tanksOnlineCount={metrics.tanksOnlineCount}
+        pumpsActiveCount={metrics.pumpsActiveCount}
+        averageLevelPercent={metrics.averageLevelPercent}
+        activeAlertsCount={metrics.activeAlertsCount}
       />
+
+      {/* 4. Section Heading: Daftar Tangki */}
+      <View style={styles.sectionHeadingRow}>
+        <Text style={styles.sectionHeading}>Daftar Unit Tangki</Text>
+        <Text style={styles.sectionSubHeading}>
+          {sortedTanks.length} Tangki Terdaftar
+        </Text>
+      </View>
 
       {/* State Loading Indikator */}
       {isLoading && !refreshing && (
         <View style={styles.loadingBox}>
-          <ActivityIndicator size="large" color="#0a354c" />
+          <ActivityIndicator size="large" color="#0a3f5c" />
           <Text style={styles.loadingText}>Menghubungkan ke Web BFF...</Text>
           <Text style={styles.loadingSub}>{ENV.BFF_URL}</Text>
         </View>
@@ -112,7 +149,7 @@ export const HomeScreen: React.FC = () => {
           <Text style={styles.emptyIcon}>💧</Text>
           <Text style={styles.emptyTitle}>Belum Ada Data Tangki</Text>
           <Text style={styles.emptySub}>
-            Tangki belum terdaftar di database rumah sakit atau belum ada data yang dikirim dari sensor.
+            Tangki belum terdaftar di database Sekolah Vokasi UGM atau belum ada data yang dikirim dari modul LoRa.
           </Text>
           <TouchableOpacity
             onPress={() => fetchTanks()}
@@ -124,7 +161,7 @@ export const HomeScreen: React.FC = () => {
         </View>
       )}
 
-      {/* Daftar Kartu Tangki (Terurut berdasarkan Tingkat Keparahan) */}
+      {/* 5. Daftar Kartu Tangki (Terurut berdasarkan Tingkat Keparahan) */}
       {sortedTanks.map((tank) => (
         <TankCard key={tank.id} tank={tank} />
       ))}
@@ -141,7 +178,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 16,
   },
   headerTitleBox: {
     flex: 1,
@@ -157,6 +194,41 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748b',
     marginTop: 2,
+    fontWeight: '500',
+  },
+  liveSyncBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0f172a', // Dark Capsule sesuai design.md § 4.4
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 9999,
+    gap: 6,
+  },
+  liveSyncBadgeError: {
+    backgroundColor: '#fef2f2',
+    borderWidth: 1,
+    borderColor: '#fecaca',
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  liveDotSuccess: {
+    backgroundColor: '#34d399',
+  },
+  liveDotError: {
+    backgroundColor: '#ef4444',
+  },
+  liveSyncText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#34d399',
+    letterSpacing: 0.3,
+  },
+  liveSyncTextError: {
+    color: '#dc2626',
   },
   errorBox: {
     backgroundColor: '#fef2f2',
@@ -179,7 +251,7 @@ const styles = StyleSheet.create({
   retryBtn: {
     backgroundColor: '#dc2626',
     paddingHorizontal: 14,
-    minHeight: 44,
+    minHeight: 40,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
@@ -188,6 +260,24 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 12,
     fontWeight: '700',
+  },
+  sectionHeadingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 12,
+    marginTop: 4,
+  },
+  sectionHeading: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1e293b',
+    letterSpacing: -0.2,
+  },
+  sectionSubHeading: {
+    fontSize: 12,
+    color: '#64748b',
+    fontWeight: '500',
   },
   loadingBox: {
     alignItems: 'center',
@@ -200,25 +290,26 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   loadingText: {
-    marginTop: 14,
+    marginTop: 12,
     fontSize: 14,
-    color: '#0a354c',
     fontWeight: '700',
+    color: '#0f172a',
   },
   loadingSub: {
     marginTop: 4,
     fontSize: 11,
-    color: '#94a3b8',
+    color: '#64748b',
   },
   emptyBox: {
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 32,
+    paddingVertical: 40,
+    paddingHorizontal: 20,
     backgroundColor: '#ffffff',
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    marginTop: 10,
+    marginVertical: 10,
   },
   emptyIcon: {
     fontSize: 40,
@@ -226,29 +317,26 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#0f172a',
     marginBottom: 6,
   },
   emptySub: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#64748b',
     textAlign: 'center',
     lineHeight: 18,
     marginBottom: 16,
-    maxWidth: 280,
   },
   emptyReloadBtn: {
-    backgroundColor: '#0a354c',
-    paddingHorizontal: 20,
-    minHeight: 44,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: '#0a3f5c',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 8,
   },
   emptyReloadText: {
     color: '#ffffff',
-    fontSize: 13,
     fontWeight: '700',
+    fontSize: 13,
   },
 });

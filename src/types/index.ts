@@ -81,6 +81,8 @@ export interface Tank {
   latestReading?: WaterLevelReading | null;
   activeAlert?: Alert | null;
   nodes?: SensorNode[];
+  pumpStatus?: 'RUNNING' | 'STOPPED';
+  inflowRateLpm?: number;
 }
 
 export interface User {

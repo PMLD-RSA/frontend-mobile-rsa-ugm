@@ -10,6 +10,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../stores/authStore';
 
 export interface ProfileScreenProps {
@@ -157,7 +158,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             accessibilityLabel="Tutup profil"
           >
-            <Text style={styles.closeBtnText}>✕</Text>
+            <Ionicons name="close" size={20} color="#1B1919" />
           </TouchableOpacity>
         </View>
 
@@ -165,7 +166,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         <View style={styles.profileHero}>
           <View style={[styles.avatarRing, { borderColor: roleColor }]}>
             <View style={styles.avatarCircle}>
-              <Text style={styles.avatarIcon}>👤</Text>
+              <Ionicons name="person" size={32} color={roleColor} />
             </View>
           </View>
           <Text style={styles.userName}>
@@ -198,7 +199,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Institusi</Text>
-            <Text style={styles.infoValue}>RSA Universitas Gadjah Mada</Text>
+            <Text style={styles.infoValue}>Sekolah Vokasi UGM</Text>
           </View>
 
           <View style={styles.rowDivider} />
@@ -222,7 +223,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             onPress={handleLogoutPress}
             activeOpacity={0.7}
           >
-            <Text style={styles.logoutIcon}>🚪</Text>
+            <Ionicons name="log-out-outline" size={18} color="#F21E1E" style={{ marginRight: 8 }} />
             <Text style={styles.logoutBtnText}>Keluar dari Akun</Text>
           </TouchableOpacity>
         </View>

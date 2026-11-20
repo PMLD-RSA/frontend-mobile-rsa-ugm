@@ -9,6 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { MetricsOverview } from '../components/MetricsOverview';
 import { TankCard } from '../components/TankCard';
 import { useTankStore } from '../stores/tankStore';
@@ -146,7 +147,7 @@ export const HomeScreen: React.FC = () => {
       {/* State Kosong (Empty State) */}
       {!isLoading && sortedTanks.length === 0 && !error && (
         <View style={styles.emptyBox}>
-          <Text style={styles.emptyIcon}>💧</Text>
+          <Ionicons name="water-outline" size={44} color="#0077B6" style={styles.emptyIcon} />
           <Text style={styles.emptyTitle}>Belum Ada Data Tangki</Text>
           <Text style={styles.emptySub}>
             Tangki belum terdaftar di database Sekolah Vokasi UGM atau belum ada data yang dikirim dari modul LoRa.

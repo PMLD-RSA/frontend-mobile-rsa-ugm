@@ -10,24 +10,25 @@ import {
   BackHandler,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../stores/authStore';
 import { ScreenId } from '../types';
 
 interface NavMenuItem {
   id: ScreenId;
-  icon: string;
+  icon: keyof typeof Ionicons.glyphMap;
   label: string;
   badge?: boolean;
 }
 
 const MENU_ITEMS: NavMenuItem[] = [
-  { id: 'dashboard', icon: '⊞', label: 'Dashboard' },
-  { id: 'tanks', icon: '⛁', label: 'Tanks' },
-  { id: 'alarms', icon: '🔔', label: 'Alarms', badge: true },
-  { id: 'reports', icon: '📊', label: 'Reports' },
-  { id: 'logs', icon: '📋', label: 'Audit Logs' },
-  { id: 'settings', icon: '⚙️', label: 'Settings' },
-  { id: 'users', icon: '👥', label: 'Users' },
+  { id: 'dashboard', icon: 'grid-outline', label: 'Dashboard' },
+  { id: 'tanks', icon: 'water-outline', label: 'Tanks' },
+  { id: 'alarms', icon: 'notifications-outline', label: 'Alarms', badge: true },
+  { id: 'reports', icon: 'document-text-outline', label: 'Reports' },
+  { id: 'logs', icon: 'analytics-outline', label: 'Audit Logs' },
+  { id: 'settings', icon: 'settings-outline', label: 'Settings' },
+  { id: 'users', icon: 'people-outline', label: 'Users' },
 ];
 
 export interface MobileSidebarProps {
@@ -162,7 +163,7 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
         {/* Header Drawer */}
         <View style={styles.header}>
           <View style={styles.logoCircle}>
-            <Text style={styles.logoIcon}>💧</Text>
+            <Ionicons name="water" size={20} color="#FECB28" />
           </View>
           <View style={styles.headerTextBox}>
             <Text style={styles.headerTitle}>SI-POTA</Text>
@@ -175,7 +176,7 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             accessibilityLabel="Tutup menu"
           >
-            <Text style={styles.closeBtnText}>✕</Text>
+            <Ionicons name="close" size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
 
@@ -201,7 +202,7 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
             accessibilityLabel="Buka halaman profil"
           >
             <View style={styles.profileAvatar}>
-              <Text style={styles.profileAvatarIcon}>👤</Text>
+              <Ionicons name="person-circle-outline" size={26} color="#FFFFFF" />
             </View>
             <View style={styles.profileInfoBox}>
               <Text style={styles.profileName} numberOfLines={1}>
@@ -211,7 +212,7 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
                 {user ? user.role.toUpperCase() : 'ADMINISTRATOR'}
               </Text>
             </View>
-            <Text style={styles.profileArrow}>›</Text>
+            <Ionicons name="chevron-forward" size={16} color="#F3F1F1" />
           </TouchableOpacity>
 
           {/* Tombol Logout */}
@@ -221,7 +222,7 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
             activeOpacity={0.75}
             accessibilityLabel="Keluar dari akun"
           >
-            <Text style={styles.logoutIcon}>🚪</Text>
+            <Ionicons name="log-out-outline" size={18} color="#F21E1E" style={{ marginRight: 8 }} />
             <Text style={styles.logoutText}>Keluar dari Akun</Text>
           </TouchableOpacity>
         </View>
@@ -244,9 +245,11 @@ const MenuItem: React.FC<MenuItemProps> = ({ item, active, onPress }) => (
     accessibilityLabel={item.label}
   >
     <View style={styles.iconContainer}>
-      <Text style={[styles.menuIcon, active && styles.menuIconActive]}>
-        {item.icon}
-      </Text>
+      <Ionicons
+        name={item.icon}
+        size={20}
+        color={active ? '#0077B6' : 'rgba(255,255,255,0.7)'}
+      />
       {item.badge && <View style={styles.badge} />}
     </View>
     <Text style={[styles.menuLabel, active && styles.menuLabelActive]}>

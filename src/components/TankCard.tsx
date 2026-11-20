@@ -214,8 +214,8 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   pumpPillActive: {
-    backgroundColor: '#ecfdf5',
-    borderColor: '#a7f3d0',
+    backgroundColor: '#eff6ff',
+    borderColor: '#bfdbfe',
   },
   pumpPillInactive: {
     backgroundColor: '#f1f5f9',
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   pumpDotActive: {
-    backgroundColor: '#10b981',
+    backgroundColor: '#0077b6', // Secondary Blue sesuai design.md § 2.1
   },
   pumpDotInactive: {
     backgroundColor: '#94a3b8',
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   pumpTextActive: {
-    color: '#065f46',
+    color: '#0077b6', // Secondary Blue sesuai design.md § 2.1
   },
   pumpTextInactive: {
     color: '#64748b',
@@ -263,8 +263,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   alertBannerWarning: {
-    backgroundColor: '#fffbeb',
-    borderColor: '#fde68a',
+    backgroundColor: '#fefce8',
+    borderColor: '#fde047',
   },
   alertBannerCritical: {
     backgroundColor: '#fef2f2',
@@ -275,10 +275,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   alertTextWarning: {
-    color: '#92400e',
+    color: '#b45309',
   },
   alertTextCritical: {
-    color: '#991b1b',
+    color: '#f21e1e', // Critical Red sesuai design.md § 2.1
   },
   levelContainer: {
     backgroundColor: '#f8fafc',

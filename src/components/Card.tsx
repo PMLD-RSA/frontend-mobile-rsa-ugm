@@ -35,29 +35,29 @@ export const Badge: React.FC<BadgeProps> = ({
         return {
           bg: '#fef2f2',
           border: '#fecaca',
-          text: '#991b1b',
-          dot: '#ef4444',
+          text: '#f21e1e', // Critical Red sesuai design.md § 2.1
+          dot: '#f21e1e',
         };
       case 'warning':
         return {
-          bg: '#fffbeb',
-          border: '#fde68a',
-          text: '#92400e',
-          dot: '#f59e0b',
+          bg: '#fefce8',
+          border: '#fde047',
+          text: '#b45309', // Warning Yellow accent
+          dot: '#fecb28', // Warning Yellow sesuai design.md § 2.1
         };
       case 'success':
         return {
           bg: '#ecfdf5',
           border: '#a7f3d0',
-          text: '#065f46',
+          text: '#047857',
           dot: '#10b981',
         };
       default:
         return {
           bg: '#eff6ff',
           border: '#bfdbfe',
-          text: '#1e40af',
-          dot: '#3b82f6',
+          text: '#0077b6', // Secondary Blue sesuai design.md § 2.1
+          dot: '#0077b6',
         };
     }
   };

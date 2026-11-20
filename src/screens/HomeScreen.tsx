@@ -73,7 +73,7 @@ export const HomeScreen: React.FC = () => {
         <View style={styles.headerTitleBox}>
           <Text style={styles.title}>Pemantauan Tangki SV UGM</Text>
           <Text style={styles.subtitle}>
-            Zonasi Gedung DTEDI • DLIKES • DTK
+            Zonasi DTEDI • DLIKES • DTK • Reservoir SV
           </Text>
         </View>
 
@@ -172,7 +172,7 @@ export const HomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f3f1f1', // Surface Gray sesuai design.md § 2.1
   },
   header: {
     flexDirection: 'row',

@@ -151,29 +151,29 @@ const styles = StyleSheet.create({
     color: '#10b981',
   },
   criticalValue: {
-    color: '#ef4444',
+    color: '#f21e1e', // Critical Red sesuai design.md § 2.1
   },
   pumpValue: {
-    color: '#0284c7',
+    color: '#0077b6', // Secondary Blue sesuai design.md § 2.1
   },
   avgValue: {
-    color: '#0a3f5c',
+    color: '#0a3f5c', // Primary Navy sesuai design.md § 2.1
   },
   metricStatusPositive: {
     fontSize: 10,
-    color: '#059669',
+    color: '#0077b6',
     fontWeight: '600',
     marginTop: 2,
   },
   metricStatusCritical: {
     fontSize: 10,
-    color: '#dc2626',
+    color: '#f21e1e',
     fontWeight: '600',
     marginTop: 2,
   },
   metricStatusInfo: {
     fontSize: 10,
-    color: '#0284c7',
+    color: '#0077b6',
     fontWeight: '600',
     marginTop: 2,
   },

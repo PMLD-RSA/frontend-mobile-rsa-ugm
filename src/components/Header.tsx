@@ -12,7 +12,7 @@ export interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   title = 'Dashboard Overview',
-  subtitle = 'Sekolah Vokasi UGM • SI-POTA v1.0',
+  subtitle = 'SV UGM • SI-POTA v1.0',
   onOpenDrawer,
   onOpenProfile,
 }) => {
@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
   topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0a3f5c', // Primary Navy sesuai design.md § 3.1
+    backgroundColor: '#0a3f5c', // Primary Navy sesuai design.md § 2.1
     paddingHorizontal: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
@@ -83,14 +83,15 @@ const styles = StyleSheet.create({
   },
   headerTitleMain: {
     color: '#ffffff',
-    fontSize: 16,
+    fontSize: 18, // Inter 18px Bold sesuai design.md § 4.1
     fontWeight: '700',
     letterSpacing: 0.2,
   },
   headerTitleSub: {
-    color: 'rgba(255, 255, 255, 0.75)',
+    color: '#f3f1f1', // Surface Gray sesuai design.md § 4.1
     fontSize: 11,
-    marginTop: 1,
+    marginTop: 2,
+    fontWeight: '400',
   },
   profileBtn: {
     width: 44,
@@ -106,7 +107,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#eab308',
+    borderColor: '#0077b6', // Secondary Blue sesuai design.md § 2.1
   },
   profileIcon: {
     fontSize: 16,

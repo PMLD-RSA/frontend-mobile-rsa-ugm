@@ -1,5 +1,5 @@
-import React, { useCallback, useState, useRef } from 'react';
-import { StyleSheet, View, Animated, Easing } from 'react-native';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
+import { StyleSheet, View, Animated, BackHandler, Easing } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { Header } from './src/components/Header';
@@ -92,6 +92,18 @@ export default function App() {
   const closeProfile = useCallback(() => setIsProfileOpen(false), []);
   const handleSelectScreen = useCallback((screen: ScreenId) => setCurrentScreen(screen), []);
 
+  // Tombol hardware Back Android: kembali ke Dashboard jika sedang di layar lain
+  useEffect(() => {
+    if (stage !== 'dashboard' || isDrawerOpen || isProfileOpen || currentScreen === 'dashboard') {
+      return;
+    }
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      setCurrentScreen('dashboard');
+      return true;
+    });
+    return () => sub.remove();
+  }, [stage, isDrawerOpen, isProfileOpen, currentScreen]);
+
   const { title, subtitle } =
     SCREEN_TITLES[currentScreen] || SCREEN_TITLES.dashboard;
 
@@ -139,15 +151,15 @@ export default function App() {
               {currentScreen === 'dashboard' ? (
                 <HomeScreen />
               ) : currentScreen === 'tanks' ? (
-                <TankManagementScreen onNavigate={handleSelectScreen} />
+                <TankManagementScreen />
               ) : currentScreen === 'alarms' ? (
-                <AlarmsScreen onNavigate={handleSelectScreen} />
+                <AlarmsScreen />
               ) : currentScreen === 'reports' ? (
-                <ReportsScreen onNavigate={handleSelectScreen} />
+                <ReportsScreen />
               ) : currentScreen === 'logs' ? (
                 <AuditLogsScreen onNavigate={handleSelectScreen} />
               ) : currentScreen === 'settings' ? (
-                <DevicesScreen onNavigate={handleSelectScreen} />
+                <DevicesScreen />
               ) : currentScreen === 'users' ? (
                 <UsersScreen onNavigate={handleSelectScreen} />
               ) : (

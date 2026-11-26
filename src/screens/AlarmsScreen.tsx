@@ -11,7 +11,6 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
 import { Badge, Card } from '../components/Card';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorBanner } from '../components/ErrorBanner';
@@ -23,10 +22,6 @@ import { Alert, AlertLevel } from '../types';
 
 type AlertFilter = 'ALL' | AlertLevel;
 
-interface AlarmsScreenProps {
-  onNavigate: (screen: 'dashboard') => void;
-}
-
 function formatAlertTime(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'Waktu tidak tersedia';
@@ -37,7 +32,7 @@ function alertVariant(level: AlertLevel): 'critical' | 'warning' {
   return level === 'CRITICAL' ? 'critical' : 'warning';
 }
 
-export const AlarmsScreen: React.FC<AlarmsScreenProps> = ({ onNavigate }) => {
+export const AlarmsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
   const canResolve = user?.role === 'admin' || user?.role === 'operator';
@@ -192,12 +187,6 @@ export const AlarmsScreen: React.FC<AlarmsScreenProps> = ({ onNavigate }) => {
           />
         ) : undefined
       }
-      ListFooterComponent={
-        <TouchableOpacity style={styles.backButton} onPress={() => onNavigate('dashboard')}>
-          <Feather name="arrow-left" size={15} color={COLORS.textSecondary} />
-          <Text style={styles.backText}>Kembali ke Dashboard</Text>
-        </TouchableOpacity>
-      }
     />
   );
 };
@@ -224,6 +213,4 @@ const styles = StyleSheet.create({
   cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 12 },
   resolveButton: { minHeight: 44, minWidth: 112, paddingHorizontal: 14, borderRadius: RADIUS.sm + 2, backgroundColor: COLORS.critical, justifyContent: 'center', alignItems: 'center' },
   resolveText: { color: COLORS.textOnPrimary, fontSize: 12, fontWeight: '700' },
-  backButton: { flexDirection: 'row', gap: 6, minHeight: 44, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.borderStrong, backgroundColor: COLORS.surface, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
-  backText: { color: COLORS.textSecondary, fontWeight: '700', fontSize: 13 },
 });

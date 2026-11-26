@@ -147,12 +147,6 @@ export const AuditLogsScreen: React.FC<AuditLogsScreenProps> = ({ onNavigate }) 
           />
         ) : undefined
       }
-      ListFooterComponent={
-        <TouchableOpacity style={styles.backButton} onPress={() => onNavigate('dashboard')}>
-          <Feather name="arrow-left" size={15} color={COLORS.textSecondary} />
-          <Text style={styles.backText}>Kembali ke Dashboard</Text>
-        </TouchableOpacity>
-      }
     />
   );
 };

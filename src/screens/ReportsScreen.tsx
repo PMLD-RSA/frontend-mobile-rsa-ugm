@@ -10,7 +10,6 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { Badge, Card } from '../components/Card';
 import { EmptyState } from '../components/EmptyState';
@@ -23,16 +22,12 @@ import { COLORS, MOTION, RADIUS } from '../theme/tokens';
 import { ReadingRange } from '../types';
 import { calculateReadingSummary, getValidReadings, normalizeReadingValues } from '../utils/reportMetrics';
 
-interface ReportsScreenProps {
-  onNavigate: (screen: 'dashboard') => void;
-}
-
 const rangeOptions: Array<{ value: ReadingRange; label: string }> = [
   { value: '24h', label: '24 Jam' },
   { value: '7d', label: '7 Hari' },
 ];
 
-export const ReportsScreen: React.FC<ReportsScreenProps> = ({ onNavigate }) => {
+export const ReportsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const reducedMotion = useReducedMotion();
   const tanks = useTankStore((state) => state.tanks);
@@ -170,11 +165,6 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({ onNavigate }) => {
           </Animated.View>
         </>
       )}
-
-      <TouchableOpacity style={styles.backButton} onPress={() => onNavigate('dashboard')}>
-        <Feather name="arrow-left" size={15} color={COLORS.textSecondary} />
-        <Text style={styles.backText}>Kembali ke Dashboard</Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 };
@@ -218,6 +208,4 @@ const styles = StyleSheet.create({
   chartLegend: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
   legendText: { color: COLORS.textMuted, fontSize: 10 },
   readingCount: { color: COLORS.textSecondary, fontSize: 11, marginTop: 12, textAlign: 'center' },
-  backButton: { flexDirection: 'row', gap: 6, minHeight: 44, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.borderStrong, backgroundColor: COLORS.surface, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
-  backText: { color: COLORS.textSecondary, fontWeight: '700', fontSize: 13 },
 });

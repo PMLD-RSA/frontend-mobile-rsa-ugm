@@ -28,11 +28,7 @@ import {
 
 type DeviceFilter = 'ALL' | 'ACTIVE' | 'WEAK' | 'OFFLINE';
 
-interface DevicesScreenProps {
-  onNavigate: (screen: 'dashboard') => void;
-}
-
-export const DevicesScreen: React.FC<DevicesScreenProps> = ({ onNavigate }) => {
+export const DevicesScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const { gateways, nodes, isLoading, error, lastUpdated, fetchDevices, clearError } =
     useDeviceStore();
@@ -333,45 +329,33 @@ export const DevicesScreen: React.FC<DevicesScreenProps> = ({ onNavigate }) => {
         ) : undefined
       }
       ListFooterComponent={
-        <>
-          {/* 9. Kartu Info Endpoint Jaringan */}
-          <Card style={styles.networkInfoCard}>
-            <Text style={styles.networkInfoTitle}>Informasi Jaringan & Endpoint</Text>
+        <Card style={styles.networkInfoCard}>
+          <Text style={styles.networkInfoTitle}>Informasi Jaringan & Endpoint</Text>
+          <View style={styles.networkRow}>
+            <Text style={styles.networkLabel}>Web BFF API:</Text>
+            <Text style={styles.networkValue} numberOfLines={1}>
+              {ENV.BFF_URL}
+            </Text>
+          </View>
+          <View style={styles.networkRow}>
+            <Text style={styles.networkLabel}>WebSocket Realtime:</Text>
+            <Text style={styles.networkValue} numberOfLines={1}>
+              {ENV.WS_URL}
+            </Text>
+          </View>
+          {lastUpdated && (
             <View style={styles.networkRow}>
-              <Text style={styles.networkLabel}>Web BFF API:</Text>
-              <Text style={styles.networkValue} numberOfLines={1}>
-                {ENV.BFF_URL}
+              <Text style={styles.networkLabel}>Pembaruan Terakhir:</Text>
+              <Text style={styles.networkValue}>
+                {new Date(lastUpdated).toLocaleTimeString('id-ID', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                })}
               </Text>
             </View>
-            <View style={styles.networkRow}>
-              <Text style={styles.networkLabel}>WebSocket Realtime:</Text>
-              <Text style={styles.networkValue} numberOfLines={1}>
-                {ENV.WS_URL}
-              </Text>
-            </View>
-            {lastUpdated && (
-              <View style={styles.networkRow}>
-                <Text style={styles.networkLabel}>Pembaruan Terakhir:</Text>
-                <Text style={styles.networkValue}>
-                  {new Date(lastUpdated).toLocaleTimeString('id-ID', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                  })}
-                </Text>
-              </View>
-            )}
-          </Card>
-
-          {/* 10. Tombol Kembali */}
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => onNavigate('dashboard')}
-          >
-            <Feather name="arrow-left" size={15} color={COLORS.textSecondary} />
-            <Text style={styles.backText}>Kembali ke Dashboard</Text>
-          </TouchableOpacity>
-        </>
+          )}
+        </Card>
       }
     />
   );
@@ -688,22 +672,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.primary,
     maxWidth: '65%',
-  },
-  backButton: {
-    flexDirection: 'row',
-    gap: 6,
-    minHeight: 44,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.borderStrong,
-    backgroundColor: COLORS.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 12,
-  },
-  backText: {
-    color: COLORS.textSecondary,
-    fontWeight: '700',
-    fontSize: 13,
   },
 });

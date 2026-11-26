@@ -26,16 +26,12 @@ import { Tank } from '../types';
 import { getTankStatusCategory, sortTanksBySeverity } from '../utils/tankMetrics';
 import { validateThresholds } from '../utils/tankThreshold';
 
-interface TankManagementScreenProps {
-  onNavigate: (screen: 'dashboard') => void;
-}
-
 interface ThresholdForm {
   min: string;
   max: string;
 }
 
-export const TankManagementScreen: React.FC<TankManagementScreenProps> = ({ onNavigate }) => {
+export const TankManagementScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role === 'admin';
@@ -143,10 +139,6 @@ export const TankManagementScreen: React.FC<TankManagementScreenProps> = ({ onNa
             </View>
           </View>
         ))}
-        <TouchableOpacity style={styles.backButton} onPress={() => onNavigate('dashboard')}>
-          <Feather name="arrow-left" size={15} color={COLORS.textSecondary} />
-          <Text style={styles.backButtonText}>Kembali ke Dashboard</Text>
-        </TouchableOpacity>
       </ScrollView>
 
       <Modal visible={selectedTank !== null} transparent animationType="slide" onRequestClose={closeEditor}>
@@ -206,8 +198,6 @@ const styles = StyleSheet.create({
   statusText: { color: COLORS.textSecondary, fontSize: 12, flex: 1 },
   editButton: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44, paddingHorizontal: 14, borderRadius: RADIUS.sm + 2, backgroundColor: COLORS.primary, justifyContent: 'center' },
   editButtonText: { color: COLORS.textOnPrimary, fontSize: 12, fontWeight: '700' },
-  backButton: { flexDirection: 'row', gap: 6, minHeight: 44, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.borderStrong, backgroundColor: COLORS.surface, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
-  backButtonText: { color: COLORS.textSecondary, fontWeight: '700', fontSize: 13 },
   modalRoot: { flex: 1, justifyContent: 'flex-end' },
   scrim: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(15, 23, 42, 0.45)' },
   sheet: { backgroundColor: COLORS.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20, paddingBottom: 28 },

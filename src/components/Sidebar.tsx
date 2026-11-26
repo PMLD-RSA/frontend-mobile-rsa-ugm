@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   TouchableOpacity,
   Animated,
@@ -9,6 +10,8 @@ import {
   useWindowDimensions,
   BackHandler,
 } from 'react-native';
+
+const ugmLogo = require('../../assets/ugm-logo.png');
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../stores/authStore';
 import { ScreenId } from '../types';
@@ -163,7 +166,12 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
         {/* Header Drawer */}
         <View style={styles.header}>
           <View style={styles.logoCircle}>
-            <Text style={styles.logoIcon}>💧</Text>
+            <Image
+              source={ugmLogo}
+              style={{ width: 32, height: 32 }}
+              resizeMode="contain"
+              accessibilityLabel="Lambang UGM"
+            />
           </View>
           <View style={styles.headerTextBox}>
             <Text style={styles.headerTitle}>SI-POTA</Text>

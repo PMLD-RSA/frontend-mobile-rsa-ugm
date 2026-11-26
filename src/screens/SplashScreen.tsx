@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   Animated,
   Easing,
@@ -91,7 +92,12 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
           ]}
         >
           <View style={styles.logoCircle}>
-            <Text style={styles.logoIcon}>💧</Text>
+            <Image
+              source={require('../../assets/ugm-logo.png')}
+              style={{ width: 72, height: 72 }}
+              resizeMode="contain"
+              accessibilityLabel="Lambang UGM"
+            />
           </View>
         </Animated.View>
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
+  Image,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -62,7 +63,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           {/* Header & Logo RSA UGM */}
           <View style={styles.headerBox}>
             <View style={styles.logoBadge}>
-              <Text style={styles.logoIcon}>💧</Text>
+              <Image
+                source={require('../../assets/ugm-logo.png')}
+                style={{ width: 52, height: 52 }}
+                resizeMode="contain"
+                accessibilityLabel="Lambang UGM"
+              />
             </View>
             <Text style={styles.appTitle}>SI-POTA</Text>
             <Text style={styles.appSubtitle}>

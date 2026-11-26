@@ -14,9 +14,10 @@ import {
 const ugmLogo = require('../../assets/ugm-logo.png');
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useAuthStore } from '../stores/authStore';
 import { useAlertStore } from '../stores/alertStore';
-import { COLORS } from '../theme/tokens';
+import { COLORS, MOTION } from '../theme/tokens';
 import { ScreenId } from '../types';
 
 type FeatherIconName = React.ComponentProps<typeof Feather>['name'];
@@ -57,6 +58,7 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
   onLogout,
 }) => {
   const insets = useSafeAreaInsets();
+  const reducedMotion = useReducedMotion();
   const user = useAuthStore((s) => s.user);
   const activeAlertsCount = useAlertStore((s) =>
     s.alerts.filter((a) => a.status === 'active').length
@@ -91,26 +93,37 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
   useEffect(() => {
     if (isOpen) {
       setIsRendered(true);
-      Animated.spring(animProgress, {
+      if (reducedMotion) {
+        animProgress.setValue(1);
+        return;
+      }
+      const openAnim = Animated.spring(animProgress, {
         toValue: 1,
-        damping: 28,
-        stiffness: 260,
-        mass: 0.85,
+        ...MOTION.spring,
         useNativeDriver: true,
-      }).start();
+      });
+      openAnim.start();
+      return () => openAnim.stop();
     } else if (isRendered) {
-      Animated.timing(animProgress, {
+      if (reducedMotion) {
+        animProgress.setValue(0);
+        setIsRendered(false);
+        return;
+      }
+      const closeAnim = Animated.timing(animProgress, {
         toValue: 0,
-        duration: 220,
+        duration: MOTION.normal,
         easing: Easing.bezier(0.36, 0.66, 0.04, 1),
         useNativeDriver: true,
-      }).start(({ finished }) => {
+      });
+      closeAnim.start(({ finished }) => {
         if (finished) {
           setIsRendered(false);
         }
       });
+      return () => closeAnim.stop();
     }
-  }, [isOpen, isRendered, animProgress]);
+  }, [isOpen, isRendered, animProgress, reducedMotion]);
 
   if (!isRendered && !isOpen) {
     return null;

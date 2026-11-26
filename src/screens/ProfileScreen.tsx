@@ -11,8 +11,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useAuthStore } from '../stores/authStore';
-import { COLORS, RADIUS } from '../theme/tokens';
+import { COLORS, MOTION, RADIUS } from '../theme/tokens';
 
 export interface ProfileScreenProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
+  const reducedMotion = useReducedMotion();
   const user = useAuthStore((s) => s.user);
 
   const [isRendered, setIsRendered] = useState(isOpen);
@@ -38,7 +40,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   useEffect(() => {
     if (isOpen) {
       const backAction = () => {
-        handleClose();
+        onClose();
         return true;
       };
       const backHandler = BackHandler.addEventListener(
@@ -47,44 +49,46 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       );
       return () => backHandler.remove();
     }
-  }, [isOpen]);
+  }, [isOpen, onClose]);
 
-  // Kelola animasi Buka dan Tutup
+  // Satu sumber animasi Buka dan Tutup (bebas double-close animation)
   useEffect(() => {
     if (isOpen) {
       setIsRendered(true);
-      Animated.spring(animProgress, {
+      if (reducedMotion) {
+        animProgress.setValue(1);
+        return;
+      }
+      const openAnim = Animated.spring(animProgress, {
         toValue: 1,
-        damping: 26,
-        stiffness: 240,
-        mass: 0.85,
+        ...MOTION.spring,
         useNativeDriver: true,
-      }).start();
+      });
+      openAnim.start();
+      return () => openAnim.stop();
     } else if (isRendered) {
-      Animated.timing(animProgress, {
+      if (reducedMotion) {
+        animProgress.setValue(0);
+        setIsRendered(false);
+        return;
+      }
+      const closeAnim = Animated.timing(animProgress, {
         toValue: 0,
-        duration: 220,
+        duration: MOTION.normal,
         easing: Easing.bezier(0.36, 0.66, 0.04, 1),
         useNativeDriver: true,
-      }).start(({ finished }) => {
+      });
+      closeAnim.start(({ finished }) => {
         if (finished) {
           setIsRendered(false);
         }
       });
+      return () => closeAnim.stop();
     }
-  }, [isOpen, isRendered, animProgress]);
+  }, [isOpen, isRendered, animProgress, reducedMotion]);
 
   const handleClose = () => {
-    Animated.timing(animProgress, {
-      toValue: 0,
-      duration: 200,
-      easing: Easing.bezier(0.36, 0.66, 0.04, 1),
-      useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (finished) {
-        onClose();
-      }
-    });
+    onClose();
   };
 
   const handleLogoutPress = () => {

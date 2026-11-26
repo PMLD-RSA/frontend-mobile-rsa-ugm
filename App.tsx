@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { Header } from './src/components/Header';
 import { MobileSidebar } from './src/components/Sidebar';
+import { ScreenTransition } from './src/components/ScreenTransition';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { SplashScreen } from './src/screens/SplashScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
@@ -134,24 +135,26 @@ export default function App() {
             />
             <EmergencyAlertBanner />
 
-            {/* Main Content */}
-            {currentScreen === 'dashboard' ? (
-              <HomeScreen />
-            ) : currentScreen === 'tanks' ? (
-              <TankManagementScreen onNavigate={(screen) => setCurrentScreen(screen)} />
-            ) : currentScreen === 'alarms' ? (
-              <AlarmsScreen onNavigate={(screen) => setCurrentScreen(screen)} />
-            ) : currentScreen === 'reports' ? (
-              <ReportsScreen onNavigate={(screen) => setCurrentScreen(screen)} />
-            ) : currentScreen === 'logs' ? (
-              <AuditLogsScreen onNavigate={(screen) => setCurrentScreen(screen)} />
-            ) : currentScreen === 'settings' ? (
-              <DevicesScreen onNavigate={(screen) => setCurrentScreen(screen)} />
-            ) : currentScreen === 'users' ? (
-              <UsersScreen onNavigate={(screen) => setCurrentScreen(screen)} />
-            ) : (
-              <HomeScreen />
-            )}
+            {/* Main Content dengan transisi halus antar layar */}
+            <ScreenTransition key={currentScreen}>
+              {currentScreen === 'dashboard' ? (
+                <HomeScreen />
+              ) : currentScreen === 'tanks' ? (
+                <TankManagementScreen onNavigate={(screen) => setCurrentScreen(screen)} />
+              ) : currentScreen === 'alarms' ? (
+                <AlarmsScreen onNavigate={(screen) => setCurrentScreen(screen)} />
+              ) : currentScreen === 'reports' ? (
+                <ReportsScreen onNavigate={(screen) => setCurrentScreen(screen)} />
+              ) : currentScreen === 'logs' ? (
+                <AuditLogsScreen onNavigate={(screen) => setCurrentScreen(screen)} />
+              ) : currentScreen === 'settings' ? (
+                <DevicesScreen onNavigate={(screen) => setCurrentScreen(screen)} />
+              ) : currentScreen === 'users' ? (
+                <UsersScreen onNavigate={(screen) => setCurrentScreen(screen)} />
+              ) : (
+                <HomeScreen />
+              )}
+            </ScreenTransition>
 
             {/* Drawer Samping */}
             <MobileSidebar

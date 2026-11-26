@@ -8,75 +8,82 @@ import {
   Easing,
   Platform,
 } from 'react-native';
-import { COLORS } from '../theme/tokens';
+import { useReducedMotion } from '../hooks/useReducedMotion';
+import { COLORS, MOTION } from '../theme/tokens';
+
+const PROGRESS_BAR_WIDTH = 180;
 
 export interface SplashScreenProps {
   onFinish: () => void;
 }
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
-  // Animasi Opacity Container (Fade in saat muncul, Fade out saat selesai)
-  const containerOpacity = useRef(new Animated.Value(0)).current;
-
-  // Animasi Scale & Opacity Logo
-  const logoScale = useRef(new Animated.Value(0.85)).current;
-  const logoOpacity = useRef(new Animated.Value(0)).current;
-
-  // Animasi Pulse Loading Bar
+  const reducedMotion = useReducedMotion();
+  const containerOpacity = useRef(new Animated.Value(reducedMotion ? 1 : 0)).current;
+  const logoScale = useRef(new Animated.Value(reducedMotion ? 1 : 0.88)).current;
+  const logoOpacity = useRef(new Animated.Value(reducedMotion ? 1 : 0)).current;
   const loadingProgress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // 1. Fade in & Pop-in Logo awal
-    Animated.parallel([
-      Animated.timing(containerOpacity, {
-        toValue: 1,
-        duration: 350,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: true,
-      }),
-      Animated.spring(logoScale, {
-        toValue: 1,
-        friction: 6,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-      Animated.timing(logoOpacity, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    const enterAnim = reducedMotion
+      ? null
+      : Animated.parallel([
+          Animated.timing(containerOpacity, {
+            toValue: 1,
+            duration: MOTION.normal,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.spring(logoScale, {
+            toValue: 1,
+            ...MOTION.spring,
+            useNativeDriver: true,
+          }),
+          Animated.timing(logoOpacity, {
+            toValue: 1,
+            duration: MOTION.normal,
+            useNativeDriver: true,
+          }),
+        ]);
 
-    // 2. Animasi progress bar simulasi pemuatan sistem (0% -> 100% dalam 2.2 detik)
-    Animated.timing(loadingProgress, {
+    const progressAnim = Animated.timing(loadingProgress, {
       toValue: 1,
-      duration: 2200,
+      duration: reducedMotion ? 200 : 1050,
       easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-      useNativeDriver: false, // Digunakan untuk animasi width progress bar
-    }).start();
+      useNativeDriver: true,
+    });
 
-    // 3. Timer transisi halus ke halaman berikutnya
+    enterAnim?.start();
+    progressAnim.start();
+
     const timer = setTimeout(() => {
-      // Fade out halus sebelum berpindah layar
       Animated.timing(containerOpacity, {
         toValue: 0,
-        duration: 400,
-        easing: Easing.in(Easing.ease),
+        duration: reducedMotion ? 120 : MOTION.normal,
+        easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
       }).start(({ finished }) => {
         if (finished) {
           onFinish();
         }
       });
-    }, 2500);
+    }, reducedMotion ? 350 : 1200);
 
-    return () => clearTimeout(timer);
-  }, [containerOpacity, logoScale, logoOpacity, loadingProgress, onFinish]);
+    return () => {
+      clearTimeout(timer);
+      enterAnim?.stop();
+      progressAnim.stop();
+    };
+  }, [containerOpacity, logoScale, logoOpacity, loadingProgress, onFinish, reducedMotion]);
 
-  // Interpolasi lebar progress bar (0% sampai 100%)
-  const progressWidth = loadingProgress.interpolate({
+  // Native-driver left-anchored progress bar (tanpa layout reflow di JS thread)
+  const progressScaleX = loadingProgress.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0%', '100%'],
+    outputRange: [0.001, 1],
+  });
+  const progressTranslateX = loadingProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-PROGRESS_BAR_WIDTH / 2, 0],
   });
 
   return (
@@ -118,7 +125,15 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
       <View style={styles.footer}>
         <View style={styles.progressBarBackground}>
           <Animated.View
-            style={[styles.progressBarFill, { width: progressWidth }]}
+            style={[
+              styles.progressBarFill,
+              {
+                transform: [
+                  { translateX: progressTranslateX },
+                  { scaleX: progressScaleX },
+                ],
+              },
+            ]}
           />
         </View>
         <Text style={styles.loadingText}>Menyiapkan sistem telemetri...</Text>
@@ -210,7 +225,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   progressBarBackground: {
-    width: 180,
+    width: PROGRESS_BAR_WIDTH,
     height: 4,
     backgroundColor: 'rgba(255, 255, 255, 0.16)',
     borderRadius: 2,
@@ -218,6 +233,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   progressBarFill: {
+    width: PROGRESS_BAR_WIDTH,
     height: '100%',
     backgroundColor: COLORS.accent,
     borderRadius: 2,

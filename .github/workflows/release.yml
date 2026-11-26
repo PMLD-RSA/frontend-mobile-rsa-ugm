@@ -1,0 +1,170 @@
+name: Release — Auto Version, Changelog & GitHub Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Level SemVer: auto (dari commit), patch, minor, atau major'
+        required: false
+        default: 'auto'
+        type: choice
+        options: ['auto', 'patch', 'minor', 'major']
+      dry_run:
+        description: 'Jika true, lewati pembuatan tag, GitHub Release, dan PR sinkronisasi'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: mobile-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Auto Version · Changelog · Release
+    runs-on: ubuntu-latest
+    # Hindari loop jika ada commit rilis otomatis yang mendarat di main
+    if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(release):')
+
+    steps:
+      - name: Checkout repository (full history & tags)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Install git-cliff
+        uses: taiki-e/install-action@git-cliff
+
+      - name: Determine next SemVer version
+        id: version
+        run: |
+          EXISTING_TAGS=$(git tag -l 'v[0-9]*')
+          BUMP="${{ github.event.inputs.bump || 'auto' }}"
+
+          if [ -z "$EXISTING_TAGS" ]; then
+            if [ "$BUMP" = "auto" ]; then
+              NEXT_VERSION="v1.0.0"
+              echo "No existing release tag found — assigning initial release tag: $NEXT_VERSION"
+            else
+              NEXT_VERSION=$(git cliff --bumped-version --bump "$BUMP")
+            fi
+          else
+            LATEST_TAG=$(git describe --tags --match 'v[0-9]*' --abbrev=0)
+            COMMITS_SINCE_TAG=$(git rev-list "${LATEST_TAG}..HEAD" --count)
+            echo "Latest tag: $LATEST_TAG ($COMMITS_SINCE_TAG commit(s) since tag)"
+
+            if [ "$COMMITS_SINCE_TAG" -eq 0 ] && [ "${{ github.event_name }}" = "push" ]; then
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              echo "No new commits since $LATEST_TAG — skipping release."
+              exit 0
+            fi
+
+            if [ "$BUMP" = "auto" ]; then
+              NEXT_VERSION=$(git cliff --bumped-version)
+            else
+              NEXT_VERSION=$(git cliff --bumped-version --bump "$BUMP")
+            fi
+          fi
+
+          if [[ ! "$NEXT_VERSION" =~ ^v ]]; then
+            NEXT_VERSION="v${NEXT_VERSION}"
+          fi
+
+          SEMVER="${NEXT_VERSION#v}"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          echo "version=${NEXT_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "semver=${SEMVER}" >> "$GITHUB_OUTPUT"
+          echo "Resolved release version: ${NEXT_VERSION} (SemVer: ${SEMVER})"
+
+      - name: Generate CHANGELOG.md and RELEASE_NOTES.md
+        if: steps.version.outputs.skip != 'true'
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          git cliff --tag "$VERSION" --output CHANGELOG.md --verbose
+          git cliff --tag "$VERSION" --latest --strip header --output RELEASE_NOTES.md
+
+          echo "### Release Summary (${VERSION})" >> "$GITHUB_STEP_SUMMARY"
+          cat RELEASE_NOTES.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create & push annotated Git tag
+        if: steps.version.outputs.skip != 'true' && (github.event_name != 'workflow_dispatch' || inputs.dry_run != true)
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if git rev-parse "$VERSION" >/dev/null 2>&1; then
+            echo "Tag $VERSION already exists — skipping duplicate tag creation."
+          else
+            git tag -a "$VERSION" -m "Release $VERSION"
+            git push origin "$VERSION"
+          fi
+
+      - name: Publish GitHub Release
+        if: steps.version.outputs.skip != 'true' && (github.event_name != 'workflow_dispatch' || inputs.dry_run != true)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: "SI-POTA Mobile ${{ steps.version.outputs.version }}"
+          body_path: RELEASE_NOTES.md
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+
+      - name: Open sync PR to dev (CHANGELOG.md, package.json, app.json)
+        if: steps.version.outputs.skip != 'true' && (github.event_name != 'workflow_dispatch' || inputs.dry_run != true)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          SEMVER="${{ steps.version.outputs.semver }}"
+          SYNC_BRANCH="chore/release-${VERSION}"
+
+          # Simpan changelog hasil generate dari main sebelum pindah ke basis dev
+          cp CHANGELOG.md /tmp/RELEASE_CHANGELOG.md
+          rm -f RELEASE_NOTES.md
+
+          git fetch origin dev
+          git checkout -B "$SYNC_BRANCH" origin/dev
+
+          cp /tmp/RELEASE_CHANGELOG.md CHANGELOG.md
+          npm version --no-git-tag-version --allow-same-version "$SEMVER" >/dev/null
+          node -e '
+            const fs = require("fs");
+            const app = JSON.parse(fs.readFileSync("app.json", "utf8"));
+            if (app.expo) app.expo.version = process.argv[1];
+            fs.writeFileSync("app.json", JSON.stringify(app, null, 2) + "\n");
+          ' "$SEMVER"
+
+          git add CHANGELOG.md package.json package-lock.json app.json
+          if git diff --cached --quiet; then
+            echo "No version/changelog changes to sync to dev."
+            exit 0
+          fi
+
+          git commit -m "chore(release): sync CHANGELOG.md and app version ${VERSION}"
+          git push -u origin "$SYNC_BRANCH" --force
+
+          EXISTING_PR=$(gh pr list --base dev --head "$SYNC_BRANCH" --state open --json number --jq '.[0].number')
+          if [ -n "$EXISTING_PR" ]; then
+            echo "Sync PR #${EXISTING_PR} already open for ${SYNC_BRANCH}."
+          else
+            if ! gh pr create \
+              --base dev \
+              --head "$SYNC_BRANCH" \
+              --title "chore(release): sync CHANGELOG & version ${VERSION}" \
+              --body "Auto-generated post-release sync untuk rilis **${VERSION}** (menjaga \`dev\` dan \`main\` tetap sinkron tanpa melewati Branch Protection)."; then
+              echo "::warning::Tidak bisa membuat PR otomatis. Aktifkan 'Allow GitHub Actions to create and approve pull requests' di Settings -> Actions -> General, atau buat PR manual dari branch ${SYNC_BRANCH} ke dev."
+            fi
+          fi

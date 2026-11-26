@@ -9,6 +9,8 @@ export type AlertStatus = 'active' | 'resolved';
 export type GatewayStatus = 'online' | 'offline';
 export type NodeStatus = 'active' | 'offline' | 'error';
 export type TankStatusCategory = 'NORMAL' | 'WARNING' | 'CRITICAL';
+export type ReadingRange = '24h' | '7d';
+export type AuditLogCategory = 'AUTH' | 'TANK' | 'ALERT' | 'USER' | 'OTHER';
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
@@ -25,6 +27,7 @@ export interface WaterLevelReading {
   levelPercent: string | number;
   volumeLiters: string | number;
   rawValue?: string | number | null;
+  distanceCm?: string | number | null;
   rssi?: number | null;
   recordedAt: string;
 }
@@ -43,13 +46,25 @@ export interface Alert {
 export interface SensorNode {
   id: string;
   tankId?: string | null;
+  tankName?: string | null;
   gatewayId?: string | null;
+  gatewayCode?: string | null;
   deviceCode: string;
   sensorType: string;
   status: NodeStatus;
   lastRssi?: number | null;
   lastSeen?: string | null;
   createdAt?: string;
+}
+
+export interface Gateway {
+  id: string;
+  deviceCode: string;
+  status: GatewayStatus;
+  lastHeartbeat?: string | null;
+  createdAt?: string;
+  nodesCount?: number;
+  nodes?: SensorNode[];
 }
 
 export interface Tank {
@@ -59,6 +74,8 @@ export interface Tank {
   capacityLiters: string | number;
   minThresholdPercent: string | number;
   maxThresholdPercent: string | number;
+  minDistanceCm?: string | number | null;
+  maxDistanceCm?: string | number | null;
   latitude?: string | null;
   longitude?: string | null;
   createdAt?: string;
@@ -75,6 +92,20 @@ export interface User {
   role: UserRole;
   isActive: boolean;
   createdAt?: string;
+}
+
+export interface AuditLog {
+  id: number | string;
+  userId?: string | null;
+  username?: string | null;
+  action: string;
+  category?: AuditLogCategory | string | null;
+  entity?: string | null;
+  entityId?: string | null;
+  detail?: string | null;
+  description?: string | null;
+  ipAddress?: string | null;
+  createdAt: string;
 }
 
 /**

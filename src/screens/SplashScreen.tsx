@@ -2,84 +2,96 @@ import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   Animated,
   Easing,
   Platform,
 } from 'react-native';
+import { useReducedMotion } from '../hooks/useReducedMotion';
+import { COLORS, MOTION } from '../theme/tokens';
+
+const PROGRESS_BAR_WIDTH = 180;
 
 export interface SplashScreenProps {
   onFinish: () => void;
 }
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
-  // Animasi Opacity Container (Fade in saat muncul, Fade out saat selesai)
-  const containerOpacity = useRef(new Animated.Value(0)).current;
-
-  // Animasi Scale & Opacity Logo
-  const logoScale = useRef(new Animated.Value(0.85)).current;
-  const logoOpacity = useRef(new Animated.Value(0)).current;
-
-  // Animasi Pulse Loading Bar
+  const reducedMotion = useReducedMotion();
+  const containerOpacity = useRef(new Animated.Value(1)).current;
+  const logoScale = useRef(new Animated.Value(reducedMotion ? 1 : 0.88)).current;
+  const logoOpacity = useRef(new Animated.Value(reducedMotion ? 1 : 0)).current;
   const loadingProgress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // 1. Fade in & Pop-in Logo awal
-    Animated.parallel([
-      Animated.timing(containerOpacity, {
-        toValue: 1,
-        duration: 350,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: true,
-      }),
-      Animated.spring(logoScale, {
-        toValue: 1,
-        friction: 6,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-      Animated.timing(logoOpacity, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    containerOpacity.setValue(1);
 
-    // 2. Animasi progress bar simulasi pemuatan sistem (0% -> 100% dalam 2.2 detik)
-    Animated.timing(loadingProgress, {
+    let enterAnim: Animated.CompositeAnimation | null = null;
+    if (reducedMotion) {
+      logoScale.setValue(1);
+      logoOpacity.setValue(1);
+    } else {
+      enterAnim = Animated.parallel([
+        Animated.spring(logoScale, {
+          toValue: 1,
+          ...MOTION.spring,
+          useNativeDriver: true,
+        }),
+        Animated.timing(logoOpacity, {
+          toValue: 1,
+          duration: MOTION.slow,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]);
+      enterAnim.start();
+    }
+
+    const progressAnim = Animated.timing(loadingProgress, {
       toValue: 1,
-      duration: 2200,
+      duration: reducedMotion ? 900 : 1800,
       easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-      useNativeDriver: false, // Digunakan untuk animasi width progress bar
-    }).start();
+      useNativeDriver: true,
+    });
+    progressAnim.start();
 
-    // 3. Timer transisi halus ke halaman berikutnya
+    let exitAnim: Animated.CompositeAnimation | null = null;
     const timer = setTimeout(() => {
-      // Fade out halus sebelum berpindah layar
-      Animated.timing(containerOpacity, {
+      exitAnim = Animated.timing(containerOpacity, {
         toValue: 0,
-        duration: 400,
-        easing: Easing.in(Easing.ease),
+        duration: reducedMotion ? 150 : 350,
+        easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
-      }).start(({ finished }) => {
+      });
+      exitAnim.start(({ finished }) => {
         if (finished) {
           onFinish();
         }
       });
-    }, 2500);
+    }, reducedMotion ? 1500 : 2100);
 
-    return () => clearTimeout(timer);
-  }, [containerOpacity, logoScale, logoOpacity, loadingProgress, onFinish]);
+    return () => {
+      clearTimeout(timer);
+      enterAnim?.stop();
+      progressAnim.stop();
+      exitAnim?.stop();
+    };
+  }, [containerOpacity, logoScale, logoOpacity, loadingProgress, onFinish, reducedMotion]);
 
-  // Interpolasi lebar progress bar (0% sampai 100%)
-  const progressWidth = loadingProgress.interpolate({
+  // Native-driver left-anchored progress bar (tanpa layout reflow di JS thread)
+  const progressScaleX = loadingProgress.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0%', '100%'],
+    outputRange: [0.001, 1],
+  });
+  const progressTranslateX = loadingProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-PROGRESS_BAR_WIDTH / 2, 0],
   });
 
   return (
     <Animated.View style={[styles.container, { opacity: containerOpacity }]}>
-      {/* Area Tengah: Logo & Brand Identitas RSA UGM */}
+      {/* Area Tengah: Logo & Brand Identitas SV UGM */}
       <View style={styles.content}>
         <Animated.View
           style={[
@@ -91,7 +103,12 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
           ]}
         >
           <View style={styles.logoCircle}>
-            <Text style={styles.logoIcon}>💧</Text>
+            <Image
+              source={require('../../assets/ugm-logo.png')}
+              style={{ width: 86, height: 86 }}
+              resizeMode="contain"
+              accessibilityLabel="Lambang UGM"
+            />
           </View>
         </Animated.View>
 
@@ -102,7 +119,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
             Sistem Informasi Pemantauan Tangki Air
           </Text>
           <Text style={styles.hospitalName}>
-            Rumah Sakit Akademik Universitas Gadjah Mada
+            Sekolah Vokasi Universitas Gadjah Mada
           </Text>
         </Animated.View>
       </View>
@@ -111,12 +128,20 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
       <View style={styles.footer}>
         <View style={styles.progressBarBackground}>
           <Animated.View
-            style={[styles.progressBarFill, { width: progressWidth }]}
+            style={[
+              styles.progressBarFill,
+              {
+                transform: [
+                  { translateX: progressTranslateX },
+                  { scaleX: progressScaleX },
+                ],
+              },
+            ]}
           />
         </View>
         <Text style={styles.loadingText}>Menyiapkan sistem telemetri...</Text>
         <Text style={styles.copyrightText}>
-          Work Package 4 (WP-4) • RSA UGM © 2026
+          Work Package 4 (WP-4) • SV UGM © 2026
         </Text>
       </View>
     </Animated.View>
@@ -126,7 +151,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: '#0a354c', // Brand Primary resmi RSA UGM
+    backgroundColor: COLORS.primary,
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 48,
@@ -149,7 +174,7 @@ const styles = StyleSheet.create({
     borderRadius: 44,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 2,
-    borderColor: '#eab308', // Aksen Emas resmi
+    borderColor: COLORS.accentBright,
     justifyContent: 'center',
     alignItems: 'center',
     ...Platform.select({
@@ -164,21 +189,18 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  logoIcon: {
-    fontSize: 42,
-  },
   title: {
     fontSize: 32,
     fontWeight: '800',
-    color: '#ffffff',
+    color: COLORS.textOnPrimary,
     letterSpacing: 2,
     textAlign: 'center',
   },
   versionBadge: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#eab308',
-    backgroundColor: 'rgba(234, 179, 8, 0.15)',
+    color: COLORS.accent,
+    backgroundColor: 'rgba(254, 203, 40, 0.16)',
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: 12,
@@ -195,7 +217,7 @@ const styles = StyleSheet.create({
   },
   hospitalName: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: 'rgba(255, 255, 255, 0.65)',
     marginTop: 4,
     textAlign: 'center',
     letterSpacing: 0.2,
@@ -206,27 +228,28 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   progressBarBackground: {
-    width: 180,
+    width: PROGRESS_BAR_WIDTH,
     height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
     borderRadius: 2,
     overflow: 'hidden',
     marginBottom: 12,
   },
   progressBarFill: {
+    width: PROGRESS_BAR_WIDTH,
     height: '100%',
-    backgroundColor: '#38bdf8', // Light sky blue accent
+    backgroundColor: COLORS.accent,
     borderRadius: 2,
   },
   loadingText: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255, 255, 255, 0.72)',
     marginBottom: 16,
     letterSpacing: 0.3,
   },
   copyrightText: {
     fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: 'rgba(255, 255, 255, 0.45)',
     letterSpacing: 0.2,
   },
 });

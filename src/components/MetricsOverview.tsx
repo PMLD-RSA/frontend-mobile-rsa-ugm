@@ -1,42 +1,94 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import { COLORS, RADIUS } from '../theme/tokens';
 
 interface MetricsOverviewProps {
   tanksCount: number;
   totalCapacity: number;
   totalWater: number;
   activeAlertsCount: number;
+  criticalAlertsCount?: number;
+  tanksOnlineCount?: number;
+  averageLevelPercent?: number;
 }
 
-export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
+/**
+ * 2x2 KPI Grid Dashboard SI-POTA RSA UGM:
+ * 1. Tangki Online   2. Peringatan Kritis
+ * 3. Air Tertampung  4. Rata-rata Level Air
+ */
+export const MetricsOverview: React.FC<MetricsOverviewProps> = React.memo(({
   tanksCount,
   totalCapacity,
   totalWater,
   activeAlertsCount,
+  criticalAlertsCount = 0,
+  tanksOnlineCount = 0,
+  averageLevelPercent = 0,
 }) => {
   const percentageFilled =
     totalCapacity > 0 ? ((totalWater / totalCapacity) * 100).toFixed(0) : '0';
+  const criticalTotal = Math.max(criticalAlertsCount, activeAlertsCount);
 
   return (
-    <View style={styles.metricsRow}>
-      {/* Total Tangki */}
+    <View style={styles.gridContainer}>
+      {/* 1. Tangki Online */}
       <View style={styles.metricCard}>
-        <Text style={styles.metricLabel}>Total Tangki</Text>
-        <Text
-          style={styles.metricValue}
-          numberOfLines={1}
-          adjustsFontSizeToFit
-        >
-          {tanksCount}
+        <View style={styles.cardHeaderRow}>
+          <Text style={styles.metricLabel}>TANGKI ONLINE</Text>
+          <Feather name="radio" size={15} color={COLORS.primarySoft} />
+        </View>
+        <Text style={styles.metricValue} numberOfLines={1} adjustsFontSizeToFit>
+          {tanksOnlineCount}/{tanksCount}
         </Text>
-        <Text style={styles.metricSub} numberOfLines={1}>
-          {(totalCapacity / 1000).toFixed(0)}k L Kapasitas
+        <Text style={[styles.metricSub, { color: COLORS.primarySoft }]} numberOfLines={1}>
+          Sensor aktif
         </Text>
       </View>
 
-      {/* Air Tertampung */}
+      {/* 2. Peringatan Kritis */}
+      <View
+        style={[
+          styles.metricCard,
+          criticalTotal > 0 && styles.metricCardCriticalBorder,
+        ]}
+      >
+        <View style={styles.cardHeaderRow}>
+          <Text style={styles.metricLabel}>PERINGATAN</Text>
+          <Feather
+            name="alert-triangle"
+            size={15}
+            color={criticalTotal > 0 ? COLORS.critical : COLORS.normalText}
+          />
+        </View>
+        <Text
+          style={[
+            styles.metricValue,
+            { color: criticalTotal > 0 ? COLORS.critical : COLORS.normalText },
+          ]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+        >
+          {criticalTotal}
+        </Text>
+        <Text
+          style={[
+            styles.metricSub,
+            { color: criticalTotal > 0 ? COLORS.criticalText : COLORS.normalText },
+          ]}
+          numberOfLines={1}
+        >
+          {criticalTotal > 0 ? 'Perlu diperiksa' : 'Semua aman'}
+        </Text>
+      </View>
+
+      {/* 3. Air Tertampung */}
       <View style={styles.metricCard}>
-        <Text style={styles.metricLabel}>Air Tertampung</Text>
+        <View style={styles.cardHeaderRow}>
+          <Text style={styles.metricLabel}>AIR TERTAMPUNG</Text>
+          <Feather name="database" size={15} color={COLORS.primarySoft} />
+        </View>
         <Text
           style={[styles.metricValue, styles.waterValue]}
           numberOfLines={1}
@@ -49,71 +101,74 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
         </Text>
       </View>
 
-      {/* Peringatan Aktif */}
+      {/* 4. Rata-rata Level Air */}
       <View style={styles.metricCard}>
-        <Text style={styles.metricLabel}>Peringatan</Text>
-        <Text
-          style={[
-            styles.metricValue,
-            { color: activeAlertsCount > 0 ? '#dc2626' : '#15803d' },
-          ]}
-          numberOfLines={1}
-          adjustsFontSizeToFit
-        >
-          {activeAlertsCount}
+        <View style={styles.cardHeaderRow}>
+          <Text style={styles.metricLabel}>RATA-RATA LEVEL</Text>
+          <Feather name="activity" size={15} color={COLORS.primary} />
+        </View>
+        <Text style={styles.metricValue} numberOfLines={1} adjustsFontSizeToFit>
+          {averageLevelPercent}%
         </Text>
-        <Text
-          style={[
-            styles.metricSub,
-            { color: activeAlertsCount > 0 ? '#b91c1c' : '#166534' },
-          ]}
-          numberOfLines={1}
-        >
-          {activeAlertsCount > 0 ? 'Perlu dicek' : 'Kondisi aman'}
+        <Text style={styles.metricSub} numberOfLines={1}>
+          {(totalCapacity / 1000).toFixed(0)}k L Kapasitas
         </Text>
       </View>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
-  metricsRow: {
+  gridContainer: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     marginBottom: 16,
-    gap: 8,
+    rowGap: 10,
   },
   metricCard: {
-    flex: 1,
-    backgroundColor: '#ffffff',
+    width: '48.5%',
+    backgroundColor: COLORS.surface,
     padding: 12,
-    borderRadius: 12,
+    borderRadius: RADIUS.lg,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#0f172a',
+    borderColor: COLORS.border,
+    shadowColor: COLORS.textPrimary,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 3,
     elevation: 0,
   },
+  metricCardCriticalBorder: {
+    borderColor: COLORS.critical,
+    backgroundColor: '#fffdfd',
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   metricLabel: {
-    fontSize: 11,
-    color: '#64748b',
-    fontWeight: '600',
-    letterSpacing: 0.2,
+    fontSize: 10,
+    color: COLORS.textSecondary,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    flex: 1,
+    marginRight: 4,
   },
   metricValue: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '800',
-    color: '#0f172a',
-    marginVertical: 4,
+    color: COLORS.heading,
+    marginVertical: 2,
   },
   waterValue: {
-    color: '#0284c7',
+    color: COLORS.primarySoft,
   },
   metricSub: {
-    fontSize: 10,
-    color: '#94a3b8',
-    fontWeight: '500',
+    fontSize: 11,
+    color: COLORS.textMuted,
+    fontWeight: '600',
   },
 });

@@ -18,6 +18,7 @@ export function getAuditLogCategory(log: AuditLog): AuditLogCategory {
 }
 
 export function getAuditLogDescription(log: AuditLog): string {
+  if (log.detail?.trim()) return log.detail;
   if (log.description?.trim()) return log.description;
   const actor = log.username?.trim() || 'Pengguna';
   return `${actor} melakukan aksi ${log.action}`;

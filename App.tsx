@@ -5,7 +5,6 @@ import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-c
 import { Header } from './src/components/Header';
 import { MobileSidebar } from './src/components/Sidebar';
 import { HomeScreen } from './src/screens/HomeScreen';
-import { PlaceholderScreen } from './src/screens/PlaceholderScreen';
 import { SplashScreen } from './src/screens/SplashScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
@@ -18,16 +17,17 @@ import { DevicesScreen } from './src/screens/DevicesScreen';
 import { UsersScreen } from './src/screens/UsersScreen';
 import { useAuthStore } from './src/stores/authStore';
 import { useTankStore } from './src/stores/tankStore';
+import { COLORS } from './src/theme/tokens';
 import { ScreenId } from './src/types';
 
 const SCREEN_TITLES: Record<ScreenId, { title: string; subtitle: string }> = {
-  dashboard: { title: 'Dashboard Overview', subtitle: 'RSA UGM • SI-POTA v1.0' },
-  tanks: { title: 'Manajemen Tangki', subtitle: 'F-06 • Quick Threshold' },
-  alarms: { title: 'Peringatan Darurat', subtitle: 'F-03 & F-04 • Realtime Alert' },
-  reports: { title: 'Tren & Laporan', subtitle: 'F-02 • Sparkline 24h' },
-  logs: { title: 'Audit Logs', subtitle: 'F-08 • Activity Timeline' },
-  settings: { title: 'Perangkat & Jaringan', subtitle: 'F-05 • Connectivity Status' },
-  users: { title: 'Kelola Pengguna', subtitle: 'F-07 • Operator Accounts' },
+  dashboard: { title: 'Dashboard Overview', subtitle: 'RSA UGM • SI-POTA' },
+  tanks: { title: 'Manajemen Tangki', subtitle: 'Konfigurasi Ambang Batas' },
+  alarms: { title: 'Peringatan Darurat', subtitle: 'Monitoring & Resolusi Alert' },
+  reports: { title: 'Tren & Laporan', subtitle: 'Riwayat Pembacaan Sensor' },
+  logs: { title: 'Audit Logs', subtitle: 'Catatan Aktivitas Sistem' },
+  settings: { title: 'Perangkat & Jaringan', subtitle: 'Status Gateway & Node LoRa' },
+  users: { title: 'Kelola Pengguna', subtitle: 'Manajemen Akun & Hak Akses' },
 };
 
 type AppStage = 'login' | 'dashboard';
@@ -150,10 +150,7 @@ export default function App() {
             ) : currentScreen === 'users' ? (
               <UsersScreen onNavigate={(screen) => setCurrentScreen(screen)} />
             ) : (
-              <PlaceholderScreen
-                screenId={currentScreen}
-                onNavigate={(screen) => setCurrentScreen(screen)}
-              />
+              <HomeScreen />
             )}
 
             {/* Drawer Samping */}
@@ -187,10 +184,10 @@ export default function App() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: COLORS.background,
   },
   dashboardWrapper: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: COLORS.background,
   },
 });

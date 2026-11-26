@@ -3,6 +3,7 @@ import axios from 'axios';
 import { User, ApiResponse } from '../types';
 import { ENV } from '../config/env';
 import { saveAuthToken, getAuthToken, removeAuthToken } from '../services/secureStore';
+import { setUnauthorizedHandler } from '../services/api';
 
 interface AuthState {
   user: User | null;
@@ -57,8 +58,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ user: null, token: null, isAuthenticated: false });
         return false;
       }
-    } catch {
-      // Jika BFF tidak dapat dijangkau namun token tersimpan di SecureStore,
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        await removeAuthToken();
+        set({ user: null, token: null, isAuthenticated: false });
+        return false;
+      }
+
+      // Jika BFF tidak dapat dijangkau (offline/timeout) namun token tersimpan di SecureStore,
       // kita tetap izinkan sesi lokal aktif dengan profil fallback
       const savedToken = await getAuthToken();
       if (savedToken) {
@@ -133,3 +140,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ user: null, token: null, isAuthenticated: false, error: null });
   },
 }));
+
+// Hubungkan interceptor 401 di api.ts agar otomatis reset sesi ke LoginScreen
+setUnauthorizedHandler(() => {
+  useAuthStore.setState({
+    user: null,
+    token: null,
+    isAuthenticated: false,
+    error: 'Sesi berakhir. Silakan login kembali.',
+  });
+});

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getAuthToken } from './secureStore';
+import { getAuthToken, removeAuthToken } from './secureStore';
 import { ENV } from '../config/env';
 import {
   Alert,
@@ -30,11 +30,19 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+let unauthorizedHandler: (() => void) | null = null;
+
+export function setUnauthorizedHandler(handler: (() => void) | null): void {
+  unauthorizedHandler = handler;
+}
+
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
+  async (err) => {
     if (err.response?.status === 401) {
       console.warn('[Auth] Sesi berakhir atau token tidak valid di Web BFF');
+      await removeAuthToken();
+      unauthorizedHandler?.();
     }
     return Promise.reject(err);
   }
@@ -97,16 +105,23 @@ export async function resolveAlertApi(alertId: number): Promise<Alert> {
   throw new Error(response.data?.message || response.data?.error || 'Gagal menyelesaikan peringatan');
 }
 
+export function readingRangeToHours(range: ReadingRange): number {
+  return range === '7d' ? 168 : 24;
+}
+
 /**
  * Mengambil riwayat pembacaan level air dari Web BFF.
+ * Selaras kontrak Core BE & Web BFF: ?hours=24|168&limit=500
  */
 export async function fetchTankReadingsApi(
   tankId: string,
-  range: ReadingRange
+  range: ReadingRange,
+  limit: number = 500
 ): Promise<WaterLevelReading[]> {
+  const hours = readingRangeToHours(range);
   const response = await api.get<ApiResponse<WaterLevelReading[]>>(
     `/api/tanks/${encodeURIComponent(tankId)}/readings`,
-    { params: { range } }
+    { params: { hours, limit } }
   );
   if (response.data?.success && Array.isArray(response.data.data)) {
     return response.data.data;

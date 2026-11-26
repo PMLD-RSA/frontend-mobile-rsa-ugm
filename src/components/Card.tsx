@@ -17,13 +17,13 @@ export interface BadgeProps {
   showDot?: boolean;
 }
 
-export const Card: React.FC<CardProps> = ({ children, style }) => (
+export const Card: React.FC<CardProps> = React.memo(({ children, style }) => (
   <View style={[styles.card, style]}>
     {children}
   </View>
-);
+));
 
-export const Badge: React.FC<BadgeProps> = ({
+export const Badge: React.FC<BadgeProps> = React.memo(({
   text,
   variant = 'info',
   style,
@@ -80,7 +80,7 @@ export const Badge: React.FC<BadgeProps> = ({
       </Text>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   card: {

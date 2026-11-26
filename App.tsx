@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useCallback, useState, useRef } from 'react';
 import { StyleSheet, View, Animated, Easing } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
@@ -41,28 +41,23 @@ export default function App() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [currentScreen, setCurrentScreen] = useState<ScreenId>('dashboard');
 
-  const { logout } = useAuthStore();
+  const logout = useAuthStore((state) => state.logout);
 
   // Opacity untuk Dashboard (0 = tersembunyi di balik login, 1 = tampil penuh di atas login)
   const dashboardFadeAnim = useRef(new Animated.Value(0)).current;
 
-  // 1. Selesai Splash: Cukup lepas overlay splash (Login Screen sudah siap di bawahnya)
-  const handleSplashFinish = () => {
+  const handleSplashFinish = useCallback(() => {
     setShowSplash(false);
-  };
+  }, []);
 
-  // 2. Alur Login Berhasil:
-  // Render Dashboard di atas LoginScreen secara absolut, lalu cross-dissolve fade-in 0 -> 1.
-  // LoginScreen tetap tenang di bawahnya tanpa jump, flash, atau pergeseran posisi.
-  const handleLoginSuccess = () => {
-    // Mulai pre-fetch tank telemetri lebih awal agar saat dashboard tampil data sudah siap
+  const handleLoginSuccess = useCallback(() => {
     useTankStore.getState().fetchTanks();
 
     setIsTransitioning(true);
     setStage('dashboard');
     Animated.timing(dashboardFadeAnim, {
       toValue: 1,
-      duration: 280,
+      duration: 260,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start(({ finished }) => {
@@ -70,11 +65,9 @@ export default function App() {
         setIsTransitioning(false);
       }
     });
-  };
+  }, [dashboardFadeAnim]);
 
-  // 3. Alur Logout:
-  // Tutup drawer/modal, aktifkan LoginScreen di layer bawah, lalu fade-out Dashboard 1 -> 0.
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     setIsDrawerOpen(false);
     setIsProfileOpen(false);
     setIsTransitioning(true);
@@ -82,7 +75,7 @@ export default function App() {
 
     Animated.timing(dashboardFadeAnim, {
       toValue: 0,
-      duration: 240,
+      duration: 220,
       easing: Easing.in(Easing.ease),
       useNativeDriver: true,
     }).start(({ finished }) => {
@@ -91,7 +84,13 @@ export default function App() {
         setIsTransitioning(false);
       }
     });
-  };
+  }, [dashboardFadeAnim, logout]);
+
+  const openDrawer = useCallback(() => setIsDrawerOpen(true), []);
+  const closeDrawer = useCallback(() => setIsDrawerOpen(false), []);
+  const openProfile = useCallback(() => setIsProfileOpen(true), []);
+  const closeProfile = useCallback(() => setIsProfileOpen(false), []);
+  const handleSelectScreen = useCallback((screen: ScreenId) => setCurrentScreen(screen), []);
 
   const { title, subtitle } =
     SCREEN_TITLES[currentScreen] || SCREEN_TITLES.dashboard;
@@ -130,8 +129,8 @@ export default function App() {
             <Header
               title={title}
               subtitle={subtitle}
-              onOpenDrawer={() => setIsDrawerOpen(true)}
-              onOpenProfile={() => setIsProfileOpen(true)}
+              onOpenDrawer={openDrawer}
+              onOpenProfile={openProfile}
             />
             <EmergencyAlertBanner />
 
@@ -140,17 +139,17 @@ export default function App() {
               {currentScreen === 'dashboard' ? (
                 <HomeScreen />
               ) : currentScreen === 'tanks' ? (
-                <TankManagementScreen onNavigate={(screen) => setCurrentScreen(screen)} />
+                <TankManagementScreen onNavigate={handleSelectScreen} />
               ) : currentScreen === 'alarms' ? (
-                <AlarmsScreen onNavigate={(screen) => setCurrentScreen(screen)} />
+                <AlarmsScreen onNavigate={handleSelectScreen} />
               ) : currentScreen === 'reports' ? (
-                <ReportsScreen onNavigate={(screen) => setCurrentScreen(screen)} />
+                <ReportsScreen onNavigate={handleSelectScreen} />
               ) : currentScreen === 'logs' ? (
-                <AuditLogsScreen onNavigate={(screen) => setCurrentScreen(screen)} />
+                <AuditLogsScreen onNavigate={handleSelectScreen} />
               ) : currentScreen === 'settings' ? (
-                <DevicesScreen onNavigate={(screen) => setCurrentScreen(screen)} />
+                <DevicesScreen onNavigate={handleSelectScreen} />
               ) : currentScreen === 'users' ? (
-                <UsersScreen onNavigate={(screen) => setCurrentScreen(screen)} />
+                <UsersScreen onNavigate={handleSelectScreen} />
               ) : (
                 <HomeScreen />
               )}
@@ -159,17 +158,17 @@ export default function App() {
             {/* Drawer Samping */}
             <MobileSidebar
               isOpen={isDrawerOpen}
-              onClose={() => setIsDrawerOpen(false)}
+              onClose={closeDrawer}
               currentScreen={currentScreen}
-              onSelectScreen={(screen) => setCurrentScreen(screen)}
-              onOpenProfile={() => setIsProfileOpen(true)}
+              onSelectScreen={handleSelectScreen}
+              onOpenProfile={openProfile}
               onLogout={handleLogout}
             />
 
             {/* Modal Layar Profil */}
             <ProfileScreen
               isOpen={isProfileOpen}
-              onClose={() => setIsProfileOpen(false)}
+              onClose={closeProfile}
               onLogout={handleLogout}
             />
           </Animated.View>

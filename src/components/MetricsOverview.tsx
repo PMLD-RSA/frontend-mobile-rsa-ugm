@@ -9,7 +9,7 @@ interface MetricsOverviewProps {
   activeAlertsCount: number;
 }
 
-export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
+export const MetricsOverview: React.FC<MetricsOverviewProps> = React.memo(({
   tanksCount,
   totalCapacity,
   totalWater,
@@ -75,7 +75,7 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
       </View>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   metricsRow: {

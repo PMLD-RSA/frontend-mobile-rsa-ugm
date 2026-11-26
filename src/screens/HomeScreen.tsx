@@ -24,7 +24,10 @@ export const HomeScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
 
-  const { tanks, isLoading, error, fetchTanks } = useTankStore();
+  const tanks = useTankStore((state) => state.tanks);
+  const isLoading = useTankStore((state) => state.isLoading);
+  const error = useTankStore((state) => state.error);
+  const fetchTanks = useTankStore((state) => state.fetchTanks);
 
   useEffect(() => {
     fetchTanks();

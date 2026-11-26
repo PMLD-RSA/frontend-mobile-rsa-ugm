@@ -11,7 +11,7 @@ interface TankCardProps {
   tank: Tank;
 }
 
-export const TankCard: React.FC<TankCardProps> = ({ tank }) => {
+export const TankCard: React.FC<TankCardProps> = React.memo(({ tank }) => {
   const reducedMotion = useReducedMotion();
   const level = Number(tank.latestReading?.levelPercent || 0);
   const clampedFraction = Math.min(Math.max(level, 0), 100) / 100;
@@ -170,7 +170,7 @@ export const TankCard: React.FC<TankCardProps> = ({ tank }) => {
       </View>
     </Card>
   );
-};
+});
 
 const styles = StyleSheet.create({
   cardHeader: {

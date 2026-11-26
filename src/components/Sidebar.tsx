@@ -269,7 +269,7 @@ interface MenuItemProps {
   onPress: (id: ScreenId) => void;
 }
 
-const MenuItem: React.FC<MenuItemProps> = ({ item, active, showBadge, onPress }) => (
+const MenuItem: React.FC<MenuItemProps> = React.memo(({ item, active, showBadge, onPress }) => (
   <TouchableOpacity
     style={[styles.menuItem, active && styles.menuItemActive]}
     activeOpacity={0.7}
@@ -288,7 +288,7 @@ const MenuItem: React.FC<MenuItemProps> = ({ item, active, showBadge, onPress })
       {item.label}
     </Text>
   </TouchableOpacity>
-);
+));
 
 const styles = StyleSheet.create({
   overlay: {

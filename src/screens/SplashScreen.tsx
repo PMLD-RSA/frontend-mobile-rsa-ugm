@@ -8,6 +8,7 @@ import {
   Easing,
   Platform,
 } from 'react-native';
+import { COLORS } from '../theme/tokens';
 
 export interface SplashScreenProps {
   onFinish: () => void;
@@ -132,7 +133,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: '#0a354c', // Brand Primary resmi RSA UGM
+    backgroundColor: COLORS.primary,
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 48,
@@ -155,7 +156,7 @@ const styles = StyleSheet.create({
     borderRadius: 44,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 2,
-    borderColor: '#eab308', // Aksen Emas resmi
+    borderColor: COLORS.accentBright,
     justifyContent: 'center',
     alignItems: 'center',
     ...Platform.select({
@@ -170,21 +171,18 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  logoIcon: {
-    fontSize: 42,
-  },
   title: {
     fontSize: 32,
     fontWeight: '800',
-    color: '#ffffff',
+    color: COLORS.textOnPrimary,
     letterSpacing: 2,
     textAlign: 'center',
   },
   versionBadge: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#eab308',
-    backgroundColor: 'rgba(234, 179, 8, 0.15)',
+    color: COLORS.accent,
+    backgroundColor: 'rgba(254, 203, 40, 0.16)',
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: 12,
@@ -201,7 +199,7 @@ const styles = StyleSheet.create({
   },
   hospitalName: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: 'rgba(255, 255, 255, 0.65)',
     marginTop: 4,
     textAlign: 'center',
     letterSpacing: 0.2,
@@ -214,25 +212,25 @@ const styles = StyleSheet.create({
   progressBarBackground: {
     width: 180,
     height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
     borderRadius: 2,
     overflow: 'hidden',
     marginBottom: 12,
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#38bdf8', // Light sky blue accent
+    backgroundColor: COLORS.accent,
     borderRadius: 2,
   },
   loadingText: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255, 255, 255, 0.72)',
     marginBottom: 16,
     letterSpacing: 0.3,
   },
   copyrightText: {
     fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: 'rgba(255, 255, 255, 0.45)',
     letterSpacing: 0.2,
   },
 });

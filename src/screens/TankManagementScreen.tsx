@@ -101,7 +101,7 @@ export const TankManagementScreen: React.FC = () => {
         <View style={styles.intro}>
           <View style={styles.introText}>
             <Text style={styles.title}>Manajemen Tangki Air</Text>
-            <Text style={styles.subtitle}>Kelola ambang batas peringatan tangki rumah sakit.</Text>
+            <Text style={styles.subtitle}>Kelola ambang batas peringatan tangki SV UGM.</Text>
           </View>
           <Badge text={isAdmin ? 'Admin' : 'Read-only'} variant={isAdmin ? 'success' : 'warning'} />
         </View>

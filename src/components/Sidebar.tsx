@@ -197,7 +197,7 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
           </View>
           <View style={styles.headerTextBox}>
             <Text style={styles.headerTitle}>SI-POTA</Text>
-            <Text style={styles.headerSub}>RSA UGM • Mobile</Text>
+            <Text style={styles.headerSub}>SV UGM • Mobile</Text>
           </View>
           <TouchableOpacity
             onPress={onClose}

@@ -14,7 +14,7 @@ export interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   title = 'Dashboard Overview',
-  subtitle = 'RSA UGM • SI-POTA v1.0',
+  subtitle = 'SV UGM • SI-POTA',
   onOpenDrawer,
   onOpenProfile,
 }) => {

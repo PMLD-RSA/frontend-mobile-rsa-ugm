@@ -1,5 +1,5 @@
 # ==============================================================================
-# GIT-CLIFF CONFIG — SI-POTA Mobile (RSA UGM)
+# GIT-CLIFF CONFIG — SI-POTA Mobile (SV UGM)
 # ==============================================================================
 # Auto versioning + auto changelog dari Conventional Commits.
 # Tool: git-cliff (https://github.com/orhun/git-cliff)
@@ -8,7 +8,7 @@
 # ==============================================================================
 
 [changelog]
-header = """# CHANGELOG — SI-POTA Mobile (RSA UGM)
+header = """# CHANGELOG — SI-POTA Mobile (SV UGM)
 
 Semua perubahan signifikan pada aplikasi mobile didokumentasikan di sini. File ini
 di-generate otomatis oleh [git-cliff](https://github.com/orhun/git-cliff) dari Conventional Commits.

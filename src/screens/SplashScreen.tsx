@@ -91,7 +91,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
 
   return (
     <Animated.View style={[styles.container, { opacity: containerOpacity }]}>
-      {/* Area Tengah: Logo & Brand Identitas RSA UGM */}
+      {/* Area Tengah: Logo & Brand Identitas SV UGM */}
       <View style={styles.content}>
         <Animated.View
           style={[
@@ -119,7 +119,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
             Sistem Informasi Pemantauan Tangki Air
           </Text>
           <Text style={styles.hospitalName}>
-            Rumah Sakit Akademik Universitas Gadjah Mada
+            Sekolah Vokasi Universitas Gadjah Mada
           </Text>
         </Animated.View>
       </View>
@@ -141,7 +141,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
         </View>
         <Text style={styles.loadingText}>Menyiapkan sistem telemetri...</Text>
         <Text style={styles.copyrightText}>
-          Work Package 4 (WP-4) • RSA UGM © 2026
+          Work Package 4 (WP-4) • SV UGM © 2026
         </Text>
       </View>
     </Animated.View>

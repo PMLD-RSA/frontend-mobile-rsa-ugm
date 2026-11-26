@@ -106,7 +106,7 @@ export const HomeScreen: React.FC = () => {
         <EmptyState
           icon="droplet"
           title="Belum Ada Data Tangki"
-          description="Tangki belum terdaftar di database rumah sakit atau belum ada data yang dikirim dari sensor."
+          description="Tangki belum terdaftar di database SV UGM atau belum ada data yang dikirim dari sensor."
           actionLabel="Muat Ulang"
           onAction={() => fetchTanks()}
         />

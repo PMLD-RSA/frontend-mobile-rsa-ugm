@@ -1,17 +1,23 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, Vibration, View } from 'react-native';
 import { useAlertStore } from '../stores/alertStore';
+import { useAuthStore } from '../stores/authStore';
+import { useTankStore } from '../stores/tankStore';
 import { connectAlertSocket } from '../services/alertSocket';
 import { Alert } from '../types';
 
 export const EmergencyAlertBanner: React.FC = () => {
+  const token = useAuthStore((state) => state.token);
   const alerts = useAlertStore((state) => state.alerts);
   const addAlert = useAlertStore((state) => state.addAlert);
   const markAlertResolved = useAlertStore((state) => state.markAlertResolved);
+  const updateLevel = useTankStore((state) => state.updateLevel);
+  const updateNodeStatus = useTankStore((state) => state.updateNodeStatus);
   const [dismissedAlertId, setDismissedAlertId] = useState<number | null>(null);
 
   useEffect(() => {
     return connectAlertSocket({
+      token,
       onAlert: (alert: Alert) => {
         addAlert(alert);
         if (alert.level === 'CRITICAL' && alert.status === 'active') {
@@ -20,8 +26,16 @@ export const EmergencyAlertBanner: React.FC = () => {
         }
       },
       onResolved: markAlertResolved,
+      onLevelUpdate: (update) => {
+        updateLevel(update.tankId, update.levelPercent, update.volumeLiters, {
+          distanceCm: update.distanceCm,
+          rssi: update.rssi,
+          recordedAt: update.recordedAt,
+        });
+      },
+      onNodeStatus: updateNodeStatus,
     });
-  }, [addAlert, markAlertResolved]);
+  }, [token, addAlert, markAlertResolved, updateLevel, updateNodeStatus]);
 
   const criticalAlert = useMemo(
     () =>

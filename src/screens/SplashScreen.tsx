@@ -7,6 +7,7 @@ import {
   Easing,
   Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 export interface SplashScreenProps {
   onFinish: () => void;
@@ -91,7 +92,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
           ]}
         >
           <View style={styles.logoCircle}>
-            <Text style={styles.logoIcon}>💧</Text>
+            <Ionicons name="water" size={38} color="#FECB28" />
           </View>
         </Animated.View>
 
@@ -102,7 +103,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
             Sistem Informasi Pemantauan Tangki Air
           </Text>
           <Text style={styles.hospitalName}>
-            Rumah Sakit Akademik Universitas Gadjah Mada
+            Sekolah Vokasi Universitas Gadjah Mada
           </Text>
         </Animated.View>
       </View>

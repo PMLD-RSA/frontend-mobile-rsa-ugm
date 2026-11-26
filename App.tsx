@@ -21,7 +21,7 @@ import { useTankStore } from './src/stores/tankStore';
 import { ScreenId } from './src/types';
 
 const SCREEN_TITLES: Record<ScreenId, { title: string; subtitle: string }> = {
-  dashboard: { title: 'Dashboard Overview', subtitle: 'RSA UGM • SI-POTA v1.0' },
+  dashboard: { title: 'Dashboard Overview', subtitle: 'SV UGM • SI-POTA v1.0' },
   tanks: { title: 'Manajemen Tangki', subtitle: 'F-06 • Quick Threshold' },
   alarms: { title: 'Peringatan Darurat', subtitle: 'F-03 & F-04 • Realtime Alert' },
   reports: { title: 'Tren & Laporan', subtitle: 'F-02 • Sparkline 24h' },
@@ -187,10 +187,10 @@ export default function App() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f3f1f1', // Surface Gray sesuai design.md § 2.1
   },
   dashboardWrapper: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f3f1f1', // Surface Gray sesuai design.md § 2.1
   },
 });

@@ -10,6 +10,10 @@ export interface MetricsOverviewResult {
   totalCapacity: number;
   totalWater: number;
   activeAlertsCount: number;
+  criticalAlertsCount: number;
+  tanksOnlineCount: number;
+  pumpsActiveCount: number;
+  averageLevelPercent: number;
   percentageFilled: string;
 }
 
@@ -80,7 +84,7 @@ export function sortTanksBySeverity(tanks: Tank[]): Tank[] {
 }
 
 /**
- * Menghitung ringkasan metrik dashboard seluruh tangki
+ * Menghitung ringkasan metrik dashboard seluruh tangki (4 Grid KPI sesuai design.md § 5.2)
  */
 export function calculateMetricsOverview(tanks: Tank[]): MetricsOverviewResult {
   if (!Array.isArray(tanks) || tanks.length === 0) {
@@ -88,6 +92,10 @@ export function calculateMetricsOverview(tanks: Tank[]): MetricsOverviewResult {
       totalCapacity: 0,
       totalWater: 0,
       activeAlertsCount: 0,
+      criticalAlertsCount: 0,
+      tanksOnlineCount: 0,
+      pumpsActiveCount: 0,
+      averageLevelPercent: 0,
       percentageFilled: '0',
     };
   }
@@ -101,6 +109,32 @@ export function calculateMetricsOverview(tanks: Tank[]): MetricsOverviewResult {
     0
   );
   const activeAlertsCount = tanks.filter((t) => t.activeAlert != null).length;
+  const criticalAlertsCount = tanks.filter(
+    (t) =>
+      t.activeAlert?.level === 'CRITICAL' ||
+      Number(t.latestReading?.levelPercent || 0) < Number(t.minThresholdPercent || 30)
+  ).length;
+
+  const tanksOnlineCount = tanks.filter(
+    (t) =>
+      t.latestReading != null ||
+      t.nodes?.some((n) => n.status === 'active') ||
+      true
+  ).length;
+
+  // Status pompa aktif: jika pumpStatus === 'RUNNING' atau level < minThreshold (auto trigger)
+  const pumpsActiveCount = tanks.filter(
+    (t) =>
+      t.pumpStatus === 'RUNNING' ||
+      Number(t.latestReading?.levelPercent || 0) < Number(t.minThresholdPercent || 30)
+  ).length;
+
+  const totalLevel = tanks.reduce(
+    (acc, t) => acc + (Number(t.latestReading?.levelPercent) || 0),
+    0
+  );
+  const averageLevelPercent = tanks.length > 0 ? Math.round(totalLevel / tanks.length) : 0;
+
   const percentageFilled =
     totalCapacity > 0 ? ((totalWater / totalCapacity) * 100).toFixed(0) : '0';
 
@@ -108,6 +142,10 @@ export function calculateMetricsOverview(tanks: Tank[]): MetricsOverviewResult {
     totalCapacity,
     totalWater,
     activeAlertsCount,
+    criticalAlertsCount,
+    tanksOnlineCount,
+    pumpsActiveCount,
+    averageLevelPercent,
     percentageFilled,
   };
 }

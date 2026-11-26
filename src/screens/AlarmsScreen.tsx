@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Badge, Card } from '../components/Card';
 import { useAlertStore } from '../stores/alertStore';
+import { useAuthStore } from '../stores/authStore';
 import { Alert, AlertLevel } from '../types';
 
 type AlertFilter = 'ALL' | AlertLevel;
@@ -32,6 +33,8 @@ function alertVariant(level: AlertLevel): 'critical' | 'warning' {
 
 export const AlarmsScreen: React.FC<AlarmsScreenProps> = ({ onNavigate }) => {
   const insets = useSafeAreaInsets();
+  const user = useAuthStore((state) => state.user);
+  const canResolve = user?.role === 'admin' || user?.role === 'operator';
   const { alerts, isLoading, resolvingAlertId, error, fetchAlerts, resolveAlert, clearError } =
     useAlertStore();
   const [filter, setFilter] = useState<AlertFilter>('ALL');
@@ -60,6 +63,7 @@ export const AlarmsScreen: React.FC<AlarmsScreenProps> = ({ onNavigate }) => {
   }, [fetchAlerts]);
 
   const confirmResolve = (alert: Alert) => {
+    if (!canResolve) return;
     NativeAlert.alert(
       'Konfirmasi Penyelesaian',
       'Apakah kondisi fisik tangki sudah diperiksa dan dipastikan aman?',
@@ -153,7 +157,7 @@ export const AlarmsScreen: React.FC<AlarmsScreenProps> = ({ onNavigate }) => {
               text={alert.status === 'active' ? 'AKTIF' : 'SELESAI'}
               variant={alert.status === 'active' ? 'critical' : 'success'}
             />
-            {alert.status === 'active' && (
+            {alert.status === 'active' && canResolve && (
               <TouchableOpacity
                 style={styles.resolveButton}
                 onPress={() => confirmResolve(alert)}

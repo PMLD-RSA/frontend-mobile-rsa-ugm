@@ -18,6 +18,7 @@ interface NavMenuItem {
   icon: string;
   label: string;
   badge?: boolean;
+  adminOnly?: boolean;
 }
 
 const MENU_ITEMS: NavMenuItem[] = [
@@ -25,9 +26,9 @@ const MENU_ITEMS: NavMenuItem[] = [
   { id: 'tanks', icon: '⛁', label: 'Tanks' },
   { id: 'alarms', icon: '🔔', label: 'Alarms', badge: true },
   { id: 'reports', icon: '📊', label: 'Reports' },
-  { id: 'logs', icon: '📋', label: 'Audit Logs' },
+  { id: 'logs', icon: '📋', label: 'Audit Logs', adminOnly: true },
   { id: 'settings', icon: '⚙️', label: 'Settings' },
-  { id: 'users', icon: '👥', label: 'Users' },
+  { id: 'users', icon: '👥', label: 'Users', adminOnly: true },
 ];
 
 export interface MobileSidebarProps {
@@ -181,7 +182,7 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
 
         {/* Menu Items */}
         <View style={styles.menuList}>
-          {MENU_ITEMS.map((item) => (
+          {MENU_ITEMS.filter((item) => !item.adminOnly || user?.role === 'admin').map((item) => (
             <MenuItem
               key={item.id}
               item={item}

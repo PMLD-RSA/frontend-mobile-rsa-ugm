@@ -40,7 +40,7 @@ export const AuditLogsScreen: React.FC<AuditLogsScreenProps> = ({ onNavigate }) 
   const { logs, isLoading, error, fetchLogs, clearError } = useAuditLogStore();
   const [refreshing, setRefreshing] = useState(false);
 
-  const canView = user?.role === 'admin' || user?.role === 'operator';
+  const canView = user?.role === 'admin';
 
   useEffect(() => {
     if (canView) fetchLogs();
@@ -60,7 +60,7 @@ export const AuditLogsScreen: React.FC<AuditLogsScreenProps> = ({ onNavigate }) 
         <Text style={styles.accessIcon}>🔒</Text>
         <Text style={styles.accessTitle}>Akses Audit Log Ditolak</Text>
         <Text style={styles.accessText}>
-          Audit log hanya dapat diakses oleh Admin dan Operator.
+          Audit log hanya dapat diakses oleh Administrator.
         </Text>
         <TouchableOpacity style={styles.backButton} onPress={() => onNavigate('dashboard')}>
           <Text style={styles.backText}>← Kembali ke Dashboard</Text>
@@ -82,7 +82,7 @@ export const AuditLogsScreen: React.FC<AuditLogsScreenProps> = ({ onNavigate }) 
           <Text style={styles.title}>Feed Aktivitas & Audit Log</Text>
           <Text style={styles.subtitle}>20 aktivitas operasional terbaru.</Text>
         </View>
-        <Badge text={user?.role === 'admin' ? 'Admin' : 'Operator'} variant="info" />
+        <Badge text="Admin" variant="info" />
       </View>
 
       {error && (

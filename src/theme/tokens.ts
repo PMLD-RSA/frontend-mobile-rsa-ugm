@@ -57,3 +57,15 @@ export const SPACING = {
   xl: 20,
   xxl: 24,
 } as const;
+
+export const MOTION = {
+  instant: 0,
+  fast: 160,
+  normal: 220,
+  slow: 320,
+  spring: {
+    damping: 26,
+    stiffness: 260,
+    mass: 0.85,
+  },
+} as const;

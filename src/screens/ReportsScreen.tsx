@@ -13,6 +13,7 @@ import { Feather } from '@expo/vector-icons';
 import { Badge, Card } from '../components/Card';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorBanner } from '../components/ErrorBanner';
+import { SkeletonList } from '../components/Skeleton';
 import { useReportStore } from '../stores/reportStore';
 import { useTankStore } from '../stores/tankStore';
 import { COLORS, RADIUS } from '../theme/tokens';
@@ -99,12 +100,7 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({ onNavigate }) => {
       {selectedTank && <Text style={styles.selectedLabel}>{selectedTank.name}</Text>}
       {error && <ErrorBanner message={error} onRetry={refresh} />}
 
-      {isLoading && !refreshing && (
-        <View style={styles.stateBox}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.stateText}>Memuat riwayat pembacaan...</Text>
-        </View>
-      )}
+      {isLoading && !refreshing && <SkeletonList variant="chart" />}
 
       {!isLoading && !error && validReadings.length === 0 && (
         <EmptyState

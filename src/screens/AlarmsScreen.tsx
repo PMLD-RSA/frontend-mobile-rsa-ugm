@@ -14,6 +14,7 @@ import { Feather } from '@expo/vector-icons';
 import { Badge, Card } from '../components/Card';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorBanner } from '../components/ErrorBanner';
+import { SkeletonList } from '../components/Skeleton';
 import { useAlertStore } from '../stores/alertStore';
 import { useAuthStore } from '../stores/authStore';
 import { COLORS, RADIUS } from '../theme/tokens';
@@ -130,12 +131,7 @@ export const AlarmsScreen: React.FC<AlarmsScreenProps> = ({ onNavigate }) => {
         />
       )}
 
-      {isLoading && !refreshing && (
-        <View style={styles.stateBox}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.stateText}>Memuat daftar peringatan...</Text>
-        </View>
-      )}
+      {isLoading && !refreshing && <SkeletonList variant="list" count={3} />}
 
       {!isLoading && filteredAlerts.length === 0 && (
         <EmptyState

@@ -13,6 +13,7 @@ import { Feather } from '@expo/vector-icons';
 import { Badge, Card } from '../components/Card';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorBanner } from '../components/ErrorBanner';
+import { SkeletonList } from '../components/Skeleton';
 import { useAuthStore } from '../stores/authStore';
 import { useAuditLogStore } from '../stores/auditLogStore';
 import { COLORS, RADIUS } from '../theme/tokens';
@@ -102,12 +103,7 @@ export const AuditLogsScreen: React.FC<AuditLogsScreenProps> = ({ onNavigate }) 
         />
       )}
 
-      {isLoading && !refreshing && (
-        <View style={styles.stateBox}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.stateText}>Memuat aktivitas terbaru...</Text>
-        </View>
-      )}
+      {isLoading && !refreshing && <SkeletonList variant="list" count={4} />}
 
       {!isLoading && !error && visibleLogs.length === 0 && (
         <EmptyState

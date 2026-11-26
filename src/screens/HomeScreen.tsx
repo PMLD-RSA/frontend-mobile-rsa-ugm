@@ -4,7 +4,6 @@ import {
   Text,
   View,
   ScrollView,
-  ActivityIndicator,
   RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,10 +11,10 @@ import { Badge } from '../components/Card';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { MetricsOverview } from '../components/MetricsOverview';
+import { SkeletonList } from '../components/Skeleton';
 import { TankCard } from '../components/TankCard';
 import { useTankStore } from '../stores/tankStore';
-import { ENV } from '../config/env';
-import { COLORS, RADIUS } from '../theme/tokens';
+import { COLORS } from '../theme/tokens';
 import {
   sortTanksBySeverity,
   calculateMetricsOverview,
@@ -89,14 +88,8 @@ export const HomeScreen: React.FC = () => {
         activeAlertsCount={activeAlertsCount}
       />
 
-      {/* State Loading Indikator */}
-      {isLoading && !refreshing && (
-        <View style={styles.loadingBox}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Menghubungkan ke Web BFF...</Text>
-          <Text style={styles.loadingSub}>{ENV.BFF_URL}</Text>
-        </View>
-      )}
+      {/* State Loading Skeleton */}
+      {isLoading && !refreshing && <SkeletonList variant="tank" count={2} />}
 
       {/* State Kosong (Empty State) */}
       {!isLoading && sortedTanks.length === 0 && !error && (
@@ -142,26 +135,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textSecondary,
     marginTop: 2,
-  },
-  loadingBox: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.xl,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginVertical: 10,
-  },
-  loadingText: {
-    marginTop: 14,
-    fontSize: 14,
-    color: COLORS.primary,
-    fontWeight: '700',
-  },
-  loadingSub: {
-    marginTop: 4,
-    fontSize: 11,
-    color: COLORS.textMuted,
   },
 });

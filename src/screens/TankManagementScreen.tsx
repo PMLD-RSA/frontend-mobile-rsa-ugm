@@ -17,6 +17,7 @@ import { Feather } from '@expo/vector-icons';
 import { Badge } from '../components/Card';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorBanner } from '../components/ErrorBanner';
+import { SkeletonList } from '../components/Skeleton';
 import { TankCard } from '../components/TankCard';
 import { useAuthStore } from '../stores/authStore';
 import { useTankStore } from '../stores/tankStore';
@@ -116,12 +117,7 @@ export const TankManagementScreen: React.FC<TankManagementScreenProps> = ({ onNa
           </View>
         )}
         {error && <ErrorBanner message={error} onRetry={fetchTanks} />}
-        {isLoading && !refreshing && (
-          <View style={styles.loading}>
-            <ActivityIndicator size="large" color={COLORS.primary} />
-            <Text style={styles.loadingText}>Memuat data tangki...</Text>
-          </View>
-        )}
+        {isLoading && !refreshing && <SkeletonList variant="tank" count={2} />}
         {!isLoading && sortedTanks.length === 0 && !error && (
           <EmptyState
             icon="database"

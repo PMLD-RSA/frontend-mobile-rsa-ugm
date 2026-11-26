@@ -13,6 +13,7 @@ import { Feather } from '@expo/vector-icons';
 import { Badge, Card } from '../components/Card';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorBanner } from '../components/ErrorBanner';
+import { SkeletonList } from '../components/Skeleton';
 import { ENV } from '../config/env';
 import { useDeviceStore } from '../stores/deviceStore';
 import { useTankStore } from '../stores/tankStore';
@@ -222,13 +223,8 @@ export const DevicesScreen: React.FC<DevicesScreenProps> = ({ onNavigate }) => {
         />
       )}
 
-      {/* 6. Loading State */}
-      {isLoading && !refreshing && (
-        <View style={styles.stateBox}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.stateText}>Memindai status perangkat lapangan...</Text>
-        </View>
-      )}
+      {/* 6. Loading Skeleton */}
+      {isLoading && !refreshing && <SkeletonList variant="list" count={3} />}
 
       {/* 7. Empty State */}
       {!isLoading && filteredNodes.length === 0 && (

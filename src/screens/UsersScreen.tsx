@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { Badge, Card } from '../components/Card';
 import { EmptyState } from '../components/EmptyState';
+import { SkeletonList } from '../components/Skeleton';
 import { useAuthStore } from '../stores/authStore';
 import { useUserStore } from '../stores/userStore';
 import { COLORS, RADIUS } from '../theme/tokens';
@@ -265,13 +266,8 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ onNavigate }) => {
         ))}
       </View>
 
-      {/* 6. Loading State */}
-      {isLoading && !refreshing && (
-        <View style={styles.stateBox}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.stateText}>Memuat daftar akun pengguna...</Text>
-        </View>
-      )}
+      {/* 6. Loading Skeleton */}
+      {isLoading && !refreshing && <SkeletonList variant="list" count={3} />}
 
       {/* 7. Empty State */}
       {!isLoading && filteredUsers.length === 0 && (

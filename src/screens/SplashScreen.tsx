@@ -19,60 +19,63 @@ export interface SplashScreenProps {
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
   const reducedMotion = useReducedMotion();
-  const containerOpacity = useRef(new Animated.Value(reducedMotion ? 1 : 0)).current;
+  const containerOpacity = useRef(new Animated.Value(1)).current;
   const logoScale = useRef(new Animated.Value(reducedMotion ? 1 : 0.88)).current;
   const logoOpacity = useRef(new Animated.Value(reducedMotion ? 1 : 0)).current;
   const loadingProgress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const enterAnim = reducedMotion
-      ? null
-      : Animated.parallel([
-          Animated.timing(containerOpacity, {
-            toValue: 1,
-            duration: MOTION.normal,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: true,
-          }),
-          Animated.spring(logoScale, {
-            toValue: 1,
-            ...MOTION.spring,
-            useNativeDriver: true,
-          }),
-          Animated.timing(logoOpacity, {
-            toValue: 1,
-            duration: MOTION.normal,
-            useNativeDriver: true,
-          }),
-        ]);
+    containerOpacity.setValue(1);
+
+    let enterAnim: Animated.CompositeAnimation | null = null;
+    if (reducedMotion) {
+      logoScale.setValue(1);
+      logoOpacity.setValue(1);
+    } else {
+      enterAnim = Animated.parallel([
+        Animated.spring(logoScale, {
+          toValue: 1,
+          ...MOTION.spring,
+          useNativeDriver: true,
+        }),
+        Animated.timing(logoOpacity, {
+          toValue: 1,
+          duration: MOTION.slow,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]);
+      enterAnim.start();
+    }
 
     const progressAnim = Animated.timing(loadingProgress, {
       toValue: 1,
-      duration: reducedMotion ? 200 : 1050,
+      duration: reducedMotion ? 900 : 1800,
       easing: Easing.bezier(0.25, 0.1, 0.25, 1),
       useNativeDriver: true,
     });
-
-    enterAnim?.start();
     progressAnim.start();
 
+    let exitAnim: Animated.CompositeAnimation | null = null;
     const timer = setTimeout(() => {
-      Animated.timing(containerOpacity, {
+      exitAnim = Animated.timing(containerOpacity, {
         toValue: 0,
-        duration: reducedMotion ? 120 : MOTION.normal,
+        duration: reducedMotion ? 150 : 350,
         easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
-      }).start(({ finished }) => {
+      });
+      exitAnim.start(({ finished }) => {
         if (finished) {
           onFinish();
         }
       });
-    }, reducedMotion ? 350 : 1200);
+    }, reducedMotion ? 1500 : 2100);
 
     return () => {
       clearTimeout(timer);
       enterAnim?.stop();
       progressAnim.stop();
+      exitAnim?.stop();
     };
   }, [containerOpacity, logoScale, logoOpacity, loadingProgress, onFinish, reducedMotion]);
 

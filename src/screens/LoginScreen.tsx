@@ -65,7 +65,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             <View style={styles.logoBadge}>
               <Image
                 source={require('../../assets/ugm-logo.png')}
-                style={{ width: 52, height: 52 }}
+                style={{ width: 66, height: 66 }}
                 resizeMode="contain"
                 accessibilityLabel="Lambang UGM"
               />

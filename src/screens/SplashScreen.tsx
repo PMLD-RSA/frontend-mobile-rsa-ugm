@@ -94,7 +94,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
           <View style={styles.logoCircle}>
             <Image
               source={require('../../assets/ugm-logo.png')}
-              style={{ width: 72, height: 72 }}
+              style={{ width: 86, height: 86 }}
               resizeMode="contain"
               accessibilityLabel="Lambang UGM"
             />

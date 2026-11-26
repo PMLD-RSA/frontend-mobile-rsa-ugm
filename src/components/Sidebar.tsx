@@ -168,7 +168,7 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
           <View style={styles.logoCircle}>
             <Image
               source={ugmLogo}
-              style={{ width: 32, height: 32 }}
+              style={{ width: 38, height: 38 }}
               resizeMode="contain"
               accessibilityLabel="Lambang UGM"
             />

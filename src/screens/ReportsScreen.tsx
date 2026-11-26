@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
+  Animated,
+  Easing,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -10,13 +11,15 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import { AnimatedPressable } from '../components/AnimatedPressable';
 import { Badge, Card } from '../components/Card';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { SkeletonList } from '../components/Skeleton';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useReportStore } from '../stores/reportStore';
 import { useTankStore } from '../stores/tankStore';
-import { COLORS, RADIUS } from '../theme/tokens';
+import { COLORS, MOTION, RADIUS } from '../theme/tokens';
 import { ReadingRange } from '../types';
 import { calculateReadingSummary, getValidReadings, normalizeReadingValues } from '../utils/reportMetrics';
 
@@ -31,10 +34,12 @@ const rangeOptions: Array<{ value: ReadingRange; label: string }> = [
 
 export const ReportsScreen: React.FC<ReportsScreenProps> = ({ onNavigate }) => {
   const insets = useSafeAreaInsets();
+  const reducedMotion = useReducedMotion();
   const tanks = useTankStore((state) => state.tanks);
   const { selectedTankId, range, readings, isLoading, error, selectTank, setRange, fetchReadings } =
     useReportStore();
   const [refreshing, setRefreshing] = useState(false);
+  const chartAnim = useRef(new Animated.Value(reducedMotion ? 1 : 0)).current;
 
   useEffect(() => {
     if (tanks.length > 0 && !selectedTankId) selectTank(tanks[0].id);
@@ -48,6 +53,28 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({ onNavigate }) => {
   const values = useMemo(() => normalizeReadingValues(readings), [readings]);
   const summary = useMemo(() => calculateReadingSummary(readings), [readings]);
   const selectedTank = tanks.find((tank) => tank.id === selectedTankId);
+
+  useEffect(() => {
+    if (validReadings.length === 0) return;
+    if (reducedMotion) {
+      chartAnim.setValue(1);
+      return;
+    }
+    chartAnim.setValue(0);
+    const anim = Animated.timing(chartAnim, {
+      toValue: 1,
+      duration: MOTION.slow,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    });
+    anim.start();
+    return () => anim.stop();
+  }, [validReadings.length, range, selectedTankId, chartAnim, reducedMotion]);
+
+  const chartTranslateY = chartAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [12, 0],
+  });
 
   const refresh = async () => {
     setRefreshing(true);
@@ -86,14 +113,15 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({ onNavigate }) => {
 
       <View style={styles.rangeRow}>
         {rangeOptions.map((option) => (
-          <TouchableOpacity
+          <AnimatedPressable
             key={option.value}
             style={[styles.rangeButton, range === option.value && styles.rangeButtonActive]}
             onPress={() => setRange(option.value)}
+            accessibilityRole="button"
             accessibilityState={{ selected: range === option.value }}
           >
             <Text style={[styles.rangeText, range === option.value && styles.rangeTextActive]}>{option.label}</Text>
-          </TouchableOpacity>
+          </AnimatedPressable>
         ))}
       </View>
 
@@ -118,21 +146,28 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({ onNavigate }) => {
             <Metric label="Maksimum" value={summary.maximum} />
             <Metric label="Rata-rata" value={summary.average} />
           </View>
-          <Card>
-            <Text style={styles.cardTitle}>Tren Level Air</Text>
-            <View style={styles.chart} accessibilityLabel="Sparkline tren level air">
-              {values.map((value, index) => (
-                <View key={`${validReadings[index].id}-${index}`} style={styles.chartColumn}>
-                  <View style={[styles.chartBar, { height: `${Math.max(value, 4)}%` }]} />
-                </View>
-              ))}
-            </View>
-            <View style={styles.chartLegend}>
-              <Text style={styles.legendText}>Rendah</Text>
-              <Text style={styles.legendText}>Tinggi</Text>
-            </View>
-            <Text style={styles.readingCount}>{validReadings.length} pembacaan valid</Text>
-          </Card>
+          <Animated.View
+            style={{
+              opacity: chartAnim,
+              transform: [{ translateY: chartTranslateY }],
+            }}
+          >
+            <Card>
+              <Text style={styles.cardTitle}>Tren Level Air</Text>
+              <View style={styles.chart} accessibilityLabel="Sparkline tren level air">
+                {values.map((value, index) => (
+                  <View key={`${validReadings[index].id}-${index}`} style={styles.chartColumn}>
+                    <View style={[styles.chartBar, { height: `${Math.max(value, 4)}%` }]} />
+                  </View>
+                ))}
+              </View>
+              <View style={styles.chartLegend}>
+                <Text style={styles.legendText}>Rendah</Text>
+                <Text style={styles.legendText}>Tinggi</Text>
+              </View>
+              <Text style={styles.readingCount}>{validReadings.length} pembacaan valid</Text>
+            </Card>
+          </Animated.View>
         </>
       )}
 

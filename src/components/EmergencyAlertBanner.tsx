@@ -1,14 +1,16 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, Vibration, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Easing, StyleSheet, Text, TouchableOpacity, Vibration, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useAlertStore } from '../stores/alertStore';
 import { useAuthStore } from '../stores/authStore';
 import { useTankStore } from '../stores/tankStore';
 import { connectAlertSocket } from '../services/alertSocket';
-import { COLORS } from '../theme/tokens';
+import { COLORS, MOTION } from '../theme/tokens';
 import { Alert } from '../types';
 
 export const EmergencyAlertBanner: React.FC = () => {
+  const reducedMotion = useReducedMotion();
   const token = useAuthStore((state) => state.token);
   const alerts = useAlertStore((state) => state.alerts);
   const addAlert = useAlertStore((state) => state.addAlert);
@@ -16,6 +18,7 @@ export const EmergencyAlertBanner: React.FC = () => {
   const updateLevel = useTankStore((state) => state.updateLevel);
   const updateNodeStatus = useTankStore((state) => state.updateNodeStatus);
   const [dismissedAlertId, setDismissedAlertId] = useState<number | null>(null);
+  const enterAnim = useRef(new Animated.Value(reducedMotion ? 1 : 0)).current;
 
   useEffect(() => {
     return connectAlertSocket({
@@ -50,10 +53,40 @@ export const EmergencyAlertBanner: React.FC = () => {
     [alerts, dismissedAlertId]
   );
 
+  useEffect(() => {
+    if (!criticalAlert) return;
+    if (reducedMotion) {
+      enterAnim.setValue(1);
+      return;
+    }
+    enterAnim.setValue(0);
+    const anim = Animated.timing(enterAnim, {
+      toValue: 1,
+      duration: MOTION.normal,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    });
+    anim.start();
+    return () => anim.stop();
+  }, [criticalAlert?.id, enterAnim, reducedMotion]);
+
   if (!criticalAlert) return null;
 
+  const translateY = enterAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-14, 0],
+  });
+
   return (
-    <View style={styles.banner}>
+    <Animated.View
+      style={[
+        styles.banner,
+        {
+          opacity: enterAnim,
+          transform: [{ translateY }],
+        },
+      ]}
+    >
       <View style={styles.content}>
         <View style={styles.titleRow}>
           <Feather name="alert-triangle" size={14} color={COLORS.textOnPrimary} />
@@ -70,7 +103,7 @@ export const EmergencyAlertBanner: React.FC = () => {
       >
         <Text style={styles.dismissText}>Tutup</Text>
       </TouchableOpacity>
-    </View>
+    </Animated.View>
   );
 };
 

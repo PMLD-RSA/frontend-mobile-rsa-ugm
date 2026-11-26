@@ -1,9 +1,10 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Card, Badge } from './Card';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { Tank } from '../types';
-import { COLORS, RADIUS } from '../theme/tokens';
+import { COLORS, MOTION, RADIUS } from '../theme/tokens';
 import { getTankStatusCategory, formatKiloLiters } from '../utils/tankMetrics';
 
 interface TankCardProps {
@@ -11,11 +12,38 @@ interface TankCardProps {
 }
 
 export const TankCard: React.FC<TankCardProps> = ({ tank }) => {
+  const reducedMotion = useReducedMotion();
   const level = Number(tank.latestReading?.levelPercent || 0);
+  const clampedFraction = Math.min(Math.max(level, 0), 100) / 100;
   const volume = Number(tank.latestReading?.volumeLiters || 0);
   const capacity = Number(tank.capacityLiters || 0);
   const minThreshold = Number(tank.minThresholdPercent || 30);
   const maxThreshold = Number(tank.maxThresholdPercent || 90);
+
+  const [trackWidth, setTrackWidth] = useState(0);
+  const animatedLevel = useRef(new Animated.Value(clampedFraction)).current;
+
+  useEffect(() => {
+    if (reducedMotion) {
+      animatedLevel.setValue(clampedFraction);
+      return;
+    }
+    const anim = Animated.timing(animatedLevel, {
+      toValue: clampedFraction,
+      duration: MOTION.slow,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    });
+    anim.start();
+    return () => anim.stop();
+  }, [clampedFraction, animatedLevel, reducedMotion]);
+
+  const handleTrackLayout = (event: LayoutChangeEvent) => {
+    const nextWidth = event.nativeEvent.layout.width;
+    if (nextWidth > 0 && nextWidth !== trackWidth) {
+      setTrackWidth(nextWidth);
+    }
+  };
 
   const { variant, statusText, barColor } = getTankStatusCategory(
     level,
@@ -25,6 +53,15 @@ export const TankCard: React.FC<TankCardProps> = ({ tank }) => {
   const primaryNode = tank.nodes?.[0];
   const nodeLabel = primaryNode?.deviceCode || 'STM32';
   const rssiValue = primaryNode?.lastRssi != null ? `${primaryNode.lastRssi} dBm` : null;
+
+  const barScaleX = animatedLevel.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.001, 1],
+  });
+  const barTranslateX = animatedLevel.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-trackWidth / 2, 0],
+  });
 
   return (
     <Card>
@@ -88,13 +125,17 @@ export const TankCard: React.FC<TankCardProps> = ({ tank }) => {
           </View>
         </View>
 
-        <View style={styles.progressBarTrack}>
-          <View
+        <View style={styles.progressBarTrack} onLayout={handleTrackLayout}>
+          <Animated.View
             style={[
               styles.progressBarFill,
               {
-                width: `${Math.min(Math.max(level, 0), 100)}%`,
+                width: trackWidth > 0 ? trackWidth : `${clampedFraction * 100}%`,
                 backgroundColor: barColor,
+                transform:
+                  trackWidth > 0
+                    ? [{ translateX: barTranslateX }, { scaleX: barScaleX }]
+                    : undefined,
               },
             ]}
           />

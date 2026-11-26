@@ -39,10 +39,14 @@ export const HomeScreen: React.FC = () => {
     setRefreshing(false);
   }, [fetchTanks]);
 
-  const { totalCapacity, totalWater, activeAlertsCount } = useMemo(
-    () => calculateMetricsOverview(tanks),
-    [tanks]
-  );
+  const {
+    totalCapacity,
+    totalWater,
+    activeAlertsCount,
+    criticalAlertsCount,
+    tanksOnlineCount,
+    averageLevelPercent,
+  } = useMemo(() => calculateMetricsOverview(tanks), [tanks]);
 
   const sortedTanks = useMemo(() => sortTanksBySeverity(tanks), [tanks]);
 
@@ -89,6 +93,9 @@ export const HomeScreen: React.FC = () => {
         totalCapacity={totalCapacity}
         totalWater={totalWater}
         activeAlertsCount={activeAlertsCount}
+        criticalAlertsCount={criticalAlertsCount}
+        tanksOnlineCount={tanksOnlineCount}
+        averageLevelPercent={averageLevelPercent}
       />
 
       {/* State Loading Skeleton */}

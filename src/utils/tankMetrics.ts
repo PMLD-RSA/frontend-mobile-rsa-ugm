@@ -10,6 +10,9 @@ export interface MetricsOverviewResult {
   totalCapacity: number;
   totalWater: number;
   activeAlertsCount: number;
+  criticalAlertsCount: number;
+  tanksOnlineCount: number;
+  averageLevelPercent: number;
   percentageFilled: string;
 }
 
@@ -80,7 +83,7 @@ export function sortTanksBySeverity(tanks: Tank[]): Tank[] {
 }
 
 /**
- * Menghitung ringkasan metrik dashboard seluruh tangki
+ * Menghitung ringkasan metrik dashboard seluruh tangki (4 Grid KPI)
  */
 export function calculateMetricsOverview(tanks: Tank[]): MetricsOverviewResult {
   if (!Array.isArray(tanks) || tanks.length === 0) {
@@ -88,6 +91,9 @@ export function calculateMetricsOverview(tanks: Tank[]): MetricsOverviewResult {
       totalCapacity: 0,
       totalWater: 0,
       activeAlertsCount: 0,
+      criticalAlertsCount: 0,
+      tanksOnlineCount: 0,
+      averageLevelPercent: 0,
       percentageFilled: '0',
     };
   }
@@ -101,6 +107,25 @@ export function calculateMetricsOverview(tanks: Tank[]): MetricsOverviewResult {
     0
   );
   const activeAlertsCount = tanks.filter((t) => t.activeAlert != null).length;
+  const criticalAlertsCount = tanks.filter(
+    (t) =>
+      t.activeAlert?.level === 'CRITICAL' ||
+      Number(t.latestReading?.levelPercent || 0) < Number(t.minThresholdPercent || 30)
+  ).length;
+
+  // Hitung tangki online berdasarkan status sensor node aktif (tanpa fallback `|| true`)
+  const tanksOnlineCount = tanks.filter((t) =>
+    t.nodes && t.nodes.length > 0
+      ? t.nodes.some((n) => n.status === 'active')
+      : t.latestReading != null
+  ).length;
+
+  const totalLevel = tanks.reduce(
+    (acc, t) => acc + (Number(t.latestReading?.levelPercent) || 0),
+    0
+  );
+  const averageLevelPercent = tanks.length > 0 ? Math.round(totalLevel / tanks.length) : 0;
+
   const percentageFilled =
     totalCapacity > 0 ? ((totalWater / totalCapacity) * 100).toFixed(0) : '0';
 
@@ -108,6 +133,9 @@ export function calculateMetricsOverview(tanks: Tank[]): MetricsOverviewResult {
     totalCapacity,
     totalWater,
     activeAlertsCount,
+    criticalAlertsCount,
+    tanksOnlineCount,
+    averageLevelPercent,
     percentageFilled,
   };
 }

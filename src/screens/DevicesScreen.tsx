@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
+  FlatList,
+  Platform,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -56,14 +56,17 @@ export const DevicesScreen: React.FC<DevicesScreenProps> = ({ onNavigate }) => {
   const isGwOnline = isGatewayOnline(primaryGateway);
 
   // Mapping nama tangki jika node belum membawa tankName
-  const getTankNameForNode = (node: SensorNode): string => {
-    if (node.tankName) return node.tankName;
-    if (node.tankId) {
-      const matched = tanks.find((t) => t.id === node.tankId);
-      if (matched) return matched.name;
-    }
-    return 'Tangki Belum Ditentukan';
-  };
+  const getTankNameForNode = useCallback(
+    (node: SensorNode): string => {
+      if (node.tankName) return node.tankName;
+      if (node.tankId) {
+        const matched = tanks.find((t) => t.id === node.tankId);
+        if (matched) return matched.name;
+      }
+      return 'Tangki Belum Ditentukan';
+    },
+    [tanks]
+  );
 
   // Filter nodes berdasarkan status dan sinyal
   const filteredNodes = useMemo(() => {
@@ -99,263 +102,278 @@ export const DevicesScreen: React.FC<DevicesScreenProps> = ({ onNavigate }) => {
     return { total: nodes.length, active: activeCount, weak: weakCount, offline: offlineCount };
   }, [nodes]);
 
-  return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 24) }]}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} tintColor={COLORS.primary} />
-      }
-    >
-      {/* 1. Header Judul & Badge Ringkas */}
-      <View style={styles.summaryRow}>
-        <View style={styles.summaryText}>
-          <Text style={styles.title}>Perangkat & Jaringan</Text>
-          <Text style={styles.subtitle}>
-            Monitoring modul LoRa STM32 & Raspberry Pi Hub.
-          </Text>
-        </View>
-        <Badge
-          text={isGwOnline ? 'Hub Online' : 'Hub Offline'}
-          variant={isGwOnline ? 'success' : 'critical'}
-        />
-      </View>
+  const renderNodeItem = useCallback(
+    ({ item: node }: { item: SensorNode }) => {
+      const isOffline = node.status !== 'active';
+      const signal = getSignalQuality(node.lastRssi, isOffline);
+      const tankName = getTankNameForNode(node);
 
-      {/* 2. Kartu Gateway Hub (Raspberry Pi Gateway) */}
-      <Card style={styles.gatewayCard}>
-        <View style={styles.cardHeader}>
-          <View style={styles.gatewayIconContainer}>
-            <Feather name="radio" size={22} color={COLORS.primary} />
-          </View>
-          <View style={styles.gatewayTitleCol}>
-            <Text style={styles.gatewayDeviceCode}>
-              {primaryGateway?.deviceCode || 'GW-HUB-01'}
-            </Text>
-            <Text style={styles.gatewaySubtitle}>
-              Raspberry Pi Gateway Hub • Sentral LoRa
-            </Text>
-          </View>
-          <Badge
-            text={primaryGateway?.status?.toUpperCase() || (isGwOnline ? 'ONLINE' : 'OFFLINE')}
-            variant={isGwOnline ? 'success' : 'critical'}
-          />
-        </View>
-
-        <View style={styles.gatewayDivider} />
-
-        <View style={styles.gatewayMetaRow}>
-          <View style={styles.metaItem}>
-            <Text style={styles.metaLabel}>Detak Terakhir (Heartbeat)</Text>
-            <Text style={styles.metaValue}>
-              {formatDeviceTime(primaryGateway?.lastHeartbeat)}
-            </Text>
-          </View>
-          <View style={styles.metaItemRight}>
-            <Text style={styles.metaLabel}>Node Terkoneksi</Text>
-            <Text style={styles.metaValue}>{nodes.length} Sensor Node</Text>
-          </View>
-        </View>
-      </Card>
-
-      {/* 3. Grid Ringkasan Status Sinyal & Node */}
-      <View style={styles.metricsGrid}>
-        <View style={styles.metricBox}>
-          <Text style={styles.metricNumber}>{metrics.total}</Text>
-          <Text style={styles.metricLabel}>Total Sensor</Text>
-        </View>
-        <View style={[styles.metricBox, styles.metricBoxGreen]}>
-          <Text style={[styles.metricNumber, { color: '#065f46' }]}>
-            {metrics.active}
-          </Text>
-          <Text style={styles.metricLabel}>Aktif</Text>
-        </View>
-        <View style={[styles.metricBox, styles.metricBoxAmber]}>
-          <Text style={[styles.metricNumber, { color: '#92400e' }]}>
-            {metrics.weak}
-          </Text>
-          <Text style={styles.metricLabel}>Perlu Cek</Text>
-        </View>
-        <View style={[styles.metricBox, styles.metricBoxRed]}>
-          <Text style={[styles.metricNumber, { color: '#991b1b' }]}>
-            {metrics.offline}
-          </Text>
-          <Text style={styles.metricLabel}>Terputus</Text>
-        </View>
-      </View>
-
-      {/* 4. Filter Tab Bar */}
-      <View style={styles.filterRow}>
-        {(
-          [
-            { key: 'ALL', label: 'Semua' },
-            { key: 'ACTIVE', label: 'Aktif' },
-            { key: 'WEAK', label: 'Sinyal Lemah' },
-            { key: 'OFFLINE', label: 'Terputus' },
-          ] as { key: DeviceFilter; label: string }[]
-        ).map((item) => (
-          <TouchableOpacity
-            key={item.key}
-            style={[styles.filterButton, filter === item.key && styles.filterButtonActive]}
-            onPress={() => setFilter(item.key)}
-            accessibilityRole="button"
-            accessibilityState={{ selected: filter === item.key }}
-          >
-            <Text
-              style={[
-                styles.filterText,
-                filter === item.key && styles.filterTextActive,
-              ]}
-            >
-              {item.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* 5. Error State */}
-      {error && (
-        <ErrorBanner
-          message={error}
-          onRetry={() => {
-            clearError();
-            fetchDevices();
-          }}
-        />
-      )}
-
-      {/* 6. Loading Skeleton */}
-      {isLoading && !refreshing && <SkeletonList variant="list" count={3} />}
-
-      {/* 7. Empty State */}
-      {!isLoading && filteredNodes.length === 0 && (
-        <EmptyState
-          icon="wifi-off"
-          title="Tidak ada perangkat ditemukan"
-          description="Tidak ada modul sensor node yang cocok dengan filter yang dipilih."
-        />
-      )}
-
-      {/* 8. Daftar Kartu Sensor Node LoRa STM32 */}
-      {filteredNodes.map((node) => {
-        const isOffline = node.status !== 'active';
-        const signal = getSignalQuality(node.lastRssi, isOffline);
-        const tankName = getTankNameForNode(node);
-
-        return (
-          <Card key={node.id} style={styles.nodeCard}>
-            <View style={styles.nodeHeader}>
-              <View style={styles.nodeTitleCol}>
-                <View style={styles.nodeCodeBadgeRow}>
-                  <Text style={styles.nodeCode}>{node.deviceCode}</Text>
-                  <View style={styles.sensorTypePill}>
-                    <Text style={styles.sensorTypeText}>
-                      {node.sensorType?.toUpperCase() || 'ULTRASONIC'}
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.nodeTankRow}>
-                  <Feather name="map-pin" size={12} color={COLORS.textMuted} />
-                  <Text style={styles.nodeTankName}>{tankName}</Text>
-                </View>
-              </View>
-
-              <Badge
-                text={node.status === 'active' ? 'AKTIF' : node.status?.toUpperCase() || 'OFFLINE'}
-                variant={node.status === 'active' ? 'success' : 'critical'}
-              />
-            </View>
-
-            {/* Sinyal LoRa Box */}
-            <View style={styles.signalContainer}>
-              <View style={styles.signalLeft}>
-                <Text style={styles.signalHeading}>Sinyal Radio LoRa</Text>
-                <View style={styles.signalDetailsRow}>
-                  {/* Visual Bar Sinyal */}
-                  <View style={styles.signalBars}>
-                    {[1, 2, 3, 4].map((barIdx) => {
-                      const isBarActive = barIdx <= signal.bars;
-                      return (
-                        <View
-                          key={barIdx}
-                          style={[
-                            styles.signalBar,
-                            { height: 6 + barIdx * 4 },
-                            isBarActive
-                              ? { backgroundColor: signal.color }
-                              : styles.signalBarInactive,
-                          ]}
-                        />
-                      );
-                    })}
-                  </View>
-
-                  <Text style={styles.rssiValue}>
-                    {node.lastRssi != null ? `${node.lastRssi} dBm` : 'N/A'}
+      return (
+        <Card style={styles.nodeCard}>
+          <View style={styles.nodeHeader}>
+            <View style={styles.nodeTitleCol}>
+              <View style={styles.nodeCodeBadgeRow}>
+                <Text style={styles.nodeCode}>{node.deviceCode}</Text>
+                <View style={styles.sensorTypePill}>
+                  <Text style={styles.sensorTypeText}>
+                    {node.sensorType?.toUpperCase() || 'ULTRASONIC'}
                   </Text>
                 </View>
               </View>
+              <View style={styles.nodeTankRow}>
+                <Feather name="map-pin" size={12} color={COLORS.textMuted} />
+                <Text style={styles.nodeTankName}>{tankName}</Text>
+              </View>
+            </View>
 
+            <Badge
+              text={node.status === 'active' ? 'AKTIF' : node.status?.toUpperCase() || 'OFFLINE'}
+              variant={node.status === 'active' ? 'success' : 'critical'}
+            />
+          </View>
+
+          {/* Sinyal LoRa Box */}
+          <View style={styles.signalContainer}>
+            <View style={styles.signalLeft}>
+              <Text style={styles.signalHeading}>Sinyal Radio LoRa</Text>
+              <View style={styles.signalDetailsRow}>
+                <View style={styles.signalBars}>
+                  {[1, 2, 3, 4].map((barIdx) => {
+                    const isBarActive = barIdx <= signal.bars;
+                    return (
+                      <View
+                        key={barIdx}
+                        style={[
+                          styles.signalBar,
+                          { height: 6 + barIdx * 4 },
+                          isBarActive
+                            ? { backgroundColor: signal.color }
+                            : styles.signalBarInactive,
+                        ]}
+                      />
+                    );
+                  })}
+                </View>
+
+                <Text style={styles.rssiValue}>
+                  {node.lastRssi != null ? `${node.lastRssi} dBm` : 'N/A'}
+                </Text>
+              </View>
+            </View>
+
+            <Badge
+              text={signal.label}
+              variant={signal.badgeVariant}
+              showDot={false}
+            />
+          </View>
+
+          {/* Footer Transmisi Terakhir */}
+          <View style={styles.nodeFooter}>
+            <Text style={styles.footerLabel}>
+              Terakhir Dilihat:{' '}
+              <Text style={styles.footerValue}>
+                {formatDeviceTime(node.lastSeen)}
+              </Text>
+            </Text>
+            <Text style={styles.gatewayTag}>
+              Hub: {node.gatewayCode || primaryGateway?.deviceCode || 'GW-HUB-01'}
+            </Text>
+          </View>
+        </Card>
+      );
+    },
+    [getTankNameForNode, primaryGateway?.deviceCode]
+  );
+
+  return (
+    <FlatList
+      style={styles.container}
+      contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 24) }]}
+      data={isLoading && !refreshing ? [] : filteredNodes}
+      keyExtractor={(item) => String(item.id)}
+      renderItem={renderNodeItem}
+      initialNumToRender={8}
+      maxToRenderPerBatch={8}
+      windowSize={5}
+      removeClippedSubviews={Platform.OS === 'android'}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} tintColor={COLORS.primary} />
+      }
+      ListHeaderComponent={
+        <>
+          {/* 1. Header Judul & Badge Ringkas */}
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryText}>
+              <Text style={styles.title}>Perangkat & Jaringan</Text>
+              <Text style={styles.subtitle}>
+                Monitoring modul LoRa STM32 & Raspberry Pi Hub.
+              </Text>
+            </View>
+            <Badge
+              text={isGwOnline ? 'Hub Online' : 'Hub Offline'}
+              variant={isGwOnline ? 'success' : 'critical'}
+            />
+          </View>
+
+          {/* 2. Kartu Gateway Hub (Raspberry Pi Gateway) */}
+          <Card style={styles.gatewayCard}>
+            <View style={styles.cardHeader}>
+              <View style={styles.gatewayIconContainer}>
+                <Feather name="radio" size={22} color={COLORS.primary} />
+              </View>
+              <View style={styles.gatewayTitleCol}>
+                <Text style={styles.gatewayDeviceCode}>
+                  {primaryGateway?.deviceCode || 'GW-HUB-01'}
+                </Text>
+                <Text style={styles.gatewaySubtitle}>
+                  Raspberry Pi Gateway Hub • Sentral LoRa
+                </Text>
+              </View>
               <Badge
-                text={signal.label}
-                variant={signal.badgeVariant}
-                showDot={false}
+                text={primaryGateway?.status?.toUpperCase() || (isGwOnline ? 'ONLINE' : 'OFFLINE')}
+                variant={isGwOnline ? 'success' : 'critical'}
               />
             </View>
 
-            {/* Footer Transmisi Terakhir */}
-            <View style={styles.nodeFooter}>
-              <Text style={styles.footerLabel}>
-                Terakhir Dilihat:{' '}
-                <Text style={styles.footerValue}>
-                  {formatDeviceTime(node.lastSeen)}
+            <View style={styles.gatewayDivider} />
+
+            <View style={styles.gatewayMetaRow}>
+              <View style={styles.metaItem}>
+                <Text style={styles.metaLabel}>Detak Terakhir (Heartbeat)</Text>
+                <Text style={styles.metaValue}>
+                  {formatDeviceTime(primaryGateway?.lastHeartbeat)}
                 </Text>
-              </Text>
-              <Text style={styles.gatewayTag}>
-                Hub: {node.gatewayCode || primaryGateway?.deviceCode || 'GW-HUB-01'}
-              </Text>
+              </View>
+              <View style={styles.metaItemRight}>
+                <Text style={styles.metaLabel}>Node Terkoneksi</Text>
+                <Text style={styles.metaValue}>{nodes.length} Sensor Node</Text>
+              </View>
             </View>
           </Card>
-        );
-      })}
 
-      {/* 9. Kartu Info Endpoint Jaringan */}
-      <Card style={styles.networkInfoCard}>
-        <Text style={styles.networkInfoTitle}>Informasi Jaringan & Endpoint</Text>
-        <View style={styles.networkRow}>
-          <Text style={styles.networkLabel}>Web BFF API:</Text>
-          <Text style={styles.networkValue} numberOfLines={1}>
-            {ENV.BFF_URL}
-          </Text>
-        </View>
-        <View style={styles.networkRow}>
-          <Text style={styles.networkLabel}>WebSocket Realtime:</Text>
-          <Text style={styles.networkValue} numberOfLines={1}>
-            {ENV.WS_URL}
-          </Text>
-        </View>
-        {lastUpdated && (
-          <View style={styles.networkRow}>
-            <Text style={styles.networkLabel}>Pembaruan Terakhir:</Text>
-            <Text style={styles.networkValue}>
-              {new Date(lastUpdated).toLocaleTimeString('id-ID', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-              })}
-            </Text>
+          {/* 3. Grid Ringkasan Status Sinyal & Node */}
+          <View style={styles.metricsGrid}>
+            <View style={styles.metricBox}>
+              <Text style={styles.metricNumber}>{metrics.total}</Text>
+              <Text style={styles.metricLabel}>Total Sensor</Text>
+            </View>
+            <View style={[styles.metricBox, styles.metricBoxGreen]}>
+              <Text style={[styles.metricNumber, { color: '#065f46' }]}>
+                {metrics.active}
+              </Text>
+              <Text style={styles.metricLabel}>Aktif</Text>
+            </View>
+            <View style={[styles.metricBox, styles.metricBoxAmber]}>
+              <Text style={[styles.metricNumber, { color: '#92400e' }]}>
+                {metrics.weak}
+              </Text>
+              <Text style={styles.metricLabel}>Perlu Cek</Text>
+            </View>
+            <View style={[styles.metricBox, styles.metricBoxRed]}>
+              <Text style={[styles.metricNumber, { color: '#991b1b' }]}>
+                {metrics.offline}
+              </Text>
+              <Text style={styles.metricLabel}>Terputus</Text>
+            </View>
           </View>
-        )}
-      </Card>
 
-      {/* 10. Tombol Kembali */}
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => onNavigate('dashboard')}
-      >
-        <Feather name="arrow-left" size={15} color={COLORS.textSecondary} />
-        <Text style={styles.backText}>Kembali ke Dashboard</Text>
-      </TouchableOpacity>
-    </ScrollView>
+          {/* 4. Filter Tab Bar */}
+          <View style={styles.filterRow}>
+            {(
+              [
+                { key: 'ALL', label: 'Semua' },
+                { key: 'ACTIVE', label: 'Aktif' },
+                { key: 'WEAK', label: 'Sinyal Lemah' },
+                { key: 'OFFLINE', label: 'Terputus' },
+              ] as { key: DeviceFilter; label: string }[]
+            ).map((item) => (
+              <TouchableOpacity
+                key={item.key}
+                style={[styles.filterButton, filter === item.key && styles.filterButtonActive]}
+                onPress={() => setFilter(item.key)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: filter === item.key }}
+              >
+                <Text
+                  style={[
+                    styles.filterText,
+                    filter === item.key && styles.filterTextActive,
+                  ]}
+                >
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* 5. Error State */}
+          {error && (
+            <ErrorBanner
+              message={error}
+              onRetry={() => {
+                clearError();
+                fetchDevices();
+              }}
+            />
+          )}
+
+          {/* 6. Loading Skeleton */}
+          {isLoading && !refreshing && <SkeletonList variant="list" count={3} />}
+        </>
+      }
+      ListEmptyComponent={
+        !isLoading ? (
+          <EmptyState
+            icon="wifi-off"
+            title="Tidak ada perangkat ditemukan"
+            description="Tidak ada modul sensor node yang cocok dengan filter yang dipilih."
+          />
+        ) : undefined
+      }
+      ListFooterComponent={
+        <>
+          {/* 9. Kartu Info Endpoint Jaringan */}
+          <Card style={styles.networkInfoCard}>
+            <Text style={styles.networkInfoTitle}>Informasi Jaringan & Endpoint</Text>
+            <View style={styles.networkRow}>
+              <Text style={styles.networkLabel}>Web BFF API:</Text>
+              <Text style={styles.networkValue} numberOfLines={1}>
+                {ENV.BFF_URL}
+              </Text>
+            </View>
+            <View style={styles.networkRow}>
+              <Text style={styles.networkLabel}>WebSocket Realtime:</Text>
+              <Text style={styles.networkValue} numberOfLines={1}>
+                {ENV.WS_URL}
+              </Text>
+            </View>
+            {lastUpdated && (
+              <View style={styles.networkRow}>
+                <Text style={styles.networkLabel}>Pembaruan Terakhir:</Text>
+                <Text style={styles.networkValue}>
+                  {new Date(lastUpdated).toLocaleTimeString('id-ID', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                  })}
+                </Text>
+              </View>
+            )}
+          </Card>
+
+          {/* 10. Tombol Kembali */}
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => onNavigate('dashboard')}
+          >
+            <Feather name="arrow-left" size={15} color={COLORS.textSecondary} />
+            <Text style={styles.backText}>Kembali ke Dashboard</Text>
+          </TouchableOpacity>
+        </>
+      }
+    />
   );
 };
 

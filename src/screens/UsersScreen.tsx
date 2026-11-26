@@ -2,9 +2,10 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert as NativeAlert,
+  FlatList,
   Modal,
+  Platform,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -98,34 +99,37 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ onNavigate }) => {
   };
 
   // Konfirmasi toggle switch status
-  const handleToggleStatus = (targetUser: User) => {
-    const nextStatus = !targetUser.isActive;
+  const handleToggleStatus = useCallback(
+    (targetUser: User) => {
+      const nextStatus = !targetUser.isActive;
 
-    if (targetUser.id === currentUser?.id && !nextStatus) {
-      NativeAlert.alert(
-        'Tindakan Ditolak',
-        'Anda tidak dapat menonaktifkan akun Anda sendiri yang sedang aktif digunakan.'
-      );
-      return;
-    }
+      if (targetUser.id === currentUser?.id && !nextStatus) {
+        NativeAlert.alert(
+          'Tindakan Ditolak',
+          'Anda tidak dapat menonaktifkan akun Anda sendiri yang sedang aktif digunakan.'
+        );
+        return;
+      }
 
-    if (!nextStatus) {
-      NativeAlert.alert(
-        'Konfirmasi Penonaktifan Akun',
-        `Apakah Anda yakin ingin menonaktifkan akun "${targetUser.username}"? Pengguna tidak akan dapat masuk ke sistem.`,
-        [
-          { text: 'Batal', style: 'cancel' },
-          {
-            text: 'Nonaktifkan',
-            style: 'destructive',
-            onPress: () => toggleUserStatus(targetUser.id, false, currentUser?.id),
-          },
-        ]
-      );
-    } else {
-      toggleUserStatus(targetUser.id, true, currentUser?.id);
-    }
-  };
+      if (!nextStatus) {
+        NativeAlert.alert(
+          'Konfirmasi Penonaktifan Akun',
+          `Apakah Anda yakin ingin menonaktifkan akun "${targetUser.username}"? Pengguna tidak akan dapat masuk ke sistem.`,
+          [
+            { text: 'Batal', style: 'cancel' },
+            {
+              text: 'Nonaktifkan',
+              style: 'destructive',
+              onPress: () => toggleUserStatus(targetUser.id, false, currentUser?.id),
+            },
+          ]
+        );
+      } else {
+        toggleUserStatus(targetUser.id, true, currentUser?.id);
+      }
+    },
+    [currentUser?.id, toggleUserStatus]
+  );
 
   // Ringkasan metrik
   const metrics = useMemo(() => {
@@ -152,6 +156,91 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ onNavigate }) => {
     });
   }, [users, filter]);
 
+  const renderUserItem = useCallback(
+    ({ item }: { item: User }) => {
+      const roleConfig = ROLE_CONFIGS[item.role] || ROLE_CONFIGS.operator;
+      const isSelf = item.id === currentUser?.id;
+      const isUpdating = updatingUserId === item.id;
+
+      return (
+        <Card style={styles.userCard}>
+          <View style={styles.userHeader}>
+            <View
+              style={[
+                styles.avatar,
+                { backgroundColor: roleConfig.avatarBg },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.avatarText,
+                  { color: roleConfig.avatarColor },
+                ]}
+              >
+                {(item.username || '?').slice(0, 1).toUpperCase()}
+              </Text>
+            </View>
+
+            <View style={styles.userInfo}>
+              <View style={styles.userNameRow}>
+                <Text style={styles.usernameText}>{item.username}</Text>
+                {isSelf && (
+                  <View style={styles.selfPill}>
+                    <Text style={styles.selfPillText}>Anda</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.userJoinedText}>
+                Terdaftar: {formatUserDate(item.createdAt)}
+              </Text>
+            </View>
+
+            <Badge text={roleConfig.label} variant={roleConfig.badgeVariant} />
+          </View>
+
+          <View style={styles.statusRow}>
+            <View style={styles.statusLabelCol}>
+              <Text style={styles.statusLabel}>Status Akun</Text>
+              <Text
+                style={[
+                  styles.statusValue,
+                  { color: item.isActive ? '#065f46' : '#991b1b' },
+                ]}
+              >
+                {item.isActive ? '● AKTIF' : '○ NONAKTIF'}
+              </Text>
+            </View>
+
+            {isUpdating ? (
+              <ActivityIndicator size="small" color={COLORS.primary} />
+            ) : (
+              <Switch
+                value={item.isActive}
+                onValueChange={() => handleToggleStatus(item)}
+                disabled={isSelf}
+                trackColor={{ false: '#cbd5e1', true: '#a7f3d0' }}
+                thumbColor={item.isActive ? '#10b981' : '#f1f5f9'}
+                accessibilityLabel={`Ubah status akun ${item.username}`}
+              />
+            )}
+          </View>
+
+          <View style={styles.actionRow}>
+            <TouchableOpacity
+              style={styles.resetButton}
+              onPress={() => openResetModal(item)}
+              accessibilityLabel={`Reset kata sandi ${item.username}`}
+            >
+              <Feather name="key" size={13} color={COLORS.primary} />
+              <Text style={styles.resetButtonText}>Reset Sandi</Text>
+            </TouchableOpacity>
+          </View>
+        </Card>
+      );
+    },
+    [currentUser?.id, handleToggleStatus, updatingUserId]
+  );
+
   // 1. Role Guard Mutlak: Khusus Administrator
   if (!isAdmin) {
     return (
@@ -172,206 +261,133 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ onNavigate }) => {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 24) }]}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} tintColor={COLORS.primary} />
-      }
-    >
-      {/* 2. Header Judul & Badge Mode Admin */}
-      <View style={styles.summaryRow}>
-        <View style={styles.summaryText}>
-          <Text style={styles.title}>Kelola Pengguna</Text>
-          <Text style={styles.subtitle}>
-            Manajemen Akun Operator & Hak Akses
-          </Text>
-        </View>
-        <Badge text="Administrator" variant="info" />
-      </View>
+    <>
+      <FlatList
+        style={styles.container}
+        contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 24) }]}
+        data={isLoading && !refreshing ? [] : filteredUsers}
+        keyExtractor={(item) => String(item.id)}
+        renderItem={renderUserItem}
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={5}
+        removeClippedSubviews={Platform.OS === 'android'}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} tintColor={COLORS.primary} />
+        }
+        ListHeaderComponent={
+          <>
+            {/* 2. Header Judul & Badge Mode Admin */}
+            <View style={styles.summaryRow}>
+              <View style={styles.summaryText}>
+                <Text style={styles.title}>Kelola Pengguna</Text>
+                <Text style={styles.subtitle}>
+                  Manajemen Akun Operator & Hak Akses
+                </Text>
+              </View>
+              <Badge text="Administrator" variant="info" />
+            </View>
 
-      {/* 3. Metrik Ringkasan Pengguna */}
-      <View style={styles.metricsGrid}>
-        <View style={styles.metricBox}>
-          <Text style={styles.metricNumber}>{metrics.total}</Text>
-          <Text style={styles.metricLabel}>Total Akun</Text>
-        </View>
-        <View style={[styles.metricBox, styles.metricBoxBlue]}>
-          <Text style={[styles.metricNumber, { color: '#0369a1' }]}>
-            {metrics.operators}
-          </Text>
-          <Text style={styles.metricLabel}>Operator</Text>
-        </View>
-        <View style={[styles.metricBox, styles.metricBoxGreen]}>
-          <Text style={[styles.metricNumber, { color: '#065f46' }]}>
-            {metrics.active}
-          </Text>
-          <Text style={styles.metricLabel}>Aktif</Text>
-        </View>
-        <View style={[styles.metricBox, styles.metricBoxRed]}>
-          <Text style={[styles.metricNumber, { color: '#991b1b' }]}>
-            {metrics.inactive}
-          </Text>
-          <Text style={styles.metricLabel}>Nonaktif</Text>
-        </View>
-      </View>
+            {/* 3. Metrik Ringkasan Pengguna */}
+            <View style={styles.metricsGrid}>
+              <View style={styles.metricBox}>
+                <Text style={styles.metricNumber}>{metrics.total}</Text>
+                <Text style={styles.metricLabel}>Total Akun</Text>
+              </View>
+              <View style={[styles.metricBox, styles.metricBoxBlue]}>
+                <Text style={[styles.metricNumber, { color: '#0369a1' }]}>
+                  {metrics.operators}
+                </Text>
+                <Text style={styles.metricLabel}>Operator</Text>
+              </View>
+              <View style={[styles.metricBox, styles.metricBoxGreen]}>
+                <Text style={[styles.metricNumber, { color: '#065f46' }]}>
+                  {metrics.active}
+                </Text>
+                <Text style={styles.metricLabel}>Aktif</Text>
+              </View>
+              <View style={[styles.metricBox, styles.metricBoxRed]}>
+                <Text style={[styles.metricNumber, { color: '#991b1b' }]}>
+                  {metrics.inactive}
+                </Text>
+                <Text style={styles.metricLabel}>Nonaktif</Text>
+              </View>
+            </View>
 
-      {/* 4. Feedback Pesan Sukses / Error */}
-      {successMessage && (
-        <View style={styles.successBox}>
-          <Feather name="check-circle" size={16} color={COLORS.normalText} />
-          <Text style={styles.successText}>{successMessage}</Text>
-          <TouchableOpacity onPress={clearSuccessMessage} accessibilityLabel="Tutup notifikasi">
-            <Feather name="x" size={16} color={COLORS.textSecondary} />
-          </TouchableOpacity>
-        </View>
-      )}
+            {/* 4. Feedback Pesan Sukses / Error */}
+            {successMessage && (
+              <View style={styles.successBox}>
+                <Feather name="check-circle" size={16} color={COLORS.normalText} />
+                <Text style={styles.successText}>{successMessage}</Text>
+                <TouchableOpacity onPress={clearSuccessMessage} accessibilityLabel="Tutup notifikasi">
+                  <Feather name="x" size={16} color={COLORS.textSecondary} />
+                </TouchableOpacity>
+              </View>
+            )}
 
-      {error && (
-        <View style={styles.errorBox}>
-          <Feather name="alert-circle" size={16} color={COLORS.criticalText} />
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity onPress={clearError} accessibilityLabel="Tutup pesan error">
-            <Feather name="x" size={16} color={COLORS.textSecondary} />
-          </TouchableOpacity>
-        </View>
-      )}
+            {error && (
+              <View style={styles.errorBox}>
+                <Feather name="alert-circle" size={16} color={COLORS.criticalText} />
+                <Text style={styles.errorText}>{error}</Text>
+                <TouchableOpacity onPress={clearError} accessibilityLabel="Tutup pesan error">
+                  <Feather name="x" size={16} color={COLORS.textSecondary} />
+                </TouchableOpacity>
+              </View>
+            )}
 
-      {/* 5. Filter Tab Bar */}
-      <View style={styles.filterRow}>
-        {(
-          [
-            { key: 'ALL', label: 'Semua' },
-            { key: 'OPERATOR', label: 'Operator' },
-            { key: 'ACTIVE', label: 'Aktif' },
-            { key: 'INACTIVE', label: 'Nonaktif' },
-          ] as { key: UserFilter; label: string }[]
-        ).map((item) => (
+            {/* 5. Filter Tab Bar */}
+            <View style={styles.filterRow}>
+              {(
+                [
+                  { key: 'ALL', label: 'Semua' },
+                  { key: 'OPERATOR', label: 'Operator' },
+                  { key: 'ACTIVE', label: 'Aktif' },
+                  { key: 'INACTIVE', label: 'Nonaktif' },
+                ] as { key: UserFilter; label: string }[]
+              ).map((item) => (
+                <TouchableOpacity
+                  key={item.key}
+                  style={[styles.filterButton, filter === item.key && styles.filterButtonActive]}
+                  onPress={() => setFilter(item.key)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: filter === item.key }}
+                >
+                  <Text
+                    style={[
+                      styles.filterText,
+                      filter === item.key && styles.filterTextActive,
+                    ]}
+                  >
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* 6. Loading Skeleton */}
+            {isLoading && !refreshing && <SkeletonList variant="list" count={3} />}
+          </>
+        }
+        ListEmptyComponent={
+          !isLoading ? (
+            <EmptyState
+              icon="users"
+              title="Tidak ada pengguna ditemukan"
+              description="Tidak ada akun pengguna yang cocok dengan filter yang dipilih."
+            />
+          ) : undefined
+        }
+        ListFooterComponent={
           <TouchableOpacity
-            key={item.key}
-            style={[styles.filterButton, filter === item.key && styles.filterButtonActive]}
-            onPress={() => setFilter(item.key)}
-            accessibilityRole="button"
-            accessibilityState={{ selected: filter === item.key }}
+            style={styles.backButton}
+            onPress={() => onNavigate('dashboard')}
           >
-            <Text
-              style={[
-                styles.filterText,
-                filter === item.key && styles.filterTextActive,
-              ]}
-            >
-              {item.label}
-            </Text>
+            <Feather name="arrow-left" size={15} color={COLORS.textSecondary} />
+            <Text style={styles.backText}>Kembali ke Dashboard</Text>
           </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* 6. Loading Skeleton */}
-      {isLoading && !refreshing && <SkeletonList variant="list" count={3} />}
-
-      {/* 7. Empty State */}
-      {!isLoading && filteredUsers.length === 0 && (
-        <EmptyState
-          icon="users"
-          title="Tidak ada pengguna ditemukan"
-          description="Tidak ada akun pengguna yang cocok dengan filter yang dipilih."
-        />
-      )}
-
-      {/* 8. Daftar Kartu Pengguna */}
-      {filteredUsers.map((item) => {
-        const roleConfig = ROLE_CONFIGS[item.role] || ROLE_CONFIGS.operator;
-        const isSelf = item.id === currentUser?.id;
-        const isUpdating = updatingUserId === item.id;
-
-        return (
-          <Card key={item.id} style={styles.userCard}>
-            <View style={styles.userHeader}>
-              {/* Avatar Inisial */}
-              <View
-                style={[
-                  styles.avatar,
-                  { backgroundColor: roleConfig.avatarBg },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.avatarText,
-                    { color: roleConfig.avatarColor },
-                  ]}
-                >
-                  {(item.username || '?').slice(0, 1).toUpperCase()}
-                </Text>
-              </View>
-
-              <View style={styles.userInfo}>
-                <View style={styles.userNameRow}>
-                  <Text style={styles.usernameText}>{item.username}</Text>
-                  {isSelf && (
-                    <View style={styles.selfPill}>
-                      <Text style={styles.selfPillText}>Anda</Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={styles.userJoinedText}>
-                  Terdaftar: {formatUserDate(item.createdAt)}
-                </Text>
-              </View>
-
-              <Badge text={roleConfig.label} variant={roleConfig.badgeVariant} />
-            </View>
-
-            {/* Status Switch Row */}
-            <View style={styles.statusRow}>
-              <View style={styles.statusLabelCol}>
-                <Text style={styles.statusLabel}>Status Akun</Text>
-                <Text
-                  style={[
-                    styles.statusValue,
-                    { color: item.isActive ? '#065f46' : '#991b1b' },
-                  ]}
-                >
-                  {item.isActive ? '● AKTIF' : '○ NONAKTIF'}
-                </Text>
-              </View>
-
-              {isUpdating ? (
-                <ActivityIndicator size="small" color="#0a354c" />
-              ) : (
-                <Switch
-                  value={item.isActive}
-                  onValueChange={() => handleToggleStatus(item)}
-                  disabled={isSelf}
-                  trackColor={{ false: '#cbd5e1', true: '#a7f3d0' }}
-                  thumbColor={item.isActive ? '#10b981' : '#f1f5f9'}
-                  accessibilityLabel={`Ubah status akun ${item.username}`}
-                />
-              )}
-            </View>
-
-            {/* Action Row */}
-            <View style={styles.actionRow}>
-              <TouchableOpacity
-                style={styles.resetButton}
-                onPress={() => openResetModal(item)}
-                accessibilityLabel={`Reset kata sandi ${item.username}`}
-              >
-                <Feather name="key" size={13} color={COLORS.primary} />
-                <Text style={styles.resetButtonText}>Reset Sandi</Text>
-              </TouchableOpacity>
-            </View>
-          </Card>
-        );
-      })}
-
-      {/* 9. Tombol Kembali ke Dashboard */}
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => onNavigate('dashboard')}
-      >
-        <Feather name="arrow-left" size={15} color={COLORS.textSecondary} />
-        <Text style={styles.backText}>Kembali ke Dashboard</Text>
-      </TouchableOpacity>
+        }
+      />
 
       {/* 10. Modal Dialog Reset Kata Sandi Darurat */}
       <Modal
@@ -470,7 +486,7 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ onNavigate }) => {
           </View>
         </View>
       </Modal>
-    </ScrollView>
+    </>
   );
 };
 

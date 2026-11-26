@@ -2,8 +2,9 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert as NativeAlert,
+  FlatList,
+  Platform,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -67,118 +68,137 @@ export const AlarmsScreen: React.FC<AlarmsScreenProps> = ({ onNavigate }) => {
     setRefreshing(false);
   }, [fetchAlerts]);
 
-  const confirmResolve = (alert: Alert) => {
-    if (!canResolve) return;
-    NativeAlert.alert(
-      'Konfirmasi Penyelesaian',
-      'Apakah kondisi fisik tangki sudah diperiksa dan dipastikan aman?',
-      [
-        { text: 'Batal', style: 'cancel' },
-        {
-          text: 'Selesaikan',
-          style: 'destructive',
-          onPress: async () => {
-            const resolved = await resolveAlert(alert.id);
-            if (resolved) {
-              NativeAlert.alert('Berhasil', 'Peringatan telah diselesaikan.');
-            }
+  const confirmResolve = useCallback(
+    (alert: Alert) => {
+      if (!canResolve) return;
+      NativeAlert.alert(
+        'Konfirmasi Penyelesaian',
+        'Apakah kondisi fisik tangki sudah diperiksa dan dipastikan aman?',
+        [
+          { text: 'Batal', style: 'cancel' },
+          {
+            text: 'Selesaikan',
+            style: 'destructive',
+            onPress: async () => {
+              const resolved = await resolveAlert(alert.id);
+              if (resolved) {
+                NativeAlert.alert('Berhasil', 'Peringatan telah diselesaikan.');
+              }
+            },
           },
-        },
-      ]
-    );
-  };
+        ]
+      );
+    },
+    [canResolve, resolveAlert]
+  );
+
+  const renderAlertItem = useCallback(
+    ({ item: alert }: { item: Alert }) => (
+      <Card>
+        <View style={styles.cardHeader}>
+          <View style={styles.cardTitle}>
+            <Text style={styles.tankName}>{alert.tankName || `Tangki ${alert.tankId}`}</Text>
+            <Text style={styles.createdAt}>{formatAlertTime(alert.createdAt)}</Text>
+          </View>
+          <Badge text={alert.level} variant={alertVariant(alert.level)} />
+        </View>
+        <Text style={styles.message}>{alert.message}</Text>
+        <View style={styles.cardFooter}>
+          <Badge
+            text={alert.status === 'active' ? 'AKTIF' : 'SELESAI'}
+            variant={alert.status === 'active' ? 'critical' : 'success'}
+          />
+          {alert.status === 'active' && canResolve && (
+            <TouchableOpacity
+              style={styles.resolveButton}
+              onPress={() => confirmResolve(alert)}
+              disabled={resolvingAlertId === alert.id}
+              accessibilityLabel={`Selesaikan peringatan ${alert.tankName || alert.tankId}`}
+            >
+              {resolvingAlertId === alert.id ? (
+                <ActivityIndicator color={COLORS.textOnPrimary} />
+              ) : (
+                <Text style={styles.resolveText}>Selesaikan</Text>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
+      </Card>
+    ),
+    [canResolve, confirmResolve, resolvingAlertId]
+  );
 
   return (
-    <ScrollView
+    <FlatList
       style={styles.container}
       contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 24) }]}
+      data={isLoading && !refreshing ? [] : filteredAlerts}
+      keyExtractor={(item) => String(item.id)}
+      renderItem={renderAlertItem}
+      initialNumToRender={8}
+      maxToRenderPerBatch={8}
+      windowSize={5}
+      removeClippedSubviews={Platform.OS === 'android'}
+      showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} tintColor={COLORS.primary} />}
-    >
-      <View style={styles.summaryRow}>
-        <View style={styles.summaryText}>
-          <Text style={styles.title}>Peringatan & Resolusi Darurat</Text>
-          <Text style={styles.subtitle}>Periksa kondisi fisik sebelum menyelesaikan alert.</Text>
-        </View>
-        <Badge
-          text={`${activeAlerts.length} Aktif`}
-          variant={activeAlerts.length > 0 ? 'critical' : 'success'}
-        />
-      </View>
-
-      <View style={styles.filterRow}>
-        {(['ALL', 'CRITICAL', 'WARNING'] as AlertFilter[]).map((item) => (
-          <TouchableOpacity
-            key={item}
-            style={[styles.filterButton, filter === item && styles.filterButtonActive]}
-            onPress={() => setFilter(item)}
-            accessibilityRole="button"
-            accessibilityState={{ selected: filter === item }}
-          >
-            <Text style={[styles.filterText, filter === item && styles.filterTextActive]}>
-              {item === 'ALL' ? 'Semua' : item}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {error && (
-        <ErrorBanner
-          message={error}
-          onRetry={() => {
-            clearError();
-            fetchAlerts();
-          }}
-        />
-      )}
-
-      {isLoading && !refreshing && <SkeletonList variant="list" count={3} />}
-
-      {!isLoading && filteredAlerts.length === 0 && (
-        <EmptyState
-          icon="check-circle"
-          title={alerts.length === 0 ? 'Tidak ada peringatan' : 'Tidak ada alert pada filter ini'}
-          description="Semua kondisi tangki terpantau aman."
-        />
-      )}
-
-      {filteredAlerts.map((alert) => (
-        <Card key={alert.id}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardTitle}>
-              <Text style={styles.tankName}>{alert.tankName || `Tangki ${alert.tankId}`}</Text>
-              <Text style={styles.createdAt}>{formatAlertTime(alert.createdAt)}</Text>
+      ListHeaderComponent={
+        <>
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryText}>
+              <Text style={styles.title}>Peringatan & Resolusi Darurat</Text>
+              <Text style={styles.subtitle}>Periksa kondisi fisik sebelum menyelesaikan alert.</Text>
             </View>
-            <Badge text={alert.level} variant={alertVariant(alert.level)} />
-          </View>
-          <Text style={styles.message}>{alert.message}</Text>
-          <View style={styles.cardFooter}>
             <Badge
-              text={alert.status === 'active' ? 'AKTIF' : 'SELESAI'}
-              variant={alert.status === 'active' ? 'critical' : 'success'}
+              text={`${activeAlerts.length} Aktif`}
+              variant={activeAlerts.length > 0 ? 'critical' : 'success'}
             />
-            {alert.status === 'active' && canResolve && (
-              <TouchableOpacity
-                style={styles.resolveButton}
-                onPress={() => confirmResolve(alert)}
-                disabled={resolvingAlertId === alert.id}
-                accessibilityLabel={`Selesaikan peringatan ${alert.tankName || alert.tankId}`}
-              >
-                {resolvingAlertId === alert.id ? (
-                  <ActivityIndicator color={COLORS.textOnPrimary} />
-                ) : (
-                  <Text style={styles.resolveText}>Selesaikan</Text>
-                )}
-              </TouchableOpacity>
-            )}
           </View>
-        </Card>
-      ))}
 
-      <TouchableOpacity style={styles.backButton} onPress={() => onNavigate('dashboard')}>
-        <Feather name="arrow-left" size={15} color={COLORS.textSecondary} />
-        <Text style={styles.backText}>Kembali ke Dashboard</Text>
-      </TouchableOpacity>
-    </ScrollView>
+          <View style={styles.filterRow}>
+            {(['ALL', 'CRITICAL', 'WARNING'] as AlertFilter[]).map((item) => (
+              <TouchableOpacity
+                key={item}
+                style={[styles.filterButton, filter === item && styles.filterButtonActive]}
+                onPress={() => setFilter(item)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: filter === item }}
+              >
+                <Text style={[styles.filterText, filter === item && styles.filterTextActive]}>
+                  {item === 'ALL' ? 'Semua' : item}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {error && (
+            <ErrorBanner
+              message={error}
+              onRetry={() => {
+                clearError();
+                fetchAlerts();
+              }}
+            />
+          )}
+
+          {isLoading && !refreshing && <SkeletonList variant="list" count={3} />}
+        </>
+      }
+      ListEmptyComponent={
+        !isLoading ? (
+          <EmptyState
+            icon="check-circle"
+            title={alerts.length === 0 ? 'Tidak ada peringatan' : 'Tidak ada alert pada filter ini'}
+            description="Semua kondisi tangki terpantau aman."
+          />
+        ) : undefined
+      }
+      ListFooterComponent={
+        <TouchableOpacity style={styles.backButton} onPress={() => onNavigate('dashboard')}>
+          <Feather name="arrow-left" size={15} color={COLORS.textSecondary} />
+          <Text style={styles.backText}>Kembali ke Dashboard</Text>
+        </TouchableOpacity>
+      }
+    />
   );
 };
 

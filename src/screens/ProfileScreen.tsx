@@ -114,7 +114,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   });
 
   const role = user?.role || 'admin';
-  const initials = (user?.username || 'RS').slice(0, 2).toUpperCase();
+  const initials = (user?.username || 'SV').slice(0, 2).toUpperCase();
   const roleColor =
     role === 'admin' ? COLORS.primary : role === 'operator' ? COLORS.primarySoft : COLORS.textSecondary;
   const roleLabel =
@@ -122,7 +122,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       ? 'ADMINISTRATOR'
       : role === 'operator'
       ? 'OPERATOR LAPANGAN'
-      : 'VIEWER MEDIS';
+      : 'VIEWER';
 
   return (
     <View style={styles.overlay} pointerEvents={isOpen ? 'auto' : 'none'}>
@@ -204,7 +204,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Institusi</Text>
-            <Text style={styles.infoValue}>RSA Universitas Gadjah Mada</Text>
+            <Text style={styles.infoValue}>Sekolah Vokasi Universitas Gadjah Mada</Text>
           </View>
 
           <View style={styles.rowDivider} />

@@ -1,4 +1,4 @@
-# CHANGELOG — SI-POTA Mobile (RSA UGM)
+# CHANGELOG — SI-POTA Mobile (SV UGM)
 
 Semua perubahan signifikan pada aplikasi mobile didokumentasikan di sini. File ini
 di-generate otomatis oleh [git-cliff](https://github.com/orhun/git-cliff) dari Conventional Commits.

@@ -63,7 +63,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.animatedWrapper}>
-          {/* Header & Logo RSA UGM */}
+          {/* Header & Logo SV UGM */}
           <View style={styles.headerBox}>
             <View style={styles.logoBadge}>
               <Image
@@ -78,7 +78,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               Sistem Informasi Pemantauan Tangki Air
             </Text>
             <Text style={styles.hospitalTag}>
-              Rumah Sakit Akademik UGM
+              Sekolah Vokasi UGM
             </Text>
           </View>
 
@@ -86,7 +86,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           <View style={styles.card}>
             <Text style={styles.cardHeader}>Masuk ke Akun</Text>
             <Text style={styles.cardDescription}>
-              Gunakan akun staf atau teknisi resmi fasilitas RSA UGM.
+              Gunakan akun staf atau teknisi resmi fasilitas SV UGM.
             </Text>
 
             {error && (

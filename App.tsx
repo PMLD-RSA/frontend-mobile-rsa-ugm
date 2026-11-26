@@ -22,7 +22,7 @@ import { COLORS } from './src/theme/tokens';
 import { ScreenId } from './src/types';
 
 const SCREEN_TITLES: Record<ScreenId, { title: string; subtitle: string }> = {
-  dashboard: { title: 'Dashboard Overview', subtitle: 'RSA UGM • SI-POTA' },
+  dashboard: { title: 'Dashboard Overview', subtitle: 'SV UGM • SI-POTA' },
   tanks: { title: 'Manajemen Tangki', subtitle: 'Konfigurasi Ambang Batas' },
   alarms: { title: 'Peringatan Darurat', subtitle: 'Monitoring & Resolusi Alert' },
   reports: { title: 'Tren & Laporan', subtitle: 'Riwayat Pembacaan Sensor' },

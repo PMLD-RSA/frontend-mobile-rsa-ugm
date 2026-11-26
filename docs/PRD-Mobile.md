@@ -4,9 +4,9 @@
 ### Nama Aplikasi: SI-POTA Mobile v1.0
 
 > **Repositori Target Pengembangan:** `frontend-mobile-rsa-ugm`  
-> **Parent Documentation:** [`PRD-MFE.md`](./PRD-MFE.md) *(Master Frontend PRD)* & [`../../PRD.md`](../../PRD.md) *(Backend Core)*  
-> **Arsitektur:** React Native 0.88.0, Expo SDK 58, React 19.3.0, TypeScript ~6.0.3, Zustand ^5.0.16, Axios ^1.20.0, Expo SecureStore ~58.0.2, Jest ^30.5.2, ts-jest ^29.4.15  
-> **CI / Quality Gate:** GitHub Actions Multi-Stage Workflow (Healthcheck, Unit Tests, Dry Export)  
+> **Parent Documentation:** [`../PRD-MFE.md`](../PRD-MFE.md) *(Master Frontend PRD)* & [`../PRD.md`](../PRD.md) *(Backend Core)*  
+> **Arsitektur:** React Native 0.88.1, Expo SDK 58 (~58.0.26), React 19.3.0, TypeScript ~6.0.3, Zustand ^5.1.0, Axios ^1.21.1, `@expo/vector-icons` ^15.0.2, `expo-font` ~58.0.12, Expo SecureStore ~58.0.3, Jest ^30.5.2, ts-jest ^29.4.15  
+> **CI / Quality Gate:** GitHub Actions Single-Pipeline Workflow (`typecheck`, `test:ci`, `expo-doctor`, `expo export`)  
 > **Port Pengembangan:** Metro Bundler `http://localhost:8081` (Koneksi HP Fisik via IP LAN WiFi / Tailscale)  
 > **Status Dokumen:** Acuan Tunggal Spesifikasi Frontend Mobile (Android & iOS)
 
@@ -39,18 +39,19 @@ Aplikasi dibangun di atas pondasi runtime Expo modern:
 
 | Komponen / Pustaka | Versi Terpasang | Peran & Penggunaan |
 | :--- | :--- | :--- |
-| **Framework Mobile** | **React Native 0.88.0** | Engine native Android & iOS modern dengan dukungan default *Edge-to-Edge* |
-| **Ekosistem Aplikasi**| **Expo SDK 58** (`~58.0.19`) | Toolchain modern Expo dengan mekanisme Continuous Native Generation (CNG) |
+| **Framework Mobile** | **React Native 0.88.1** | Engine native Android & iOS modern dengan dukungan default *Edge-to-Edge* |
+| **Ekosistem Aplikasi**| **Expo SDK 58** (`~58.0.26`) | Toolchain modern Expo dengan mekanisme Continuous Native Generation (CNG) |
 | **Bahasa Pemrograman**| **TypeScript ~6.0.3** | Menjamin type-safety dan deteksi kesalahan sejak dini |
 | **Library UI Reaktif** | **React 19.3.0** | Library rendering UI reaktif generasi terbaru |
-| **State Management** | **Zustand ^5.0.16** | Pengelola state global klien (`authStore`, `tankStore`, dll) yang ringan |
-| **HTTP Client** | **Axios ^1.20.0** | Komunikasi HTTP dengan JWT request interceptor otomatis |
-| **Penyimpanan Kredensial**| **Expo SecureStore ~58.0.2** | Enkripsi hardware native (Keystore/Keychain) untuk menyimpan JWT Bearer Token |
-| **Unit Testing Engine**| **Jest ^30.5.2 & ts-jest ^29.4.15** | Pengujian unit otomatis super cepat dengan metrik code coverage |
-| **CI / Quality Gate** | **GitHub Actions Multi-Stage** | Validasi otomatis 3 tahap (Healthcheck, Tests, dan Bundling) di cloud |
-| **Status Bar Engine** | **Expo Status Bar ~58.0.4** | Penanganan status bar yang kompatibel dengan tema terang/gelap |
-| **Safe Area Insets** | **react-native-safe-area-context ~5.10.1** | Penanganan notch, punch-hole kamera, dan navigation bar perangkat |
-| **Navigasi UI** | Custom Mobile Sliding Drawer (`Sidebar.tsx`) | Navigasi menu samping hardware-accelerated yang mulus tanpa bloatware |
+| **Ikonografi & Font** | **`@expo/vector-icons` ^15.0.2 & `expo-font` ~58.0.12** | Ikon vektor `Feather` seragam lintas layar (bebas emoji) selaras gaya Lucide Web |
+| **State Management** | **Zustand ^5.1.0** | Pengelola state global klien (`authStore`, `tankStore`, dll) dengan selector granular |
+| **HTTP Client** | **Axios ^1.21.1** | Komunikasi HTTP dengan JWT request interceptor & auto-logout pada `401` |
+| **Penyimpanan Kredensial**| **Expo SecureStore ~58.0.3** | Enkripsi hardware native (Keystore/Keychain) untuk menyimpan JWT Bearer Token |
+| **Unit Testing Engine**| **Jest ^30.5.2 & ts-jest ^29.4.15** | Pengujian unit otomatis (11 suites / 58 tests) dengan metrik code coverage |
+| **CI / Quality Gate** | **GitHub Actions Single-Pipeline** | Validasi otomatis 1x install (`typecheck`, `test:ci`, `expo-doctor`, `expo export`) |
+| **Status Bar Engine** | **Expo Status Bar ~58.0.5** | Penanganan status bar yang kompatibel dengan tema terang/gelap |
+| **Safe Area Insets** | **react-native-safe-area-context ~5.11.1** | Penanganan notch, punch-hole kamera, dan navigation bar perangkat |
+| **Navigasi & Motion** | Custom Sliding Drawer (`Sidebar.tsx`) + `ScreenTransition` + `useReducedMotion` | Transisi & animasi native-driver (`useNativeDriver: true`) + dukungan *Reduce Motion* |
 | **Realtime Channel** | Native `WebSocket` API | Menerima event realtime `LEVEL_UPDATE` & `ALERT_*` langsung dari Fastify |
 | **Runtime & Bundler** | Metro Bundler (Port 8081) | Tool kompilasi dan hot-reloading Expo Go |
 
@@ -103,32 +104,40 @@ frontend-mobile-rsa-ugm/
 │   ├── env.test.ts               # Unit test konfigurasi environment & fallback
 │   └── tankMetrics.test.ts       # Unit test kalkulasi volume, threshold & severity sorting
 ├── .expo/                        # Cache dan metadata bundler Expo
-├── assets/                       # Aset ikon aplikasi, splash, dan favicon
+├── assets/                       # Lambang UGM (`ugm-logo.png`), ikon aplikasi, splash, & favicon
 ├── docs/                         # Acuan spesifikasi kebutuhan teknis
 │   ├── PRD-MFE.md                # Master Frontend PRD
 │   └── PRD-Mobile.md             # Acuan Tunggal Spesifikasi Mobile
 ├── src/
 │   ├── components/
-│   │   ├── Card.tsx                 # Komponen Kartu dasar & Badge status dot semantik
-│   │   ├── EmergencyAlertBanner.tsx # Banner darurat floating & haptic vibration
-│   │   ├── Header.tsx               # Custom Top Header dengan tombol hamburger & profil
-│   │   ├── MetricsOverview.tsx      # 3 Kartu metrik ringkasan kapasitas & alert
-│   │   ├── Sidebar.tsx              # Navigasi Sliding Drawer hardware-accelerated (RBAC)
-│   │   └── TankCard.tsx             # Kartu tangki dengan progress bar & modul radio LoRa
+│   │   ├── AnimatedPressable.tsx    # Tombol taktis dengan micro-scale feedback (native driver)
+│   │   ├── Card.tsx                 # Komponen Kartu dasar & Badge status dot semantik (`React.memo`)
+│   │   ├── EmergencyAlertBanner.tsx # Banner darurat animasi slide-down & haptic vibration
+│   │   ├── EmptyState.tsx           # State kosong reusable berbasis ikon Feather
+│   │   ├── ErrorBanner.tsx          # Banner error reusable dengan aksi retry
+│   │   ├── Header.tsx               # Custom Top Header dengan tombol hamburger & avatar inisial
+│   │   ├── MetricsOverview.tsx      # 3 Kartu metrik ringkasan kapasitas & alert (`React.memo`)
+│   │   ├── ScreenTransition.tsx     # Transisi fade + glide antar layar (native driver)
+│   │   ├── Sidebar.tsx              # Navigasi Sliding Drawer hardware-accelerated (RBAC + live badge)
+│   │   ├── Skeleton.tsx             # Skeleton pulse loader (`tank`, `list`, `chart`) anti layout-jump
+│   │   └── TankCard.tsx             # Kartu tangki dengan animated progress bar & modul radio LoRa
 │   ├── config/
 │   │   └── env.ts                   # Konfigurasi binding IP fallback (BFF_URL & WS_URL)
+│   ├── hooks/
+│   │   └── useReducedMotion.ts      # Hook aksesibilitas mengikuti preferensi Reduce Motion OS
 │   ├── screens/
-│   │   ├── SplashScreen.tsx         # Splash overlay + pemicu initAuth()
-│   │   ├── LoginScreen.tsx          # Layar login & penyimpanan JWT ke SecureStore
-│   │   ├── HomeScreen.tsx           # Beranda glance list dengan Severity Auto-Sort
+│   │   ├── SplashScreen.tsx         # Splash overlay (native-driver progress bar) & lambang UGM
+│   │   ├── LoginScreen.tsx          # Layar login, ikon Feather, & quick-role tester khusus `__DEV__`
+│   │   ├── HomeScreen.tsx           # Beranda glance list dengan Severity Auto-Sort & Skeleton
 │   │   ├── TankManagementScreen.tsx # F-06: Edit Quick Threshold tangki (Admin)
-│   │   ├── AlarmsScreen.tsx         # F-03 & F-04: Daftar alert & Resolve (Op/Admin)
-│   │   ├── ReportsScreen.tsx        # F-02: Tren grafik 24h/7d per tangki
-│   │   ├── AuditLogsScreen.tsx      # F-08: Timeline feed aktivitas (Admin)
-│   │   ├── DevicesScreen.tsx        # F-05: Status Gateway RPi & Sensor Node LoRa
-│   │   ├── UsersScreen.tsx          # F-07: Kelola status & reset sandi user (Admin)
-│   │   ├── ProfileScreen.tsx        # Modal profil pengguna aktif & logout
-│   │   └── PlaceholderScreen.tsx    # Fallback template layar cadangan
+│   │   ├── AlarmsScreen.tsx         # F-03 & F-04: Daftar alert (`FlatList`) & Resolve (Op/Admin)
+│   │   ├── ReportsScreen.tsx        # F-02: Tren grafik 24h/7d per tangki dengan animasi chart
+│   │   ├── AuditLogsScreen.tsx      # F-08: Timeline feed aktivitas (`FlatList`, Admin)
+│   │   ├── DevicesScreen.tsx        # F-05: Status Gateway RPi & Sensor Node LoRa (`FlatList`)
+│   │   ├── UsersScreen.tsx          # F-07: Kelola status & reset sandi user (`FlatList`, Admin)
+│   │   └── ProfileScreen.tsx        # Bottom sheet profil pengguna aktif (avatar inisial) & logout
+│   ├── theme/
+│   │   └── tokens.ts                # Design Tokens (`COLORS`, `RADIUS`, `SPACING`, `MOTION`) selaras Figma Web
 │   ├── services/
 │   │   ├── secureStore.ts           # Enkripsi hardware untuk simpan JWT Bearer Token
 │   │   ├── api.ts                   # Axios client terpusat dengan SecureStore interceptor

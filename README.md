@@ -43,7 +43,7 @@ Mengacu pada spesifikasi **F-01 s.d. F-08** dalam [`docs/PRD-Mobile.md`](docs/PR
 
 *\*Fitur bertanda bintang hanya dapat diakses oleh pengguna dengan role `admin`.*
 
-> **Sinkronisasi dokumen:** `docs/PRD-MFE.md` dan `docs/PRD-Mobile.md` sudah disesuaikan dengan kontrak Core Backend (`backend-rsa-ugm`). Target yang masih harus disinkronkan di kode: WebSocket wajib `?token=<jwt>` + handler `LEVEL_UPDATE`/`NODE_STATUS`, query grafik `?hours=` (bukan `?range=`), pemanggilan `initAuth()` saat startup, RBAC drawer/screen, serta arah `EXPO_PUBLIC_BFF_URL` ke Web BFF (`:3000`).
+> **Status Sinkronisasi:** Seluruh integrasi Core BE & Web BFF (`?token=<jwt>`, `LEVEL_UPDATE`/`NODE_STATUS`, query `?hours=`, `initAuth()`, RBAC drawer/screen, auto-logout `401`), identitas visual lambang resmi UGM, design tokens selaras Figma Web, animasi native-driver (`useReducedMotion`, Skeleton loader, transisi layar), serta virtualisasi `FlatList` telah disinkronkan di kode.
 
 ---
 
@@ -53,17 +53,18 @@ Aplikasi dibangun di atas pondasi runtime Expo modern:
 
 | Komponen / Pustaka | Versi | Peran & Penggunaan |
 | :--- | :--- | :--- |
-| **Framework Mobile** | **React Native 0.88.0** | Engine native Android & iOS modern dengan dukungan default *Edge-to-Edge* |
-| **Ekosistem Aplikasi**| **Expo SDK 58** (`~58.0.19`) | Toolchain modern Expo dengan mekanisme Continuous Native Generation (CNG) |
+| **Framework Mobile** | **React Native 0.88.1** | Engine native Android & iOS modern dengan dukungan default *Edge-to-Edge* |
+| **Ekosistem Aplikasi**| **Expo SDK 58** (`~58.0.26`) | Toolchain modern Expo dengan mekanisme Continuous Native Generation (CNG) |
 | **Bahasa Pemrograman**| **TypeScript ~6.0.3** | Menjamin type-safety dan deteksi kesalahan sejak dini |
 | **Library UI Reaktif** | **React 19.3.0** | Library rendering UI reaktif generasi terbaru |
-| **State Management** | **Zustand ^5.0.16** | Pengelola state global klien (`authStore`, `tankStore`, dll) yang ringan |
-| **HTTP Client** | **Axios ^1.20.0** | Komunikasi HTTP dengan JWT request interceptor otomatis |
-| **Penyimpanan Kredensial** | **Expo SecureStore ~58.0.2** | Enkripsi hardware native (Keystore/Keychain) untuk token JWT |
-| **Unit Testing Engine**| **Jest ^30.5.2 & ts-jest ^29.4.15** | Pengujian unit otomatis super cepat dengan metrik code coverage |
-| **CI / Quality Gate** | **GitHub Actions Multi-Stage** | Validasi otomatis 3 tahap (Healthcheck, Tests, dan Bundling) di cloud |
-| **Status Bar Engine** | **Expo Status Bar ~58.0.4** | Penanganan status bar yang kompatibel dengan tema gelap/terang |
-| **Safe Area Insets** | **react-native-safe-area-context ~5.10.1** | Penanganan notch, punch-hole kamera, dan navigation bar perangkat |
+| **Ikonografi & Font** | **`@expo/vector-icons` ^15.0.2 & `expo-font` ~58.0.12** | Ikon vektor `Feather` seragam lintas layar (bebas emoji) selaras gaya Lucide Web |
+| **State Management** | **Zustand ^5.1.0** | Pengelola state global klien (`authStore`, `tankStore`, dll) dengan selector granular |
+| **HTTP Client** | **Axios ^1.21.1** | Komunikasi HTTP dengan JWT request interceptor otomatis & penanganan `401` |
+| **Penyimpanan Kredensial** | **Expo SecureStore ~58.0.3** | Enkripsi hardware native (Keystore/Keychain) untuk token JWT |
+| **Unit Testing Engine**| **Jest ^30.5.2 & ts-jest ^29.4.15** | Pengujian unit otomatis (11 suites / 58 tests) dengan metrik code coverage |
+| **CI / Quality Gate** | **GitHub Actions Single-Pipeline** | Validasi 1x install (`typecheck`, `test:ci`, `expo-doctor`, `expo export`) |
+| **Status Bar Engine** | **Expo Status Bar ~58.0.5** | Penanganan status bar yang kompatibel dengan tema terang/gelap |
+| **Safe Area Insets** | **react-native-safe-area-context ~5.11.1** | Penanganan notch, punch-hole kamera, dan navigation bar perangkat |
 
 ---
 
@@ -234,29 +235,29 @@ npx expo export --no-bytecode
 frontend-mobile-rsa-ugm/
 ├── .github/
 │   └── workflows/
-│       └── ci.yml                # Multi-Stage CI Pipeline GitHub Actions (3 Stages)
-├── __tests__/
-│   ├── env.test.ts               # Unit test konfigurasi environment & fallback
-│   └── tankMetrics.test.ts       # Unit test kalkulasi volume, threshold & severity sorting
+│       └── ci.yml                # Single-Pipeline CI GitHub Actions (typecheck, test:ci, expo-doctor, export)
+├── __tests__/                    # 11 Jest suites (58 tests): store, env, tankMetrics, signal, auditLog, user
 ├── .expo/                        # Cache dan metadata bundler Expo
-├── assets/                       # Aset ikon aplikasi, splash, dan favicon
-├── docs/                         # Acuan spesifikasi kebutuhan teknis (disinkronkan dengan Core BE)
+├── assets/                       # Lambang UGM (`ugm-logo.png`), ikon aplikasi, splash, & favicon
+├── docs/                         # Acuan spesifikasi kebutuhan teknis (identik dengan Documentation Repo)
 │   ├── PRD-MFE.md                # Master Frontend PRD
 │   └── PRD-Mobile.md             # Acuan Tunggal Spesifikasi Mobile
 ├── src/
-│   ├── components/               # Card, Header, Sidebar, TankCard, MetricsOverview, EmergencyAlertBanner
+│   ├── components/               # AnimatedPressable, Card, EmptyState, ErrorBanner, Header, MetricsOverview, ScreenTransition, Sidebar, Skeleton, TankCard, EmergencyAlertBanner
 │   ├── config/env.ts             # Konfigurasi binding IP fallback (BFF_URL & WS_URL)
+│   ├── hooks/                    # useReducedMotion.ts (dukungan aksesibilitas Reduce Motion)
 │   ├── screens/                  # Home, TankManagement, Alarms, Reports, AuditLogs, Devices, Users, Profile, Splash, Login
 │   ├── services/                 # api.ts (Axios), secureStore.ts (JWT), alertSocket.ts (WebSocket)
 │   ├── stores/                   # Zustand: auth, tank, alert, device, report, auditLog, user
+│   ├── theme/tokens.ts           # Design Tokens resmi (`COLORS`, `RADIUS`, `SPACING`, `MOTION`) selaras Figma Web
 │   ├── utils/                    # tankMetrics, tankThreshold, reportMetrics, deviceSignal, auditLog, userManagement
 │   └── types/index.ts            # Type definitions selaras Web BFF & Core BE
 ├── .env.example                  # Template panduan konfigurasi variabel lingkungan
 ├── app.json                      # Konfigurasi Expo & manifest aplikasi (CNG)
-├── App.tsx                       # Root container, SafeAreaProvider & Main Dashboard
+├── App.tsx                       # Root container, SafeAreaProvider, ScreenTransition, & Android BackHandler
 ├── index.ts                      # Entrypoint Expo registerRootComponent
 ├── jest.config.js                # Konfigurasi Jest test runner untuk TypeScript
-├── package.json                  # Dependensi proyek (Expo SDK 58, React 19, RN 0.88, Jest)
+├── package.json                  # Dependensi proyek (Expo SDK 58, React 19, RN 0.88.1, Jest)
 └── tsconfig.json                 # Konfigurasi TypeScript compiler dengan tipe Jest
 ```
 

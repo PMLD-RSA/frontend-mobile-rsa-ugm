@@ -33,15 +33,17 @@ Mengacu pada spesifikasi **F-01 s.d. F-08** dalam [`docs/PRD-Mobile.md`](docs/PR
 | Kode | Nama Fitur | Deskripsi & Implementasi Mobile |
 | :--- | :--- | :--- |
 | **F-01** | **Beranda Pemantauan Tangki (*Glance Home*)** | Menampilkan kartu tangki vertikal dengan **Auto-Sort by Severity** (tangki berstatus *CRITICAL* $<30\%$ dan *WARNING* $30-60\%$ otomatis diposisikan paling atas). Dilengkapi persentase angka besar, volume aktual (Liter), dan badge status. |
-| **F-02** | **Tren Riwayat Air 24 Jam Ringkas** | Visualisasi tren pergerakan air 24 jam terakhir dalam bentuk *sparkline* ringkas pada modal detail tangki. |
+| **F-02** | **Tren Riwayat Air Ringkas** | Visualisasi tren 24 jam / 7 hari dalam bentuk *sparkline* ringkas (`GET /api/tanks/:id/readings?hours=24\|168&limit=500`). |
 | **F-03** | **Peringatan Darurat Realtime (*In-App Alert*)** | Banner merah interaktif saat air menipis, lonceng notifikasi pada header, dan getaran native saat terjadi bahaya air. |
-| **F-04** | **Penyelesaian Peringatan (*Mobile Resolve*)** | Teknisi lapangan dapat menyelesaikan status alarm langsung dari HP via endpoint `PATCH /api/alerts/:id/resolve` setelah mengecek kondisi fisik tangki. |
+| **F-04** | **Penyelesaian Peringatan (*Mobile Resolve*)** | *(Operator & Admin)* Teknisi lapangan dapat menyelesaikan status alarm via `PATCH /api/alerts/:id/resolve`. Role `viewer` bersifat read-only. |
 | **F-05** | **Status Konektivitas Perangkat (*Devices Status*)** | Menampilkan status radio LoRa STM32, indikator sinyal RSSI (dBm), dan waktu *heartbeat* Raspberry Pi Gateway Hub. |
-| **F-06\***| **Kalibrasi Ambang Batas Ringkas (*Quick Threshold*)** | *(Khusus Admin)* Membuka *bottom sheet* untuk mengatur batas `Min Threshold %` dan `Max Threshold %` tangki secara langsung di lokasi. |
-| **F-07\***| **Kelola Operator Cepat (*Mobile User Management*)** | *(Khusus Admin)* Menampilkan daftar teknisi dengan toggle switch aktivasi/deaktivasi akun operator lapangan. |
-| **F-08\***| **Feed Aktivitas Lapangan (*Recent Activity Timeline*)** | *(Khusus Admin/Operator)* Menampilkan 20 riwayat audit aksi operasional terakhir dengan narasi ramah baca. |
+| **F-06\***| **Kalibrasi Ambang Batas Ringkas (*Quick Threshold*)** | *(Khusus Admin)* Membuka *bottom sheet* untuk mengatur batas `Min Threshold %` dan `Max Threshold %` tangki (`PATCH`/`PUT /api/tanks/:id`). |
+| **F-07\***| **Kelola Pengguna Cepat (*Mobile User Management*)** | *(Khusus Admin)* Daftar pengguna dengan toggle aktif/nonaktif dan reset sandi (`PATCH /api/users/:id`). |
+| **F-08\***| **Feed Aktivitas Lapangan (*Recent Activity Timeline*)** | *(Khusus Admin, mengikuti RBAC `GET /api/audit-logs`)* Menampilkan 20 riwayat audit aksi terakhir (`action`, `entity`, `detail`, `createdAt`). |
 
 *\*Fitur bertanda bintang hanya dapat diakses oleh pengguna dengan role `admin`.*
+
+> **Status Sinkronisasi:** Seluruh integrasi Core BE & Web BFF (`?token=<jwt>`, `LEVEL_UPDATE`/`NODE_STATUS`, query `?hours=`, `initAuth()`, RBAC drawer/screen, auto-logout `401`), identitas visual lambang resmi UGM, design tokens selaras Figma Web, animasi native-driver (`useReducedMotion`, Skeleton loader, transisi layar), serta virtualisasi `FlatList` telah disinkronkan di kode.
 
 ---
 
@@ -51,17 +53,18 @@ Aplikasi dibangun di atas pondasi runtime Expo modern:
 
 | Komponen / Pustaka | Versi | Peran & Penggunaan |
 | :--- | :--- | :--- |
-| **Framework Mobile** | **React Native 0.88.0** | Engine native Android & iOS modern dengan dukungan default *Edge-to-Edge* |
-| **Ekosistem Aplikasi**| **Expo SDK 58** (`~58.0.19`) | Toolchain modern Expo dengan mekanisme Continuous Native Generation (CNG) |
+| **Framework Mobile** | **React Native 0.88.1** | Engine native Android & iOS modern dengan dukungan default *Edge-to-Edge* |
+| **Ekosistem Aplikasi**| **Expo SDK 58** (`~58.0.26`) | Toolchain modern Expo dengan mekanisme Continuous Native Generation (CNG) |
 | **Bahasa Pemrograman**| **TypeScript ~6.0.3** | Menjamin type-safety dan deteksi kesalahan sejak dini |
 | **Library UI Reaktif** | **React 19.3.0** | Library rendering UI reaktif generasi terbaru |
-| **State Management** | **Zustand ^5.0.16** | Pengelola state global klien (`authStore`, `tankStore`, dll) yang ringan |
-| **HTTP Client** | **Axios ^1.20.0** | Komunikasi HTTP dengan JWT request interceptor otomatis |
-| **Penyimpanan Kredensial** | **Expo SecureStore ~58.0.2** | Enkripsi hardware native (Keystore/Keychain) untuk token JWT |
-| **Unit Testing Engine**| **Jest ^30.5.2 & ts-jest ^29.4.15** | Pengujian unit otomatis super cepat dengan metrik code coverage |
-| **CI / Quality Gate** | **GitHub Actions Multi-Stage** | Validasi otomatis 3 tahap (Healthcheck, Tests, dan Bundling) di cloud |
-| **Status Bar Engine** | **Expo Status Bar ~58.0.4** | Penanganan status bar yang kompatibel dengan tema gelap/terang |
-| **Safe Area Insets** | **react-native-safe-area-context ~5.10.1** | Penanganan notch, punch-hole kamera, dan navigation bar perangkat |
+| **Ikonografi & Font** | **`@expo/vector-icons` ^15.0.2 & `expo-font` ~58.0.12** | Ikon vektor `Feather` seragam lintas layar (bebas emoji) selaras gaya Lucide Web |
+| **State Management** | **Zustand ^5.1.0** | Pengelola state global klien (`authStore`, `tankStore`, dll) dengan selector granular |
+| **HTTP Client** | **Axios ^1.21.1** | Komunikasi HTTP dengan JWT request interceptor otomatis & penanganan `401` |
+| **Penyimpanan Kredensial** | **Expo SecureStore ~58.0.3** | Enkripsi hardware native (Keystore/Keychain) untuk token JWT |
+| **Unit Testing Engine**| **Jest ^30.5.2 & ts-jest ^29.4.15** | Pengujian unit otomatis (11 suites / 58 tests) dengan metrik code coverage |
+| **CI / Quality Gate** | **GitHub Actions Single-Pipeline** | Validasi 1x install (`typecheck`, `test:ci`, `expo-doctor`, `expo export`) |
+| **Status Bar Engine** | **Expo Status Bar ~58.0.5** | Penanganan status bar yang kompatibel dengan tema terang/gelap |
+| **Safe Area Insets** | **react-native-safe-area-context ~5.11.1** | Penanganan notch, punch-hole kamera, dan navigation bar perangkat |
 
 ---
 
@@ -90,9 +93,10 @@ sequenceDiagram
     Core-->>BFF: 200 OK
     BFF-->>Mobile: 200 OK { success: true, data: [ ... ] }
 
-    Note over Mobile,Core: Alur 2: Notifikasi & Update Realtime (WebSocket Langsung ke Core)
-    Mobile->>Core: WS Connect ws://[HOST]:8000/ws
-    Core-->>Mobile: Event: LEVEL_UPDATE / ALERT_TRIGGERED
+    Note over Mobile,Core: Alur 2: Notifikasi & Update Realtime (WebSocket Langsung ke Core, wajib token)
+    Mobile->>Core: WS Connect ws://[HOST]:8000/ws?token=<jwt>
+    Core-->>Mobile: { type: "CONNECTED" }
+    Core-->>Mobile: { type: "LEVEL_UPDATE" (snake_case) / "ALERT_TRIGGERED" / "ALERT_RESOLVED" / "NODE_STATUS" }
     Mobile->>Mobile: Update State Zustand (tankStore) & Tampilkan Peringatan
 ```
 
@@ -231,43 +235,29 @@ npx expo export --no-bytecode
 frontend-mobile-rsa-ugm/
 ├── .github/
 │   └── workflows/
-│       └── ci.yml                # Multi-Stage CI Pipeline GitHub Actions (3 Stages)
-├── __tests__/
-│   ├── env.test.ts               # Unit test konfigurasi environment & fallback
-│   └── tankMetrics.test.ts       # Unit test kalkulasi volume, threshold & severity sorting
+│       └── ci.yml                # Single-Pipeline CI GitHub Actions (typecheck, test:ci, expo-doctor, export)
+├── __tests__/                    # 11 Jest suites (58 tests): store, env, tankMetrics, signal, auditLog, user
 ├── .expo/                        # Cache dan metadata bundler Expo
-├── assets/                       # Aset ikon aplikasi, splash, dan favicon
-├── docs/                         # Acuan spesifikasi kebutuhan teknis
+├── assets/                       # Lambang UGM (`ugm-logo.png`), ikon aplikasi, splash, & favicon
+├── docs/                         # Acuan spesifikasi kebutuhan teknis (identik dengan Documentation Repo)
 │   ├── PRD-MFE.md                # Master Frontend PRD
 │   └── PRD-Mobile.md             # Acuan Tunggal Spesifikasi Mobile
 ├── src/
-│   ├── components/
-│   │   ├── Card.tsx              # Komponen Kartu dasar & Badge status dot semantik
-│   │   ├── Header.tsx            # Custom Top Header dengan tombol hamburger & profil
-│   │   ├── MetricsOverview.tsx   # 3 Kartu metrik ringkasan kapasitas & alert
-│   │   ├── Sidebar.tsx           # Navigasi Sliding Drawer hardware-accelerated
-│   │   └── TankCard.tsx          # Kartu tangki dengan progress bar & modul radio LoRa
-│   ├── config/
-│   │   └── env.ts                # Konfigurasi binding IP fallback (BFF_URL & WS_URL)
-│   ├── screens/
-│   │   ├── HomeScreen.tsx        # Beranda glance list dengan Severity Auto-Sort
-│   │   └── PlaceholderScreen.tsx # Template layar modul yang sedang dalam pengembangan
-│   ├── services/
-│   │   ├── secureStore.ts        # Enkripsi hardware untuk simpan JWT Bearer Token
-│   │   └── api.ts                # Axios client terpusat dengan SecureStore interceptor
-│   ├── stores/
-│   │   ├── authStore.ts          # Zustand: autentikasi, sesi pengguna, & auto-login
-│   │   └── tankStore.ts          # Zustand: daftar tangki & live update telemetry
-│   ├── utils/
-│   │   └── tankMetrics.ts        # Logika murni perhitungan, sorting keparahan, & format volume
-│   └── types/
-│       └── index.ts              # Type definitions resmi selaras Web BFF & Drizzle
+│   ├── components/               # AnimatedPressable, Card, EmptyState, ErrorBanner, Header, MetricsOverview, ScreenTransition, Sidebar, Skeleton, TankCard, EmergencyAlertBanner
+│   ├── config/env.ts             # Konfigurasi binding IP fallback (BFF_URL & WS_URL)
+│   ├── hooks/                    # useReducedMotion.ts (dukungan aksesibilitas Reduce Motion)
+│   ├── screens/                  # Home, TankManagement, Alarms, Reports, AuditLogs, Devices, Users, Profile, Splash, Login
+│   ├── services/                 # api.ts (Axios), secureStore.ts (JWT), alertSocket.ts (WebSocket)
+│   ├── stores/                   # Zustand: auth, tank, alert, device, report, auditLog, user
+│   ├── theme/tokens.ts           # Design Tokens resmi (`COLORS`, `RADIUS`, `SPACING`, `MOTION`) selaras Figma Web
+│   ├── utils/                    # tankMetrics, tankThreshold, reportMetrics, deviceSignal, auditLog, userManagement
+│   └── types/index.ts            # Type definitions selaras Web BFF & Core BE
 ├── .env.example                  # Template panduan konfigurasi variabel lingkungan
 ├── app.json                      # Konfigurasi Expo & manifest aplikasi (CNG)
-├── App.tsx                       # Root container, SafeAreaProvider & Main Dashboard
+├── App.tsx                       # Root container, SafeAreaProvider, ScreenTransition, & Android BackHandler
 ├── index.ts                      # Entrypoint Expo registerRootComponent
 ├── jest.config.js                # Konfigurasi Jest test runner untuk TypeScript
-├── package.json                  # Dependensi proyek (Expo SDK 58, React 19, RN 0.88, Jest)
+├── package.json                  # Dependensi proyek (Expo SDK 58, React 19, RN 0.88.1, Jest)
 └── tsconfig.json                 # Konfigurasi TypeScript compiler dengan tipe Jest
 ```
 

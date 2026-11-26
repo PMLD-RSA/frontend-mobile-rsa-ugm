@@ -1,11 +1,11 @@
-import React, { useState, useRef } from 'react';
-import { StyleSheet, View, Animated, Easing } from 'react-native';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
+import { StyleSheet, View, Animated, BackHandler, Easing } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { Header } from './src/components/Header';
 import { MobileSidebar } from './src/components/Sidebar';
+import { ScreenTransition } from './src/components/ScreenTransition';
 import { HomeScreen } from './src/screens/HomeScreen';
-import { PlaceholderScreen } from './src/screens/PlaceholderScreen';
 import { SplashScreen } from './src/screens/SplashScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
@@ -18,16 +18,17 @@ import { DevicesScreen } from './src/screens/DevicesScreen';
 import { UsersScreen } from './src/screens/UsersScreen';
 import { useAuthStore } from './src/stores/authStore';
 import { useTankStore } from './src/stores/tankStore';
+import { COLORS } from './src/theme/tokens';
 import { ScreenId } from './src/types';
 
 const SCREEN_TITLES: Record<ScreenId, { title: string; subtitle: string }> = {
-  dashboard: { title: 'Dashboard Overview', subtitle: 'SV UGM • SI-POTA v1.0' },
-  tanks: { title: 'Manajemen Tangki', subtitle: 'F-06 • Quick Threshold' },
-  alarms: { title: 'Peringatan Darurat', subtitle: 'F-03 & F-04 • Realtime Alert' },
-  reports: { title: 'Tren & Laporan', subtitle: 'F-02 • Sparkline 24h' },
-  logs: { title: 'Audit Logs', subtitle: 'F-08 • Activity Timeline' },
-  settings: { title: 'Perangkat & Jaringan', subtitle: 'F-05 • Connectivity Status' },
-  users: { title: 'Kelola Pengguna', subtitle: 'F-07 • Operator Accounts' },
+  dashboard: { title: 'Dashboard Overview', subtitle: 'RSA UGM • SI-POTA' },
+  tanks: { title: 'Manajemen Tangki', subtitle: 'Konfigurasi Ambang Batas' },
+  alarms: { title: 'Peringatan Darurat', subtitle: 'Monitoring & Resolusi Alert' },
+  reports: { title: 'Tren & Laporan', subtitle: 'Riwayat Pembacaan Sensor' },
+  logs: { title: 'Audit Logs', subtitle: 'Catatan Aktivitas Sistem' },
+  settings: { title: 'Perangkat & Jaringan', subtitle: 'Status Gateway & Node LoRa' },
+  users: { title: 'Kelola Pengguna', subtitle: 'Manajemen Akun & Hak Akses' },
 };
 
 type AppStage = 'login' | 'dashboard';
@@ -40,28 +41,23 @@ export default function App() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [currentScreen, setCurrentScreen] = useState<ScreenId>('dashboard');
 
-  const { logout } = useAuthStore();
+  const logout = useAuthStore((state) => state.logout);
 
   // Opacity untuk Dashboard (0 = tersembunyi di balik login, 1 = tampil penuh di atas login)
   const dashboardFadeAnim = useRef(new Animated.Value(0)).current;
 
-  // 1. Selesai Splash: Cukup lepas overlay splash (Login Screen sudah siap di bawahnya)
-  const handleSplashFinish = () => {
+  const handleSplashFinish = useCallback(() => {
     setShowSplash(false);
-  };
+  }, []);
 
-  // 2. Alur Login Berhasil:
-  // Render Dashboard di atas LoginScreen secara absolut, lalu cross-dissolve fade-in 0 -> 1.
-  // LoginScreen tetap tenang di bawahnya tanpa jump, flash, atau pergeseran posisi.
-  const handleLoginSuccess = () => {
-    // Mulai pre-fetch tank telemetri lebih awal agar saat dashboard tampil data sudah siap
+  const handleLoginSuccess = useCallback(() => {
     useTankStore.getState().fetchTanks();
 
     setIsTransitioning(true);
     setStage('dashboard');
     Animated.timing(dashboardFadeAnim, {
       toValue: 1,
-      duration: 280,
+      duration: 260,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start(({ finished }) => {
@@ -69,11 +65,9 @@ export default function App() {
         setIsTransitioning(false);
       }
     });
-  };
+  }, [dashboardFadeAnim]);
 
-  // 3. Alur Logout:
-  // Tutup drawer/modal, aktifkan LoginScreen di layer bawah, lalu fade-out Dashboard 1 -> 0.
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     setIsDrawerOpen(false);
     setIsProfileOpen(false);
     setIsTransitioning(true);
@@ -81,7 +75,7 @@ export default function App() {
 
     Animated.timing(dashboardFadeAnim, {
       toValue: 0,
-      duration: 240,
+      duration: 220,
       easing: Easing.in(Easing.ease),
       useNativeDriver: true,
     }).start(({ finished }) => {
@@ -90,7 +84,25 @@ export default function App() {
         setIsTransitioning(false);
       }
     });
-  };
+  }, [dashboardFadeAnim, logout]);
+
+  const openDrawer = useCallback(() => setIsDrawerOpen(true), []);
+  const closeDrawer = useCallback(() => setIsDrawerOpen(false), []);
+  const openProfile = useCallback(() => setIsProfileOpen(true), []);
+  const closeProfile = useCallback(() => setIsProfileOpen(false), []);
+  const handleSelectScreen = useCallback((screen: ScreenId) => setCurrentScreen(screen), []);
+
+  // Tombol hardware Back Android: kembali ke Dashboard jika sedang di layar lain
+  useEffect(() => {
+    if (stage !== 'dashboard' || isDrawerOpen || isProfileOpen || currentScreen === 'dashboard') {
+      return;
+    }
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      setCurrentScreen('dashboard');
+      return true;
+    });
+    return () => sub.remove();
+  }, [stage, isDrawerOpen, isProfileOpen, currentScreen]);
 
   const { title, subtitle } =
     SCREEN_TITLES[currentScreen] || SCREEN_TITLES.dashboard;
@@ -129,47 +141,46 @@ export default function App() {
             <Header
               title={title}
               subtitle={subtitle}
-              onOpenDrawer={() => setIsDrawerOpen(true)}
-              onOpenProfile={() => setIsProfileOpen(true)}
+              onOpenDrawer={openDrawer}
+              onOpenProfile={openProfile}
             />
             <EmergencyAlertBanner />
 
-            {/* Main Content */}
-            {currentScreen === 'dashboard' ? (
-              <HomeScreen />
-            ) : currentScreen === 'tanks' ? (
-              <TankManagementScreen onNavigate={(screen) => setCurrentScreen(screen)} />
-            ) : currentScreen === 'alarms' ? (
-              <AlarmsScreen onNavigate={(screen) => setCurrentScreen(screen)} />
-            ) : currentScreen === 'reports' ? (
-              <ReportsScreen onNavigate={(screen) => setCurrentScreen(screen)} />
-            ) : currentScreen === 'logs' ? (
-              <AuditLogsScreen onNavigate={(screen) => setCurrentScreen(screen)} />
-            ) : currentScreen === 'settings' ? (
-              <DevicesScreen onNavigate={(screen) => setCurrentScreen(screen)} />
-            ) : currentScreen === 'users' ? (
-              <UsersScreen onNavigate={(screen) => setCurrentScreen(screen)} />
-            ) : (
-              <PlaceholderScreen
-                screenId={currentScreen}
-                onNavigate={(screen) => setCurrentScreen(screen)}
-              />
-            )}
+            {/* Main Content dengan transisi halus antar layar */}
+            <ScreenTransition key={currentScreen}>
+              {currentScreen === 'dashboard' ? (
+                <HomeScreen />
+              ) : currentScreen === 'tanks' ? (
+                <TankManagementScreen />
+              ) : currentScreen === 'alarms' ? (
+                <AlarmsScreen />
+              ) : currentScreen === 'reports' ? (
+                <ReportsScreen />
+              ) : currentScreen === 'logs' ? (
+                <AuditLogsScreen onNavigate={handleSelectScreen} />
+              ) : currentScreen === 'settings' ? (
+                <DevicesScreen />
+              ) : currentScreen === 'users' ? (
+                <UsersScreen onNavigate={handleSelectScreen} />
+              ) : (
+                <HomeScreen />
+              )}
+            </ScreenTransition>
 
             {/* Drawer Samping */}
             <MobileSidebar
               isOpen={isDrawerOpen}
-              onClose={() => setIsDrawerOpen(false)}
+              onClose={closeDrawer}
               currentScreen={currentScreen}
-              onSelectScreen={(screen) => setCurrentScreen(screen)}
-              onOpenProfile={() => setIsProfileOpen(true)}
+              onSelectScreen={handleSelectScreen}
+              onOpenProfile={openProfile}
               onLogout={handleLogout}
             />
 
             {/* Modal Layar Profil */}
             <ProfileScreen
               isOpen={isProfileOpen}
-              onClose={() => setIsProfileOpen(false)}
+              onClose={closeProfile}
               onLogout={handleLogout}
             />
           </Animated.View>
@@ -187,10 +198,10 @@ export default function App() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f3f1f1', // Surface Gray sesuai design.md § 2.1
+    backgroundColor: COLORS.background,
   },
   dashboardWrapper: {
     flex: 1,
-    backgroundColor: '#f3f1f1', // Surface Gray sesuai design.md § 2.1
+    backgroundColor: COLORS.background,
   },
 });

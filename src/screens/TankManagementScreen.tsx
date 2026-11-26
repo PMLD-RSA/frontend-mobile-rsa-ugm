@@ -13,24 +13,25 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { Badge } from '../components/Card';
+import { EmptyState } from '../components/EmptyState';
+import { ErrorBanner } from '../components/ErrorBanner';
+import { SkeletonList } from '../components/Skeleton';
 import { TankCard } from '../components/TankCard';
 import { useAuthStore } from '../stores/authStore';
 import { useTankStore } from '../stores/tankStore';
+import { COLORS, RADIUS } from '../theme/tokens';
 import { Tank } from '../types';
 import { getTankStatusCategory, sortTanksBySeverity } from '../utils/tankMetrics';
 import { validateThresholds } from '../utils/tankThreshold';
-
-interface TankManagementScreenProps {
-  onNavigate: (screen: 'dashboard') => void;
-}
 
 interface ThresholdForm {
   min: string;
   max: string;
 }
 
-export const TankManagementScreen: React.FC<TankManagementScreenProps> = ({ onNavigate }) => {
+export const TankManagementScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role === 'admin';
@@ -95,7 +96,7 @@ export const TankManagementScreen: React.FC<TankManagementScreenProps> = ({ onNa
       <ScrollView
         style={styles.container}
         contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 24) }]}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0a354c']} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} tintColor={COLORS.primary} />}
       >
         <View style={styles.intro}>
           <View style={styles.introText}>
@@ -107,21 +108,20 @@ export const TankManagementScreen: React.FC<TankManagementScreenProps> = ({ onNa
 
         {!isAdmin && (
           <View style={styles.notice}>
+            <Feather name="info" size={15} color={COLORS.warningText} />
             <Text style={styles.noticeText}>Mode baca saja. Hanya Admin yang dapat mengubah threshold.</Text>
           </View>
         )}
-        {error && <Text style={styles.errorText}>{error}</Text>}
-        {isLoading && !refreshing && (
-          <View style={styles.loading}>
-            <ActivityIndicator size="large" color="#0a354c" />
-            <Text style={styles.loadingText}>Memuat data tangki...</Text>
-          </View>
-        )}
+        {error && <ErrorBanner message={error} onRetry={fetchTanks} />}
+        {isLoading && !refreshing && <SkeletonList variant="tank" count={2} />}
         {!isLoading && sortedTanks.length === 0 && !error && (
-          <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>Belum ada data tangki</Text>
-            <Text style={styles.emptyText}>Tarik layar ke bawah untuk memuat ulang.</Text>
-          </View>
+          <EmptyState
+            icon="database"
+            title="Belum ada data tangki"
+            description="Tarik layar ke bawah atau tekan tombol untuk memuat ulang."
+            actionLabel="Muat Ulang"
+            onAction={fetchTanks}
+          />
         )}
         {sortedTanks.map((tank) => (
           <View key={tank.id}>
@@ -132,15 +132,13 @@ export const TankManagementScreen: React.FC<TankManagementScreenProps> = ({ onNa
               </Text>
               {isAdmin && (
                 <TouchableOpacity style={styles.editButton} onPress={() => openEditor(tank)} accessibilityLabel={`Edit threshold ${tank.name}`}>
+                  <Feather name="sliders" size={13} color={COLORS.textOnPrimary} />
                   <Text style={styles.editButtonText}>Edit Threshold</Text>
                 </TouchableOpacity>
               )}
             </View>
           </View>
         ))}
-        <TouchableOpacity style={styles.backButton} onPress={() => onNavigate('dashboard')}>
-          <Text style={styles.backButtonText}>← Kembali ke Dashboard</Text>
-        </TouchableOpacity>
       </ScrollView>
 
       <Modal visible={selectedTank !== null} transparent animationType="slide" onRequestClose={closeEditor}>
@@ -175,7 +173,7 @@ export const TankManagementScreen: React.FC<TankManagementScreenProps> = ({ onNa
                 <Text style={styles.cancelText}>Batal</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.saveButton} onPress={saveThreshold} disabled={isSaving}>
-                {isSaving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveText}>Simpan Perubahan</Text>}
+                {isSaving ? <ActivityIndicator color={COLORS.textOnPrimary} /> : <Text style={styles.saveText}>Simpan Perubahan</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -186,37 +184,31 @@ export const TankManagementScreen: React.FC<TankManagementScreenProps> = ({ onNa
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
+  container: { flex: 1, backgroundColor: COLORS.background },
   content: { padding: 16 },
   intro: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 14 },
   introText: { flex: 1, marginRight: 8 },
-  title: { fontSize: 20, fontWeight: '800', color: '#0f172a' },
-  subtitle: { marginTop: 4, color: '#64748b', fontSize: 13, lineHeight: 18 },
-  notice: { backgroundColor: '#fffbeb', borderColor: '#fde68a', borderWidth: 1, borderRadius: 10, padding: 12, marginBottom: 14 },
-  noticeText: { color: '#92400e', fontSize: 13 },
-  errorText: { color: '#991b1b', backgroundColor: '#fef2f2', padding: 12, borderRadius: 10, marginBottom: 14 },
+  title: { fontSize: 20, fontWeight: '800', color: COLORS.heading },
+  subtitle: { marginTop: 4, color: COLORS.textSecondary, fontSize: 13, lineHeight: 18 },
+  notice: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: COLORS.warningBg, borderColor: '#fde68a', borderWidth: 1, borderRadius: RADIUS.md, padding: 12, marginBottom: 14 },
+  noticeText: { color: COLORS.warningText, fontSize: 13, flex: 1 },
   loading: { alignItems: 'center', padding: 32 },
-  loadingText: { color: '#0a354c', marginTop: 10 },
-  empty: { alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, padding: 28 },
-  emptyTitle: { fontWeight: '700', color: '#0f172a' },
-  emptyText: { color: '#64748b', marginTop: 6 },
+  loadingText: { color: COLORS.primary, marginTop: 10 },
   actions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: -8, marginBottom: 14, paddingHorizontal: 4 },
-  statusText: { color: '#64748b', fontSize: 12, flex: 1 },
-  editButton: { minHeight: 44, paddingHorizontal: 14, borderRadius: 8, backgroundColor: '#0a354c', justifyContent: 'center' },
-  editButtonText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  backButton: { minHeight: 44, borderRadius: 10, borderWidth: 1, borderColor: '#cbd5e1', backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', marginTop: 8 },
-  backButtonText: { color: '#334155', fontWeight: '700' },
+  statusText: { color: COLORS.textSecondary, fontSize: 12, flex: 1 },
+  editButton: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44, paddingHorizontal: 14, borderRadius: RADIUS.sm + 2, backgroundColor: COLORS.primary, justifyContent: 'center' },
+  editButtonText: { color: COLORS.textOnPrimary, fontSize: 12, fontWeight: '700' },
   modalRoot: { flex: 1, justifyContent: 'flex-end' },
   scrim: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(15, 23, 42, 0.45)' },
-  sheet: { backgroundColor: '#fff', borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20, paddingBottom: 28 },
-  sheetTitle: { color: '#0f172a', fontSize: 20, fontWeight: '800' },
-  sheetSubtitle: { color: '#64748b', marginTop: 4, marginBottom: 18 },
-  inputLabel: { color: '#334155', fontSize: 13, fontWeight: '700', marginBottom: 6, marginTop: 10 },
-  input: { height: 48, borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10, paddingHorizontal: 14, color: '#0f172a', fontSize: 16 },
-  formError: { color: '#b91c1c', fontSize: 12, marginTop: 10 },
+  sheet: { backgroundColor: COLORS.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20, paddingBottom: 28 },
+  sheetTitle: { color: COLORS.heading, fontSize: 20, fontWeight: '800' },
+  sheetSubtitle: { color: COLORS.textSecondary, marginTop: 4, marginBottom: 18 },
+  inputLabel: { color: COLORS.textSecondary, fontSize: 13, fontWeight: '700', marginBottom: 6, marginTop: 10 },
+  input: { height: 48, borderWidth: 1, borderColor: COLORS.borderStrong, borderRadius: RADIUS.md, paddingHorizontal: 14, color: COLORS.textPrimary, fontSize: 16, backgroundColor: COLORS.surfaceSubtle },
+  formError: { color: COLORS.criticalText, fontSize: 12, marginTop: 10 },
   sheetActions: { flexDirection: 'row', gap: 10, marginTop: 22 },
-  cancelButton: { flex: 1, minHeight: 48, borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  cancelText: { color: '#334155', fontWeight: '700' },
-  saveButton: { flex: 1.5, minHeight: 48, backgroundColor: '#2563eb', borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  saveText: { color: '#fff', fontWeight: '700' },
+  cancelButton: { flex: 1, minHeight: 48, borderWidth: 1, borderColor: COLORS.borderStrong, borderRadius: RADIUS.md, alignItems: 'center', justifyContent: 'center' },
+  cancelText: { color: COLORS.textSecondary, fontWeight: '700' },
+  saveButton: { flex: 1.5, minHeight: 48, backgroundColor: COLORS.primary, borderRadius: RADIUS.md, alignItems: 'center', justifyContent: 'center' },
+  saveText: { color: COLORS.textOnPrimary, fontWeight: '700' },
 });

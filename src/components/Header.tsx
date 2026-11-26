@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../stores/authStore';
+import { COLORS } from '../theme/tokens';
 
 export interface HeaderProps {
   title?: string;
@@ -11,22 +12,15 @@ export interface HeaderProps {
   onOpenProfile?: () => void;
 }
 
-/**
- * App Bar Header (Figma Component App Bar: 123:1857)
- * - Tinggi: 64px (+ insets.top)
- * - Background: #0A3F5C (Primary Navy)
- * - Kiri: Ionicons name="menu" (24px, #FFFFFF)
- * - Tengah: Title Inter 18px Bold #FFFFFF, Subtitle Gama-Sans/Inter 11px Regular #F3F1F1
- * - Kanan: Ionicons name="person-circle-outline" (26px, #FFFFFF)
- */
 export const Header: React.FC<HeaderProps> = ({
   title = 'Dashboard Overview',
-  subtitle = 'SV UGM • SI-POTA v1.0',
+  subtitle = 'RSA UGM • SI-POTA v1.0',
   onOpenDrawer,
   onOpenProfile,
 }) => {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
+  const initials = (user?.username || 'U').slice(0, 2).toUpperCase();
 
   return (
     <View style={[styles.topHeader, { paddingTop: Math.max(insets.top, 12) }]}>
@@ -37,7 +31,7 @@ export const Header: React.FC<HeaderProps> = ({
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         accessibilityLabel="Buka menu navigasi"
       >
-        <Ionicons name="menu" size={24} color="#FFFFFF" />
+        <Feather name="menu" size={22} color={COLORS.textOnPrimary} />
       </TouchableOpacity>
 
       <View style={styles.headerTitleBox}>
@@ -56,7 +50,9 @@ export const Header: React.FC<HeaderProps> = ({
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         accessibilityLabel="Profil pengguna"
       >
-        <Ionicons name="person-circle-outline" size={28} color="#FFFFFF" />
+        <View style={styles.avatarCircle}>
+          <Text style={styles.avatarInitials}>{initials}</Text>
+        </View>
       </TouchableOpacity>
     </View>
   );
@@ -66,39 +62,54 @@ const styles = StyleSheet.create({
   topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0A3F5C', // Primary Navy sesuai design.md § 2.1
+    backgroundColor: COLORS.primary,
     paddingHorizontal: 16,
-    paddingBottom: 14,
+    paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   navBtn: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     justifyContent: 'center',
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
   headerTitleBox: {
     flex: 1,
-    alignItems: 'center',
-    marginHorizontal: 8,
+    marginLeft: 8,
+    marginRight: 8,
   },
   headerTitleMain: {
-    color: '#FFFFFF',
-    fontSize: 18, // Inter 18px Bold sesuai design.md § 4.1
+    color: COLORS.textOnPrimary,
+    fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.2,
   },
   headerTitleSub: {
-    color: '#F3F1F1', // Surface Gray sesuai design.md § 4.1
+    color: 'rgba(255, 255, 255, 0.78)',
     fontSize: 11,
-    marginTop: 2,
-    fontWeight: '400',
+    marginTop: 1,
   },
   profileBtn: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     justifyContent: 'center',
-    alignItems: 'flex-end',
+    alignItems: 'center',
+  },
+  avatarCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: COLORS.accentBright,
+  },
+  avatarInitials: {
+    color: COLORS.textOnPrimary,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.4,
   },
 });

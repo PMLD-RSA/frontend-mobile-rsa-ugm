@@ -47,17 +47,17 @@ Pilihan teknologi diselaraskan 100% dengan dependensi yang telah terpasang pada 
 
 | Layer / Kategori | Frontend Web & BFF (`frontend-web-rsa-ugm`) | Frontend Mobile (`frontend-mobile-rsa-ugm`) |
 | :--- | :--- | :--- |
-| **Framework Utama** | **Next.js 16.3.x (App Router)** | **React Native 0.88.0 via Expo SDK 58** (`~58.0.19`) |
+| **Framework Utama** | **Next.js 16.4.6 (App Router)** | **React Native 0.88.1 via Expo SDK 58** (`~58.0.26`) |
 | **Bahasa Pemrograman** | TypeScript 5.x | **TypeScript ~6.0.3** |
-| **Library UI Reaktif** | React 19.x | **React 19.3.0** |
-| **UI & Styling** | Tailwind CSS v4 & Lucide Icons | StyleSheet Native, **Hospital Clean Light UI** (Card, Progress Bar, Dot Badges) |
-| **State Management** | **Zustand v5** | **Zustand ^5.0.16** |
-| **HTTP Client** | Native `fetch` (Server & Client) | **Axios ^1.20.0** |
-| **Data Visualization** | **Recharts v3** (Area & Line Time-Series) | Native Horizontal Progress Bar, Metrics Overview (Sparkline planned) |
-| **Security Storage** | Server-side `cookies()` (HTTP-Only) | **Expo SecureStore (~58.0.2)** |
-| **Unit Testing Engine**| Vitest / Jest | **Jest ^30.5.2 & ts-jest ^29.4.15** |
-| **CI / Quality Gate** | GitHub Actions (Lint, Typecheck, Build) | **GitHub Actions Multi-Stage** (Healthcheck, Unit Tests, Dry Export) |
-| **Realtime Channel** | WebSocket Client (`ws://.../ws`) | WebSocket Client Native (`ws://.../ws`) |
+| **Library UI Reaktif** | **React 19.3.1** | **React 19.3.0** |
+| **UI & Styling** | Tailwind CSS v4.3.5 & Lucide Icons | StyleSheet Native, **Design Tokens (`src/theme/tokens.ts`)** selaras Figma Web (`#0A3F5C`, `#05004E`, `#FECB28`, `#ECF4F9`) & **`@expo/vector-icons` (Feather)** |
+| **State Management** | **Zustand ^5.1.0** | **Zustand ^5.1.0** |
+| **HTTP Client** | Native `fetch` (Server & Client) | **Axios ^1.21.1** |
+| **Data Visualization** | **Recharts ^3.11.1** (Area & Line Time-Series) | Animated Native Progress Bar, Metrics Overview & Sparkline 24h/7d |
+| **Security Storage** | Server-side `cookies()` (HTTP-Only, `maxAge: 1d`) | **Expo SecureStore (~58.0.3)** |
+| **Unit Testing Engine**| Vitest / Jest | **Jest ^30.5.2 & ts-jest ^29.4.15** (11 suites / 58 tests) |
+| **CI / Quality Gate** | GitHub Actions Single-Pipeline (`lint`, `typecheck`, `assets:audit`, `build`) | **GitHub Actions Single-Pipeline** (`typecheck`, `test:ci`, `expo-doctor`, `expo export`) |
+| **Realtime Channel** | WebSocket Client (`ws://.../ws?token=<jwt>`) | WebSocket Client Native (`ws://.../ws?token=<jwt>`) |
 | **Port / Runtime** | Port `3000` (Next.js Dev Server) | Port `8081` (Metro Bundler) |
 
 ### 2.2 Konfigurasi Environment & Komunikasi Jaringan
@@ -128,14 +128,14 @@ Berdasarkan 8 fitur inti yang disediakan Backend (`F-01` s.d. `F-08`), berikut p
 
 | Kode Fitur | Nama Fitur | Dukungan Web | Dukungan Mobile | Role Akses Minimum | Keterangan Tampilan UI |
 | :--- | :--- | :---: | :---: | :---: | :--- |
-| **F-01** | **Live Monitoring Level Air** | ✅ | ✅ | `viewer` | **Web:** Grid kartu ultrawide & gauge silinder interaktif.<br>**Mobile:** Vertical scroll glance cards dengan auto-severity sort & badge status. |
-| **F-02** | **Histori & Grafik 24 Jam** | ✅ | ✅ *(Sederhana)* | `viewer` | **Web:** Grafik Recharts time-series interaktif multi-tangki.<br>**Mobile:** Grafik tren garis tunggal / sparkline ringkas per tangki. |
-| **F-03** | **Sistem Deteksi Peringatan** | ✅ | ✅ | `viewer` | **Web:** Floating emergency banner di header & halaman alert.<br>**Mobile:** Banner darurat merah & modal alert popup responsif. |
-| **F-04** | **Penyelesaian Alert (Resolve)** | ✅ | ✅ | `operator` | **Web:** Tombol "Resolve" pada tabel & panel alert.<br>**Mobile:** Tombol "Selesaikan" di kartu alert / modal saat inspeksi. |
+| **F-01** | **Live Monitoring Level Air** | ✅ | ✅ | `viewer` | **Web:** Peta satelit Leaflet (lokasi pilot SV UGM: DTEDI, DTK, DLIKES dengan marker tooltip permanen & derajat koordinat), bejana animasi gelombang air, kartu metrik, & donat statistik persentase (aliasing SV & placeholder DLIKES).<br>**Mobile:** Vertical scroll glance cards dengan auto-severity sort & badge status. |
+| **F-02** | **Histori & Grafik 24 Jam** | ✅ | ✅ *(Sederhana)* | `viewer` | **Web:** Komponen `WaterLevelAnalytics` (Recharts `AreaChart`) dengan filter tangki (`ALL`/spesifik) & periode, plus halaman ekspor CSV (`/reports`).<br>**Mobile:** Grafik tren garis tunggal / sparkline ringkas per tangki. |
+| **F-03** | **Sistem Deteksi Peringatan** | ✅ | ✅ | `viewer` | **Web:** Lonceng notifikasi popover, kartu ringkasan (Critical, Warning, Pending), & panduan SOP mitigasi.<br>**Mobile:** Banner darurat merah & modal alert popup responsif. |
+| **F-04** | **Penyelesaian Alert (Resolve)** | ✅ | ✅ | `operator` | **Web:** Modal View Sensor, modal konfirmasi dengan Action Notes (wajib untuk Critical), tombol diblokir untuk role `viewer`.<br>**Mobile:** Tombol "Selesaikan" di kartu alert / modal saat inspeksi. |
 | **F-05** | **Status Konektivitas Perangkat**| ✅ | ✅ *(Ringkas)* | `viewer` | **Web:** Halaman tabel status RPi & STM32 (RSSI & Heartbeat).<br>**Mobile:** Indikator dot status online/offline di header kartu tangki. |
-| **F-06** | **Manajemen Master Tangki** | ✅ | ✅ *(Ringkas - Admin)* | `admin` | **Web:** Tabel master data CRUD lengkap dengan form modal.<br>**Mobile:** Bottom sheet edit threshold (min/max %) cepat saat inspeksi lapangan. |
+| **F-06** | **Manajemen Master Tangki** | ✅ | ✅ *(Ringkas - Admin)* | `admin` | **Web:** Tabel master data CRUD lengkap, form modal kalibrasi ultrasonik (`min_distance_cm`, `max_distance_cm`), threshold, & koordinat GPS.<br>**Mobile:** Bottom sheet edit threshold (min/max %) cepat saat inspeksi lapangan. |
 | **F-07** | **Manajemen Pengguna (User)** | ✅ | ✅ *(Ringkas - Admin)* | `admin` | **Web:** Tabel user lengkap, form tambah, ubah role & reset password.<br>**Mobile:** List kartu operator ringkas dengan toggle aktif/nonaktif & reset cepat. |
-| **F-08** | **Audit Trail & Ekspor Laporan** | ✅ | ✅ *(Ringkas - Op/Admin)*| `operator` | **Web:** Data table log aktivitas sistem & unduh berkas CSV.<br>**Mobile:** Timeline feed aktivitas terbaru (10-20 aksi) & ringkasan alert mingguan. |
+| **F-08** | **Audit Trail & Ekspor Laporan** | ✅ | ✅ *(Ringkas - Admin)* | `admin` (Audit) / `viewer` (Export) | **Web:** Data table log aktivitas sistem (`admin`), linimasa insiden di alerts, & unduh berkas CSV/PDF/Excel.<br>**Mobile:** Timeline feed aktivitas terbaru (10-20 aksi, `admin`). |
 
 ---
 
@@ -151,54 +151,55 @@ Agar aplikasi Mobile tetap gesit, ringan, dan tidak membingungkan pengguna denga
    * Tampilan berupa kartu ringkas berisi nama operator, role, dan **Switch/Toggle On-Off status aktif**.
    * Memudahkan Admin rumah sakit memblokir akses atau mereset akun secara instan dari ponsel jika terjadi kendala operasional.
 3. **F-08 (Audit Trail di Mobile):**
-   * Disajikan sebagai **Timeline Feed (Aktivitas Terkini)**: menampilkan 10 hingga 20 log terakhir dalam format kartu naratif (contoh: *"Budi Santoso menyelesaikan Alert Tangki Atap - 10 menit lalu"*).
+   * Ditampilkan sebagai **Timeline Feed (Aktivitas Terkini)** khusus akun `admin` (selaras RBAC Core BE `/api/audit-logs`): menampilkan 10 hingga 20 log terakhir dalam format kartu naratif berbasis field `action`, `entity`, `detail`, dan `createdAt`.
    * Menghilangkan tabel audit raksasa agar memori ponsel tetap ringan dan data cepat termuat.
 
 ---
 
 ## 5. Spesifikasi Rute BFF & Integrasi Kontrak API
 
-Seluruh 24 titik integrasi API yang tercantum pada [PRD Backend](./PRD.md#60-master-checklist-api-yang-wajib-dicover-frontend) dipetakan melalui rute BFF Next.js (`frontend-web-rsa-ugm/src/app/api/`):
+Seluruh 23 titik integrasi API yang tercantum pada [PRD Backend](./PRD.md#60-master-checklist-api-yang-wajib-dicover-frontend) dipetakan melalui rute BFF Next.js (`frontend-web-rsa-ugm/src/app/api/`):
 
 ### 5.1 Daftar Lengkap Rute BFF (`/api/*`) — Cakupan 100% Backend
 
-Seluruh endpoint yang disediakan Fastify Core Backend dipetakan 1-to-1 melalui rute BFF Next.js (`frontend-web-rsa-ugm/src/app/api/`) agar klien Web dan Mobile memiliki gerbang antarmuka yang seragam:
+Seluruh endpoint yang disediakan Fastify Core Backend (kecuali `/api/gateways/:deviceCode/sync` khusus Raspberry Pi) dipetakan 1-to-1 melalui rute BFF Next.js (`frontend-web-rsa-ugm/src/app/api/`) agar klien Web dan Mobile memiliki gerbang antarmuka yang seragam:
 
 | No | Endpoint BFF (Next.js) | Target Core BE (Fastify) | Method | Min. Role | Deskripsi Fungsi & Peran Adaptasi BFF |
-| :-: | :--- | :--- | :--- | :---: | :---: | :--- |
+| :-: | :--- | :--- | :--- | :---: | :--- |
 | 1 | `/api/health` | `/health` | `GET` | Public | Cek status server BFF dan status koneksi ke Core Backend & DB. |
 | 2 | `/api/auth/login` | `/api/auth/login` | `POST` | Public | Validasi kredensial: set HTTP-Only cookie (Web) & kirim token JWT (Mobile). |
 | 3 | `/api/auth/me` | `/api/auth/me` | `GET` | Viewer | Verifikasi token aktif dari cookie/header dan kembalikan profil user. |
-| 4 | `/api/auth/logout` | *(BFF Sesi Handler)* | `POST` | Viewer | Menghapus cookie `auth_token` di browser dan mereset sesi lokal. |
-| 5 | `/api/tanks` | `/api/tanks` | `GET` | Viewer | Daftar seluruh tangki lengkap dengan `latestReading` & `activeAlert`. |
-| 6 | `/api/tanks/[id]` | `/api/tanks/:id` | `GET` | Viewer | Detail lengkap 1 tangki spesifik beserta 50 log pembacaan terakhir. |
-| 7 | `/api/tanks/[id]/readings` | `/api/tanks/:id/readings` | `GET` | Viewer | Data log time-series per tangki (`?hours=24&limit=100`) untuk grafik garis. |
-| 8 | `/api/tanks` | `/api/tanks` | `POST` | Admin | *(Admin)* Proksi pendaftaran master tangki baru (kapasitas & threshold). |
-| 9 | `/api/tanks/[id]` | `/api/tanks/:id` | `PUT` / `PATCH` | Admin | *(Admin)* Proksi update data kapasitas, nama, lokasi, & threshold bahaya. |
-| 10 | `/api/tanks/[id]` | `/api/tanks/:id` | `DELETE` | Admin | *(Admin)* Proksi penghapusan master tangki dari sistem. |
-| 11 | `/api/readings/latest` | `/api/readings/latest` | `GET` | Viewer | Polling fallback cepat status ketinggian air seluruh tangki. |
-| 12 | `/api/readings/history` | `/api/readings/history` | `GET` | Viewer | Riwayat agregasi multi-tangki selama 24 jam terakhir untuk overview chart. |
-| 13 | `/api/alerts` | `/api/alerts` | `GET` | Viewer | Riwayat peringatan air (`?status=active` atau `?status=resolved`). |
-| 14 | `/api/alerts/[id]/resolve`| `/api/alerts/:id/resolve`| `PATCH` / `PUT` | Operator | *(Operator/Admin)* Aksi penyelesaian manual status alert tangki. |
-| 15 | `/api/gateways` | `/api/gateways` | `GET` | Viewer | Status konektivitas Raspberry Pi Hub (online/offline & last heartbeat). |
-| 16 | `/api/nodes` | `/api/nodes` | `GET` | Viewer | Rincian modul sensor STM32 di tangki (RSSI sinyal LoRa, status & last seen). |
-| 17 | `/api/users` | `/api/users` | `GET` | Admin | *(Admin)* Mengambil seluruh daftar akun pengguna (admin, operator, viewer). |
-| 18 | `/api/users` | `/api/users` | `POST` | Admin | *(Admin)* Mendaftarkan akun operator/viewer baru ke sistem. |
-| 19 | `/api/users/[id]` | `/api/users/:id` | `PATCH` / `PUT` | Admin | *(Admin)* Memperbarui status akun (aktif/nonaktif), role, atau reset password. |
-| 20 | `/api/users/[id]` | `/api/users/:id` | `DELETE` | Admin | *(Admin)* Menonaktifkan (*soft-delete*) akun pengguna dari sistem. |
-| 21 | `/api/audit-logs` | `/api/audit-logs` | `GET` | Operator | Rekaman log jejak aktivitas operasional pengguna (login, resolve alert, dll). |
-| 22 | `/api/reports/readings/export`| `/api/reports/readings/export`| `GET` | Operator | Unduh file spreadsheet CSV rekam data sensor (`?tankId=...&from=...&to=...`). |
-| 23 | `/api/reports/alerts/export`| `/api/reports/alerts/export`| `GET` | Operator | Unduh file spreadsheet CSV riwayat peringatan bahaya level air. |
+| 4 | `/api/auth/token` | *(BFF Sesi Handler)* | `GET` | Viewer | Mengembalikan token JWT dari cookie `auth_token` untuk koneksi WebSocket browser. |
+| 5 | `/api/auth/logout` | *(BFF Sesi Handler)* | `POST` | Viewer | Menghapus cookie `auth_token` di browser dan mereset sesi lokal. |
+| 6 | `/api/tanks` | `/api/tanks` | `GET` | Viewer | Daftar seluruh tangki lengkap dengan `latestReading`, `activeAlert`, & `nodes`. |
+| 7 | `/api/tanks/[id]` | `/api/tanks/:id` | `GET` | Viewer | Detail lengkap 1 tangki spesifik beserta `recentReadings` (50) & `recentAlerts` (10). |
+| 8 | `/api/tanks/[id]/readings` | `/api/tanks/:id/readings` | `GET` | Viewer | Data log time-series per tangki (`?hours=24&limit=500`) untuk grafik garis. |
+| 9 | `/api/tanks` | `/api/tanks` | `POST` | Admin | *(Admin)* Proksi pendaftaran master tangki baru (kapasitas, jarak kalibrasi & threshold). |
+| 10 | `/api/tanks/[id]` | `/api/tanks/:id` | `PATCH` / `PUT` | Admin | *(Admin)* Proksi update data kapasitas, lokasi, kalibrasi jarak, & threshold bahaya. |
+| 11 | `/api/tanks/[id]` | `/api/tanks/:id` | `DELETE` | Admin | *(Admin)* Proksi penghapusan master tangki dari sistem. |
+| 12 | `/api/readings/latest` | `/api/readings/latest` | `GET` | Viewer | Polling fallback cepat status ketinggian air seluruh tangki. |
+| 13 | `/api/readings/history` | `/api/readings/history` | `GET` | Viewer | Riwayat pembacaan multi-tangki (`?hours=24`, maks. 1000 baris) untuk overview chart. |
+| 14 | `/api/alerts` | `/api/alerts` | `GET` | Viewer | Riwayat peringatan air (`?status=active` atau `?status=resolved`). |
+| 15 | `/api/alerts/[id]/resolve`| `/api/alerts/:id/resolve`| `PATCH` / `PUT` | Operator | *(Operator/Admin)* Aksi penyelesaian manual status alert tangki. |
+| 16 | `/api/gateways` | `/api/gateways` | `GET` | Viewer | Status konektivitas Raspberry Pi Hub (`online`/`offline`, `lastHeartbeat`, `nodes`). |
+| 17 | `/api/nodes` | `/api/nodes` | `GET` | Viewer | Rincian modul sensor STM32 di tangki (`lastRssi`, `status`, `lastSeen`, `tankName`). |
+| 18 | `/api/users` | `/api/users` | `GET` | Admin | *(Admin)* Mengambil seluruh daftar akun pengguna (`admin`, `operator`, `viewer`). |
+| 19 | `/api/users` | `/api/users` | `POST` | Admin | *(Admin)* Mendaftarkan akun baru (`{ username, password, role }`). |
+| 20 | `/api/users/[id]` | `/api/users/:id` | `PATCH` / `PUT` | Admin | *(Admin)* Memperbarui status akun (`isActive`), `role`, atau reset `password`. |
+| 21 | `/api/users/[id]` | `/api/users/:id` | `DELETE` | Admin | *(Admin)* Menghapus akun pengguna dari sistem. |
+| 22 | `/api/audit-logs` | `/api/audit-logs` | `GET` | Admin | *(Admin)* Rekaman log jejak aktivitas sistem (`?page=&limit=&entity=`). |
+| 23 | `/api/reports/readings/export`| `/api/reports/readings/export`| `GET` | Viewer | Unduh file CSV rekam data sensor (`?tankId=...&startDate=...&endDate=...`). |
+| 24 | `/api/reports/alerts/export`| `/api/reports/alerts/export`| `GET` | Viewer | Unduh file CSV riwayat peringatan bahaya (`?level=...&startDate=...&endDate=...`). |
 
 > 🌐 **Catatan Protokol Realtime (WebSocket):**  
-> Event realtime (`LEVEL_UPDATE`, `ALERT_TRIGGERED`, `ALERT_RESOLVED`, `NODE_STATUS`) **tidak melalui polling HTTP BFF**, melainkan dikonsumsi langsung oleh browser dan mobile melalui koneksi socket persisten ke Core Backend: `ws://<HOST_IP>:8000/ws`. Rute `/api/readings/latest` di BFF disiapkan sebagai jaring pengaman (*fallback*) otomatis jika koneksi WebSocket terganggu.
+> Event realtime (`LEVEL_UPDATE`, `ALERT_TRIGGERED`, `ALERT_RESOLVED`, `NODE_STATUS`) **tidak melalui polling HTTP BFF**, melainkan dikonsumsi langsung oleh browser dan mobile melalui koneksi socket persisten terautentikasi ke Core Backend: `ws://<HOST_IP>:8000/ws?token=<jwt>`. Rute `/api/readings/latest` di BFF disiapkan sebagai jaring pengaman (*fallback*) otomatis jika koneksi WebSocket terganggu.
 
 ---
 
 ### 5.2 Strategi Sinkronisasi Realtime (WebSocket Dual-Mode)
 
-Klien Web dan Mobile mengimplementasikan hook koneksi WebSocket langsung ke Core Backend:
-* **Endpoint Socket:** `ws://<HOST_IP>:8000/ws`
+Klien Web dan Mobile mengimplementasikan hook/service koneksi WebSocket langsung ke Core Backend:
+* **Endpoint Socket:** `ws://<HOST_IP>:8000/ws?token=<jwt>` (Wajib query `?token=<jwt>`, tanpa token server menutup koneksi dengan kode `1008`)
 * **Logika Sinkronisasi State:**
 
 ```mermaid
@@ -213,29 +214,34 @@ sequenceDiagram
     BFF-->>UI: Kembalikan Snapshot Seluruh Tangki
     UI->>Store: Set initialTanks state
 
-    UI->>WS: 2. Buka Koneksi WebSocket ('ws://...:8000/ws')
-    WS-->>UI: Event: CONNECTED { clientId, timestamp }
+    UI->>WS: 2. Buka WebSocket ('ws://...:8000/ws?token=<jwt>')
+    WS-->>UI: { type: "CONNECTED", user, timestamp }
 
     loop Pemantauan Realtime
-        WS->>>UI: Event: LEVEL_UPDATE { tankId, levelPercent, volumeLiters }
-        UI->>Store: updateTankLevel(tankId, levelPercent, volumeLiters)
+        WS->>>UI: { type: "LEVEL_UPDATE", data: { tank_id, level_percent, volume_liters, rssi } }
+        UI->>Store: Map snake_case -> updateLevel(tank_id, level_percent, volume_liters)
         Store-->>UI: Re-render komponen kartu & gauge (Zero Latency)
 
         opt Jika Terjadi Anomali
-            WS->>>UI: Event: ALERT_TRIGGERED { id, tankId, level: 'CRITICAL', message }
+            WS->>>UI: { type: "ALERT_TRIGGERED", data: { id, tankId, level, message, status } }
             UI->>Store: addActiveAlert(alertData)
-            Store-->>UI: Tampilkan Emergency Banner / Play Audio Warning
+            Store-->>UI: Tampilkan Emergency Banner / Trigger Getar Haptic
         end
 
         opt Saat Kondisi Kembali Normal
-            WS->>>UI: Event: ALERT_RESOLVED { id, tankId }
-            UI->>Store: removeActiveAlert(id)
+            WS->>>UI: { type: "ALERT_RESOLVED", data: { id, tankId, status, resolvedAt } }
+            UI->>Store: removeActiveAlert(id) & clear activeAlert
             Store-->>UI: Sembunyikan Emergency Banner
+        end
+
+        opt Jika Status Node Berubah
+            WS->>>UI: { type: "NODE_STATUS", data: { sensor_node_id, status, battery_level, timestamp } }
+            UI->>Store: updateNodeStatus(sensor_node_id, status)
         end
     end
 
     opt Jika Koneksi WebSocket Putus (Jaringan Error)
-        UI->>UI: Mulai Exponential Backoff Reconnect
+        UI->>UI: Mulai Exponential Backoff Reconnect (jeda 3-5 detik; hentikan jika close code 1008)
         loop Polling Fallback (Tiap 10 Detik)
             UI->>BFF: GET /api/readings/latest
             BFF-->>UI: Update level air sementara via HTTP
@@ -254,11 +260,11 @@ Mekanisme Autentikasi, Otorisasi, dan Akunting diterapkan secara terpisah sesuai
 2. Form memanggil `POST /api/auth/login` pada Next.js BFF.
 3. Next.js BFF meneruskan kredensial ke Fastify Core Backend (`POST /api/auth/login`).
 4. Core Backend memverifikasi dan mengembalikan token JWT.
-5. BFF menyematkan token JWT ke dalam header HTTP:
+5. BFF menyematkan token JWT ke dalam header HTTP (selaras masa berlaku default `JWT_EXPIRES_IN=1d` di Core BE, serta menghapus cookie saat menerima HTTP `401`):
    ```http
    Set-Cookie: auth_token=<JWT_TOKEN>; HttpOnly; Path=/; SameSite=Lax; Max-Age=86400
    ```
-6. Browser tidak dapat membaca token via JavaScript (`document.cookie`), menutup celah serangan XSS secara mutlak.
+6. Browser tidak dapat membaca token via JavaScript (`document.cookie`), menutup celah serangan XSS secara mutlak. Untuk koneksi WebSocket dari browser, Web client mengambil token lewat endpoint BFF `GET /api/auth/token` dan menyimpannya di `sessionStorage`.
 7. Pada setiap pemanggilan API berikutnya, browser otomatis mengirimkan cookie tersebut, dan route handler Next.js menyalinnya ke header `Authorization: Bearer <JWT_TOKEN>` saat menghubungi Core Backend.
 
 ### 6.2 Alur Autentikasi Mobile (Hardware-Backed SecureStore)
@@ -267,19 +273,19 @@ Mekanisme Autentikasi, Otorisasi, dan Akunting diterapkan secara terpisah sesuai
 3. BFF mengembalikan payload JSON sukses berisi string `token` dan data user.
 4. Aplikasi Mobile menyimpan token menggunakan pustaka `expo-secure-store`:
    ```typescript
-   await SecureStore.setItemAsync('user_token', res.data.data.token);
+   await SecureStore.setItemAsync('sipota_auth_token', res.data.data.token);
    ```
-5. Axios Interceptor otomatis menyematkan header `Authorization: Bearer <token>` pada seluruh request selanjutnya.
+5. Axios Interceptor otomatis menyematkan header `Authorization: Bearer <token>` pada seluruh request selanjutnya dan menyematkan `?token=<jwt>` pada URL WebSocket.
 
 ### 6.3 Kontrol Akses Berbasis Peran (RBAC di Sisi Klien)
 * **`admin`:** 
   * **Web:** Akses penuh ke seluruh menu (Overview, Detail Tangki, Alert, Device Status, Master Tangki CRUD, Kelola Pengguna, dan Audit Log).
-  * **Mobile:** Menampilkan tombol quick-edit threshold tangki (F-06), menu Manajemen Pengguna ringkas dengan toggle aktif/nonaktif di drawer (F-07), serta Timeline Aktivitas Terkini (F-08).
+  * **Mobile:** Menampilkan tombol quick-edit threshold tangki (F-06), menu Manajemen Pengguna ringkas dengan toggle aktif/nonaktif & reset sandi di drawer (F-07), serta Timeline Aktivitas Terkini (F-08).
 * **`operator`:** 
-  * **Web:** Akses ke Overview, Detail Tangki, Alert, Device Status, tombol **Resolve Alert**, dan Ekspor Laporan. Menu Master Tangki dan User Management disembunyikan.
-  * **Mobile:** Akses pemantauan tangki, penerimaan alert realtime, tombol **Resolve Alert**, dan Timeline Aktivitas Terkini. Menu kelola tangki & user tidak ditampilkan.
+  * **Web:** Akses ke Overview, Detail Tangki, Alert, Device Status, tombol **Resolve Alert**, dan Ekspor Laporan. Menu Master Tangki (aksi ubah/hapus), User Management, dan Audit Log disembunyikan.
+  * **Mobile:** Akses pemantauan tangki, penerimaan alert realtime, dan tombol **Resolve Alert**. Menu kelola tangki, kelola user, dan audit log tidak ditampilkan (mengikuti guard Core BE).
 * **`viewer`:** 
-  * Hanya memiliki akses membaca (*read-only*) ke Overview, Detail Tangki, dan Device Status di Web maupun Mobile. Seluruh tombol aksi modifikasi atau penyelesaian alert dinonaktifkan/disembunyikan.
+  * Hanya memiliki akses membaca (*read-only*) ke Overview, Detail Tangki, Laporan/Ekspor, dan Device Status di Web maupun Mobile. Seluruh tombol aksi modifikasi atau penyelesaian alert dinonaktifkan/disembunyikan.
 
 ---
 

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   TouchableOpacity,
   Animated,
@@ -9,26 +10,34 @@ import {
   useWindowDimensions,
   BackHandler,
 } from 'react-native';
+
+const ugmLogo = require('../../assets/ugm-logo.png');
+import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useAuthStore } from '../stores/authStore';
+import { useAlertStore } from '../stores/alertStore';
+import { COLORS, MOTION } from '../theme/tokens';
 import { ScreenId } from '../types';
+
+type FeatherIconName = React.ComponentProps<typeof Feather>['name'];
 
 interface NavMenuItem {
   id: ScreenId;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: FeatherIconName;
   label: string;
   badge?: boolean;
+  adminOnly?: boolean;
 }
 
 const MENU_ITEMS: NavMenuItem[] = [
-  { id: 'dashboard', icon: 'grid-outline', label: 'Dashboard' },
-  { id: 'tanks', icon: 'water-outline', label: 'Tanks' },
-  { id: 'alarms', icon: 'notifications-outline', label: 'Alarms', badge: true },
-  { id: 'reports', icon: 'document-text-outline', label: 'Reports' },
-  { id: 'logs', icon: 'analytics-outline', label: 'Audit Logs' },
-  { id: 'settings', icon: 'settings-outline', label: 'Settings' },
-  { id: 'users', icon: 'people-outline', label: 'Users' },
+  { id: 'dashboard', icon: 'grid', label: 'Dashboard' },
+  { id: 'tanks', icon: 'database', label: 'Tanks' },
+  { id: 'alarms', icon: 'bell', label: 'Alarms', badge: true },
+  { id: 'reports', icon: 'bar-chart-2', label: 'Reports' },
+  { id: 'logs', icon: 'clipboard', label: 'Audit Logs', adminOnly: true },
+  { id: 'settings', icon: 'radio', label: 'Devices' },
+  { id: 'users', icon: 'users', label: 'Users', adminOnly: true },
 ];
 
 export interface MobileSidebarProps {
@@ -49,7 +58,12 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
   onLogout,
 }) => {
   const insets = useSafeAreaInsets();
+  const reducedMotion = useReducedMotion();
   const user = useAuthStore((s) => s.user);
+  const activeAlertsCount = useAlertStore((s) =>
+    s.alerts.filter((a) => a.status === 'active').length
+  );
+  const initials = (user?.username || 'A').slice(0, 2).toUpperCase();
   const { width } = useWindowDimensions();
 
   // Batasi lebar drawer proporsional terhadap layar (maksimal 320dp)
@@ -79,26 +93,37 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
   useEffect(() => {
     if (isOpen) {
       setIsRendered(true);
-      Animated.spring(animProgress, {
+      if (reducedMotion) {
+        animProgress.setValue(1);
+        return;
+      }
+      const openAnim = Animated.spring(animProgress, {
         toValue: 1,
-        damping: 28,
-        stiffness: 260,
-        mass: 0.85,
+        ...MOTION.spring,
         useNativeDriver: true,
-      }).start();
+      });
+      openAnim.start();
+      return () => openAnim.stop();
     } else if (isRendered) {
-      Animated.timing(animProgress, {
+      if (reducedMotion) {
+        animProgress.setValue(0);
+        setIsRendered(false);
+        return;
+      }
+      const closeAnim = Animated.timing(animProgress, {
         toValue: 0,
-        duration: 220,
+        duration: MOTION.normal,
         easing: Easing.bezier(0.36, 0.66, 0.04, 1),
         useNativeDriver: true,
-      }).start(({ finished }) => {
+      });
+      closeAnim.start(({ finished }) => {
         if (finished) {
           setIsRendered(false);
         }
       });
+      return () => closeAnim.stop();
     }
-  }, [isOpen, isRendered, animProgress]);
+  }, [isOpen, isRendered, animProgress, reducedMotion]);
 
   if (!isRendered && !isOpen) {
     return null;
@@ -163,11 +188,16 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
         {/* Header Drawer */}
         <View style={styles.header}>
           <View style={styles.logoCircle}>
-            <Ionicons name="water" size={20} color="#FECB28" />
+            <Image
+              source={ugmLogo}
+              style={{ width: 38, height: 38 }}
+              resizeMode="contain"
+              accessibilityLabel="Lambang UGM"
+            />
           </View>
           <View style={styles.headerTextBox}>
             <Text style={styles.headerTitle}>SI-POTA</Text>
-            <Text style={styles.headerSub}>Sekolah Vokasi UGM</Text>
+            <Text style={styles.headerSub}>RSA UGM • Mobile</Text>
           </View>
           <TouchableOpacity
             onPress={onClose}
@@ -176,17 +206,18 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             accessibilityLabel="Tutup menu"
           >
-            <Ionicons name="close" size={20} color="#FFFFFF" />
+            <Feather name="x" size={18} color={COLORS.textOnPrimary} />
           </TouchableOpacity>
         </View>
 
         {/* Menu Items */}
         <View style={styles.menuList}>
-          {MENU_ITEMS.map((item) => (
+          {MENU_ITEMS.filter((item) => !item.adminOnly || user?.role === 'admin').map((item) => (
             <MenuItem
               key={item.id}
               item={item}
               active={currentScreen === item.id}
+              showBadge={Boolean(item.badge && activeAlertsCount > 0)}
               onPress={handleItemPress}
             />
           ))}
@@ -202,7 +233,7 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
             accessibilityLabel="Buka halaman profil"
           >
             <View style={styles.profileAvatar}>
-              <Ionicons name="person-circle-outline" size={26} color="#FFFFFF" />
+              <Text style={styles.profileAvatarText}>{initials}</Text>
             </View>
             <View style={styles.profileInfoBox}>
               <Text style={styles.profileName} numberOfLines={1}>
@@ -212,7 +243,7 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
                 {user ? user.role.toUpperCase() : 'ADMINISTRATOR'}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#F3F1F1" />
+            <Feather name="chevron-right" size={18} color="rgba(255,255,255,0.65)" />
           </TouchableOpacity>
 
           {/* Tombol Logout */}
@@ -222,7 +253,7 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
             activeOpacity={0.75}
             accessibilityLabel="Keluar dari akun"
           >
-            <Ionicons name="log-out-outline" size={18} color="#F21E1E" style={{ marginRight: 8 }} />
+            <Feather name="log-out" size={16} color="#fca5a5" />
             <Text style={styles.logoutText}>Keluar dari Akun</Text>
           </TouchableOpacity>
         </View>
@@ -234,10 +265,11 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
 interface MenuItemProps {
   item: NavMenuItem;
   active: boolean;
+  showBadge: boolean;
   onPress: (id: ScreenId) => void;
 }
 
-const MenuItem: React.FC<MenuItemProps> = ({ item, active, onPress }) => (
+const MenuItem: React.FC<MenuItemProps> = React.memo(({ item, active, showBadge, onPress }) => (
   <TouchableOpacity
     style={[styles.menuItem, active && styles.menuItemActive]}
     activeOpacity={0.7}
@@ -245,18 +277,18 @@ const MenuItem: React.FC<MenuItemProps> = ({ item, active, onPress }) => (
     accessibilityLabel={item.label}
   >
     <View style={styles.iconContainer}>
-      <Ionicons
+      <Feather
         name={item.icon}
-        size={20}
-        color={active ? '#0077B6' : 'rgba(255,255,255,0.7)'}
+        size={19}
+        color={active ? COLORS.accentBright : 'rgba(255,255,255,0.82)'}
       />
-      {item.badge && <View style={styles.badge} />}
+      {showBadge && <View style={styles.badge} />}
     </View>
     <Text style={[styles.menuLabel, active && styles.menuLabelActive]}>
       {item.label}
     </Text>
   </TouchableOpacity>
-);
+));
 
 const styles = StyleSheet.create({
   overlay: {
@@ -273,7 +305,7 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    backgroundColor: '#0a354c', // Brand Primary
+    backgroundColor: COLORS.primary,
     elevation: 24,
     shadowColor: '#000',
     shadowOffset: { width: 4, height: 0 },
@@ -295,26 +327,23 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     borderWidth: 1.5,
-    borderColor: '#eab308',
+    borderColor: COLORS.accentBright,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
     backgroundColor: 'rgba(255,255,255,0.08)',
   },
-  logoIcon: {
-    fontSize: 18,
-  },
   headerTextBox: {
     flex: 1,
   },
   headerTitle: {
-    color: '#ffffff',
+    color: COLORS.textOnPrimary,
     fontWeight: 'bold',
     fontSize: 16,
     letterSpacing: 0.5,
   },
   headerSub: {
-    color: 'rgba(255,255,255,0.6)',
+    color: 'rgba(255,255,255,0.65)',
     fontSize: 11,
   },
   closeBtn: {
@@ -324,11 +353,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 18,
     backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  closeBtnText: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: 'bold',
   },
   menuList: {
     flex: 1,
@@ -352,20 +376,13 @@ const styles = StyleSheet.create({
     marginRight: 10,
     alignItems: 'center',
   },
-  menuIcon: {
-    fontSize: 18,
-    color: 'rgba(255,255,255,0.6)',
-  },
-  menuIconActive: {
-    color: '#38bdf8',
-  },
   menuLabel: {
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.82)',
     fontSize: 15,
     fontWeight: '500',
   },
   menuLabelActive: {
-    color: '#ffffff',
+    color: COLORS.textOnPrimary,
     fontWeight: 'bold',
   },
   badge: {
@@ -374,7 +391,7 @@ const styles = StyleSheet.create({
     right: -4,
     width: 8,
     height: 8,
-    backgroundColor: '#ef4444',
+    backgroundColor: COLORS.critical,
     borderRadius: 4,
   },
   footer: {
@@ -401,10 +418,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 10,
     borderWidth: 1,
-    borderColor: '#eab308',
+    borderColor: COLORS.accentBright,
   },
-  profileAvatarIcon: {
-    fontSize: 18,
+  profileAvatarText: {
+    color: COLORS.textOnPrimary,
+    fontSize: 13,
+    fontWeight: '700',
   },
   profileInfoBox: {
     flex: 1,
@@ -421,12 +440,6 @@ const styles = StyleSheet.create({
     marginTop: 1,
     letterSpacing: 0.3,
   },
-  profileArrow: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 20,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -438,9 +451,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     gap: 8,
     minHeight: 42,
-  },
-  logoutIcon: {
-    fontSize: 15,
   },
   logoutText: {
     color: '#fca5a5',

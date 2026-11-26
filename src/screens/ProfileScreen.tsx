@@ -10,8 +10,10 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useAuthStore } from '../stores/authStore';
+import { COLORS, MOTION, RADIUS } from '../theme/tokens';
 
 export interface ProfileScreenProps {
   isOpen: boolean;
@@ -26,6 +28,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
+  const reducedMotion = useReducedMotion();
   const user = useAuthStore((s) => s.user);
 
   const [isRendered, setIsRendered] = useState(isOpen);
@@ -37,7 +40,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   useEffect(() => {
     if (isOpen) {
       const backAction = () => {
-        handleClose();
+        onClose();
         return true;
       };
       const backHandler = BackHandler.addEventListener(
@@ -46,44 +49,46 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       );
       return () => backHandler.remove();
     }
-  }, [isOpen]);
+  }, [isOpen, onClose]);
 
-  // Kelola animasi Buka dan Tutup
+  // Satu sumber animasi Buka dan Tutup (bebas double-close animation)
   useEffect(() => {
     if (isOpen) {
       setIsRendered(true);
-      Animated.spring(animProgress, {
+      if (reducedMotion) {
+        animProgress.setValue(1);
+        return;
+      }
+      const openAnim = Animated.spring(animProgress, {
         toValue: 1,
-        damping: 26,
-        stiffness: 240,
-        mass: 0.85,
+        ...MOTION.spring,
         useNativeDriver: true,
-      }).start();
+      });
+      openAnim.start();
+      return () => openAnim.stop();
     } else if (isRendered) {
-      Animated.timing(animProgress, {
+      if (reducedMotion) {
+        animProgress.setValue(0);
+        setIsRendered(false);
+        return;
+      }
+      const closeAnim = Animated.timing(animProgress, {
         toValue: 0,
-        duration: 220,
+        duration: MOTION.normal,
         easing: Easing.bezier(0.36, 0.66, 0.04, 1),
         useNativeDriver: true,
-      }).start(({ finished }) => {
+      });
+      closeAnim.start(({ finished }) => {
         if (finished) {
           setIsRendered(false);
         }
       });
+      return () => closeAnim.stop();
     }
-  }, [isOpen, isRendered, animProgress]);
+  }, [isOpen, isRendered, animProgress, reducedMotion]);
 
   const handleClose = () => {
-    Animated.timing(animProgress, {
-      toValue: 0,
-      duration: 200,
-      easing: Easing.bezier(0.36, 0.66, 0.04, 1),
-      useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (finished) {
-        onClose();
-      }
-    });
+    onClose();
   };
 
   const handleLogoutPress = () => {
@@ -108,10 +113,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     outputRange: [height > 0 ? height * 0.7 : 500, 0],
   });
 
-  // Warna badge role
   const role = user?.role || 'admin';
+  const initials = (user?.username || 'RS').slice(0, 2).toUpperCase();
   const roleColor =
-    role === 'admin' ? '#0a354c' : role === 'operator' ? '#0284c7' : '#64748b';
+    role === 'admin' ? COLORS.primary : role === 'operator' ? COLORS.primarySoft : COLORS.textSecondary;
   const roleLabel =
     role === 'admin'
       ? 'ADMINISTRATOR'
@@ -158,15 +163,15 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             accessibilityLabel="Tutup profil"
           >
-            <Ionicons name="close" size={20} color="#1B1919" />
+            <Feather name="x" size={18} color={COLORS.textSecondary} />
           </TouchableOpacity>
         </View>
 
-        {/* Hero Section: Foto Profil Placeholder & Nama */}
+        {/* Hero Section: Avatar Inisial & Nama */}
         <View style={styles.profileHero}>
           <View style={[styles.avatarRing, { borderColor: roleColor }]}>
-            <View style={styles.avatarCircle}>
-              <Ionicons name="person" size={32} color={roleColor} />
+            <View style={[styles.avatarCircle, { backgroundColor: COLORS.primary }]}>
+              <Text style={styles.avatarInitials}>{initials}</Text>
             </View>
           </View>
           <Text style={styles.userName}>
@@ -199,7 +204,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Institusi</Text>
-            <Text style={styles.infoValue}>Sekolah Vokasi UGM</Text>
+            <Text style={styles.infoValue}>RSA Universitas Gadjah Mada</Text>
           </View>
 
           <View style={styles.rowDivider} />
@@ -223,7 +228,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             onPress={handleLogoutPress}
             activeOpacity={0.7}
           >
-            <Ionicons name="log-out-outline" size={18} color="#F21E1E" style={{ marginRight: 8 }} />
+            <Feather name="log-out" size={16} color={COLORS.critical} />
             <Text style={styles.logoutBtnText}>Keluar dari Akun</Text>
           </TouchableOpacity>
         </View>
@@ -240,16 +245,16 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: '#0a354c',
+    backgroundColor: COLORS.primary,
   },
   sheetContainer: {
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
     paddingTop: 12,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: COLORS.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.15,
@@ -265,7 +270,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#cbd5e1',
+    backgroundColor: COLORS.borderStrong,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -273,25 +278,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: COLORS.border,
   },
   modalTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#0f172a',
+    color: COLORS.heading,
   },
   closeBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: COLORS.surfaceSubtle,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  closeBtnText: {
-    fontSize: 16,
-    color: '#64748b',
-    fontWeight: '700',
   },
   profileHero: {
     alignItems: 'center',
@@ -305,23 +305,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
-    backgroundColor: '#f8fafc',
+    backgroundColor: COLORS.surfaceSubtle,
   },
   avatarCircle: {
     width: 74,
     height: 74,
     borderRadius: 37,
-    backgroundColor: '#e2e8f0',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  avatarIcon: {
-    fontSize: 38,
+  avatarInitials: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: COLORS.textOnPrimary,
+    letterSpacing: 1,
   },
   userName: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#0f172a',
+    color: COLORS.heading,
     letterSpacing: 0.3,
   },
   roleBadge: {
@@ -329,7 +331,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: RADIUS.lg,
     borderWidth: 1,
     marginTop: 8,
   },
@@ -345,10 +347,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   infoCard: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 14,
+    backgroundColor: COLORS.surfaceSubtle,
+    borderRadius: RADIUS.lg + 2,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: COLORS.border,
     paddingHorizontal: 16,
     paddingVertical: 12,
     marginBottom: 20,
@@ -361,21 +363,21 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 13,
-    color: '#64748b',
+    color: COLORS.textSecondary,
     fontWeight: '500',
   },
   infoValue: {
     fontSize: 13,
-    color: '#0f172a',
+    color: COLORS.textPrimary,
     fontWeight: '600',
   },
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ecfdf5',
+    backgroundColor: COLORS.normalBg,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 8,
+    borderRadius: RADIUS.sm + 2,
     borderWidth: 1,
     borderColor: '#a7f3d0',
   },
@@ -383,39 +385,36 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#10b981',
+    backgroundColor: COLORS.normal,
     marginRight: 5,
   },
   statusTextGreen: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#047857',
+    color: COLORS.normalText,
   },
   rowDivider: {
     height: 1,
-    backgroundColor: '#e2e8f0',
+    backgroundColor: COLORS.border,
   },
   actionSection: {
     gap: 10,
   },
   logoutBtn: {
     flexDirection: 'row',
-    backgroundColor: '#fef2f2',
-    borderRadius: 12,
+    backgroundColor: COLORS.criticalBg,
+    borderRadius: RADIUS.lg,
     paddingVertical: 13,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: '#fecaca',
     minHeight: 46,
-    gap: 6,
-  },
-  logoutIcon: {
-    fontSize: 16,
+    gap: 8,
   },
   logoutBtnText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#dc2626',
+    color: COLORS.critical,
   },
 });

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, StyleProp, ViewStyle, TextStyle } from 'react-native';
+import { COLORS, RADIUS } from '../theme/tokens';
 
 export type BadgeVariant = 'critical' | 'warning' | 'success' | 'info';
 
@@ -16,13 +17,13 @@ export interface BadgeProps {
   showDot?: boolean;
 }
 
-export const Card: React.FC<CardProps> = ({ children, style }) => (
+export const Card: React.FC<CardProps> = React.memo(({ children, style }) => (
   <View style={[styles.card, style]}>
     {children}
   </View>
-);
+));
 
-export const Badge: React.FC<BadgeProps> = ({
+export const Badge: React.FC<BadgeProps> = React.memo(({
   text,
   variant = 'info',
   style,
@@ -33,31 +34,31 @@ export const Badge: React.FC<BadgeProps> = ({
     switch (variant) {
       case 'critical':
         return {
-          bg: '#fef2f2',
+          bg: COLORS.criticalBg,
           border: '#fecaca',
-          text: '#f21e1e', // Critical Red sesuai design.md § 2.1
-          dot: '#f21e1e',
+          text: COLORS.criticalText,
+          dot: COLORS.critical,
         };
       case 'warning':
         return {
-          bg: '#fefce8',
-          border: '#fde047',
-          text: '#b45309', // Warning Yellow accent
-          dot: '#fecb28', // Warning Yellow sesuai design.md § 2.1
+          bg: COLORS.warningBg,
+          border: '#fde68a',
+          text: COLORS.warningText,
+          dot: COLORS.warning,
         };
       case 'success':
         return {
-          bg: '#ecfdf5',
+          bg: COLORS.normalBg,
           border: '#a7f3d0',
-          text: '#047857',
-          dot: '#10b981',
+          text: COLORS.normalText,
+          dot: COLORS.normal,
         };
       default:
         return {
-          bg: '#eff6ff',
-          border: '#bfdbfe',
-          text: '#0077b6', // Secondary Blue sesuai design.md § 2.1
-          dot: '#0077b6',
+          bg: COLORS.infoBg,
+          border: '#bae6fd',
+          text: COLORS.infoText,
+          dot: COLORS.primarySoft,
         };
     }
   };
@@ -79,17 +80,17 @@ export const Badge: React.FC<BadgeProps> = ({
       </Text>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.xl,
     padding: 16,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#0f172a',
+    borderColor: COLORS.border,
+    shadowColor: COLORS.textPrimary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
@@ -100,7 +101,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 999,
+    borderRadius: RADIUS.pill,
     borderWidth: 1,
     alignSelf: 'flex-start',
     gap: 5,

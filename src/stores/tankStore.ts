@@ -1,9 +1,17 @@
 import { create } from 'zustand';
-import { Tank } from '../types';
+import { NodeStatus, Tank } from '../types';
 import { fetchTanksApi } from '../services/api';
 import { updateTankThresholdApi } from '../services/api';
 import { useAuthStore } from './authStore';
 import { sortTanksBySeverity } from '../utils/tankMetrics';
+
+interface NodeStatusUpdate {
+  nodeCode?: string;
+  tankId?: string;
+  status?: NodeStatus;
+  rssi?: number | null;
+  lastSeen?: string;
+}
 
 interface TankState {
   tanks: Tank[];
@@ -11,7 +19,13 @@ interface TankState {
   error: string | null;
 
   fetchTanks: () => Promise<void>;
-  updateLevel: (tankId: string, levelPercent: number | string, volumeLiters: number | string) => void;
+  updateLevel: (
+    tankId: string,
+    levelPercent: number | string,
+    volumeLiters: number | string,
+    meta?: { distanceCm?: number | null; rssi?: number | null; recordedAt?: string }
+  ) => void;
+  updateNodeStatus: (update: NodeStatusUpdate) => void;
   updateThreshold: (
     tankId: string,
     minThresholdPercent: number,
@@ -38,22 +52,59 @@ export const useTankStore = create<TankState>((set) => ({
     }
   },
 
-  updateLevel: (tankId, levelPercent, volumeLiters) => {
+  updateLevel: (tankId, levelPercent, volumeLiters, meta) => {
+    set((state) => ({
+      tanks: sortTanksBySeverity(
+        state.tanks.map((tank) => {
+          if (tank.id !== tankId) return tank;
+          const recordedAt = meta?.recordedAt || new Date().toISOString();
+          return {
+            ...tank,
+            latestReading: tank.latestReading
+              ? {
+                  ...tank.latestReading,
+                  levelPercent,
+                  volumeLiters,
+                  distanceCm: meta?.distanceCm ?? tank.latestReading.distanceCm,
+                  rssi: meta?.rssi !== undefined ? meta.rssi : tank.latestReading.rssi,
+                  recordedAt,
+                }
+              : {
+                  id: Date.now(),
+                  tankId,
+                  levelPercent,
+                  volumeLiters,
+                  distanceCm: meta?.distanceCm ?? null,
+                  rssi: meta?.rssi ?? null,
+                  recordedAt,
+                },
+          };
+        })
+      ),
+    }));
+  },
+
+  updateNodeStatus: (update) => {
     set((state) => ({
       tanks: state.tanks.map((tank) => {
-        if (tank.id !== tankId) return tank;
-        return {
-          ...tank,
-          latestReading: tank.latestReading
-            ? { ...tank.latestReading, levelPercent, volumeLiters }
-            : {
-                id: Date.now(),
-                tankId,
-                levelPercent,
-                volumeLiters,
-                recordedAt: new Date().toISOString(),
-              },
-        };
+        if (!tank.nodes?.length) return tank;
+        const matchesTank = Boolean(update.tankId && tank.id === update.tankId);
+        let changed = false;
+        const updatedNodes = tank.nodes.map((node) => {
+          const matchesNode = Boolean(
+            update.nodeCode &&
+              node.deviceCode.toLowerCase() === update.nodeCode.toLowerCase()
+          );
+          if (!matchesTank && !matchesNode) return node;
+          changed = true;
+          return {
+            ...node,
+            status: update.status ?? node.status,
+            lastRssi: update.rssi !== undefined ? update.rssi : node.lastRssi,
+            lastSeen: update.lastSeen ?? node.lastSeen,
+          };
+        });
+        return changed ? { ...tank, nodes: updatedNodes } : tank;
       }),
     }));
   },

@@ -27,6 +27,7 @@ export interface WaterLevelReading {
   levelPercent: string | number;
   volumeLiters: string | number;
   rawValue?: string | number | null;
+  distanceCm?: string | number | null;
   rssi?: number | null;
   recordedAt: string;
 }
@@ -73,6 +74,8 @@ export interface Tank {
   capacityLiters: string | number;
   minThresholdPercent: string | number;
   maxThresholdPercent: string | number;
+  minDistanceCm?: string | number | null;
+  maxDistanceCm?: string | number | null;
   latitude?: string | null;
   longitude?: string | null;
   createdAt?: string;
@@ -81,8 +84,6 @@ export interface Tank {
   latestReading?: WaterLevelReading | null;
   activeAlert?: Alert | null;
   nodes?: SensorNode[];
-  pumpStatus?: 'RUNNING' | 'STOPPED';
-  inflowRateLpm?: number;
 }
 
 export interface User {
@@ -101,7 +102,9 @@ export interface AuditLog {
   category?: AuditLogCategory | string | null;
   entity?: string | null;
   entityId?: string | null;
+  detail?: string | null;
   description?: string | null;
+  ipAddress?: string | null;
   createdAt: string;
 }
 

@@ -29,8 +29,14 @@ describe('Audit log utilities', () => {
     expect(formatRelativeTime('not-a-date', now)).toBe('Waktu tidak tersedia');
   });
 
-  it('uses a readable fallback description', () => {
-    expect(getAuditLogDescription({ ...baseLog, description: null })).toBe(
+  it('prefers Core BE detail field and falls back to description or readable default', () => {
+    expect(
+      getAuditLogDescription({
+        ...baseLog,
+        detail: 'Alert level CRITICAL diselesaikan secara manual oleh admin',
+      })
+    ).toBe('Alert level CRITICAL diselesaikan secara manual oleh admin');
+    expect(getAuditLogDescription({ ...baseLog, detail: null, description: null })).toBe(
       'Budi Santoso melakukan aksi ALERT_RESOLVED'
     );
   });

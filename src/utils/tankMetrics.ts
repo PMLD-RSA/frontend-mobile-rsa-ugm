@@ -12,7 +12,6 @@ export interface MetricsOverviewResult {
   activeAlertsCount: number;
   criticalAlertsCount: number;
   tanksOnlineCount: number;
-  pumpsActiveCount: number;
   averageLevelPercent: number;
   percentageFilled: string;
 }
@@ -84,7 +83,7 @@ export function sortTanksBySeverity(tanks: Tank[]): Tank[] {
 }
 
 /**
- * Menghitung ringkasan metrik dashboard seluruh tangki (4 Grid KPI sesuai design.md § 5.2)
+ * Menghitung ringkasan metrik dashboard seluruh tangki (4 Grid KPI)
  */
 export function calculateMetricsOverview(tanks: Tank[]): MetricsOverviewResult {
   if (!Array.isArray(tanks) || tanks.length === 0) {
@@ -94,7 +93,6 @@ export function calculateMetricsOverview(tanks: Tank[]): MetricsOverviewResult {
       activeAlertsCount: 0,
       criticalAlertsCount: 0,
       tanksOnlineCount: 0,
-      pumpsActiveCount: 0,
       averageLevelPercent: 0,
       percentageFilled: '0',
     };
@@ -115,18 +113,11 @@ export function calculateMetricsOverview(tanks: Tank[]): MetricsOverviewResult {
       Number(t.latestReading?.levelPercent || 0) < Number(t.minThresholdPercent || 30)
   ).length;
 
-  const tanksOnlineCount = tanks.filter(
-    (t) =>
-      t.latestReading != null ||
-      t.nodes?.some((n) => n.status === 'active') ||
-      true
-  ).length;
-
-  // Status pompa aktif: jika pumpStatus === 'RUNNING' atau level < minThreshold (auto trigger)
-  const pumpsActiveCount = tanks.filter(
-    (t) =>
-      t.pumpStatus === 'RUNNING' ||
-      Number(t.latestReading?.levelPercent || 0) < Number(t.minThresholdPercent || 30)
+  // Hitung tangki online berdasarkan status sensor node aktif (tanpa fallback `|| true`)
+  const tanksOnlineCount = tanks.filter((t) =>
+    t.nodes && t.nodes.length > 0
+      ? t.nodes.some((n) => n.status === 'active')
+      : t.latestReading != null
   ).length;
 
   const totalLevel = tanks.reduce(
@@ -144,7 +135,6 @@ export function calculateMetricsOverview(tanks: Tank[]): MetricsOverviewResult {
     activeAlertsCount,
     criticalAlertsCount,
     tanksOnlineCount,
-    pumpsActiveCount,
     averageLevelPercent,
     percentageFilled,
   };

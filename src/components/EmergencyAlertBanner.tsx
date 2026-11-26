@@ -1,17 +1,28 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, Vibration, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Easing, StyleSheet, Text, TouchableOpacity, Vibration, View } from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useAlertStore } from '../stores/alertStore';
+import { useAuthStore } from '../stores/authStore';
+import { useTankStore } from '../stores/tankStore';
 import { connectAlertSocket } from '../services/alertSocket';
+import { COLORS, MOTION } from '../theme/tokens';
 import { Alert } from '../types';
 
 export const EmergencyAlertBanner: React.FC = () => {
+  const reducedMotion = useReducedMotion();
+  const token = useAuthStore((state) => state.token);
   const alerts = useAlertStore((state) => state.alerts);
   const addAlert = useAlertStore((state) => state.addAlert);
   const markAlertResolved = useAlertStore((state) => state.markAlertResolved);
+  const updateLevel = useTankStore((state) => state.updateLevel);
+  const updateNodeStatus = useTankStore((state) => state.updateNodeStatus);
   const [dismissedAlertId, setDismissedAlertId] = useState<number | null>(null);
+  const enterAnim = useRef(new Animated.Value(reducedMotion ? 1 : 0)).current;
 
   useEffect(() => {
     return connectAlertSocket({
+      token,
       onAlert: (alert: Alert) => {
         addAlert(alert);
         if (alert.level === 'CRITICAL' && alert.status === 'active') {
@@ -20,8 +31,16 @@ export const EmergencyAlertBanner: React.FC = () => {
         }
       },
       onResolved: markAlertResolved,
+      onLevelUpdate: (update) => {
+        updateLevel(update.tankId, update.levelPercent, update.volumeLiters, {
+          distanceCm: update.distanceCm,
+          rssi: update.rssi,
+          recordedAt: update.recordedAt,
+        });
+      },
+      onNodeStatus: updateNodeStatus,
     });
-  }, [addAlert, markAlertResolved]);
+  }, [token, addAlert, markAlertResolved, updateLevel, updateNodeStatus]);
 
   const criticalAlert = useMemo(
     () =>
@@ -34,12 +53,45 @@ export const EmergencyAlertBanner: React.FC = () => {
     [alerts, dismissedAlertId]
   );
 
+  useEffect(() => {
+    if (!criticalAlert) return;
+    if (reducedMotion) {
+      enterAnim.setValue(1);
+      return;
+    }
+    enterAnim.setValue(0);
+    const anim = Animated.timing(enterAnim, {
+      toValue: 1,
+      duration: MOTION.normal,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    });
+    anim.start();
+    return () => anim.stop();
+  }, [criticalAlert?.id, enterAnim, reducedMotion]);
+
   if (!criticalAlert) return null;
 
+  const translateY = enterAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-14, 0],
+  });
+
   return (
-    <View style={styles.banner}>
+    <Animated.View
+      style={[
+        styles.banner,
+        {
+          opacity: enterAnim,
+          transform: [{ translateY }],
+        },
+      ]}
+    >
       <View style={styles.content}>
-        <Text style={styles.title}>⚠️ PERINGATAN KRITIS</Text>
+        <View style={styles.titleRow}>
+          <Feather name="alert-triangle" size={14} color={COLORS.textOnPrimary} />
+          <Text style={styles.title}>PERINGATAN KRITIS</Text>
+        </View>
         <Text style={styles.message} numberOfLines={2}>
           {criticalAlert.tankName || `Tangki ${criticalAlert.tankId}`}: {criticalAlert.message}
         </Text>
@@ -51,13 +103,13 @@ export const EmergencyAlertBanner: React.FC = () => {
       >
         <Text style={styles.dismissText}>Tutup</Text>
       </TouchableOpacity>
-    </View>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   banner: {
-    backgroundColor: '#dc2626',
+    backgroundColor: COLORS.critical,
     paddingHorizontal: 16,
     paddingVertical: 12,
     flexDirection: 'row',
@@ -65,8 +117,9 @@ const styles = StyleSheet.create({
     minHeight: 64,
   },
   content: { flex: 1, marginRight: 10 },
-  title: { color: '#fff', fontSize: 12, fontWeight: '800', letterSpacing: 0.4 },
-  message: { color: '#fee2e2', fontSize: 12, marginTop: 4, lineHeight: 17 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  title: { color: COLORS.textOnPrimary, fontSize: 12, fontWeight: '800', letterSpacing: 0.4 },
+  message: { color: COLORS.criticalBg, fontSize: 12, marginTop: 4, lineHeight: 17 },
   dismissButton: {
     minHeight: 44,
     minWidth: 52,
@@ -74,7 +127,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#fecaca',
+    borderColor: COLORS.criticalBg,
   },
-  dismissText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  dismissText: { color: COLORS.textOnPrimary, fontSize: 12, fontWeight: '700' },
 });

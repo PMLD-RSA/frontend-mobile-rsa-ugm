@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { COLORS, RADIUS } from '../theme/tokens';
 
 interface MetricsOverviewProps {
   tanksCount: number;
@@ -55,7 +56,7 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
         <Text
           style={[
             styles.metricValue,
-            { color: activeAlertsCount > 0 ? '#dc2626' : '#15803d' },
+            { color: activeAlertsCount > 0 ? COLORS.critical : COLORS.normalText },
           ]}
           numberOfLines={1}
           adjustsFontSizeToFit
@@ -65,7 +66,7 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
         <Text
           style={[
             styles.metricSub,
-            { color: activeAlertsCount > 0 ? '#b91c1c' : '#166534' },
+            { color: activeAlertsCount > 0 ? COLORS.criticalText : COLORS.normalText },
           ]}
           numberOfLines={1}
         >
@@ -85,12 +86,12 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.surface,
     padding: 12,
-    borderRadius: 12,
+    borderRadius: RADIUS.lg,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#0f172a',
+    borderColor: COLORS.border,
+    shadowColor: COLORS.textPrimary,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 3,
@@ -98,22 +99,22 @@ const styles = StyleSheet.create({
   },
   metricLabel: {
     fontSize: 11,
-    color: '#64748b',
+    color: COLORS.textSecondary,
     fontWeight: '600',
     letterSpacing: 0.2,
   },
   metricValue: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#0f172a',
+    color: COLORS.heading,
     marginVertical: 4,
   },
   waterValue: {
-    color: '#0284c7',
+    color: COLORS.primarySoft,
   },
   metricSub: {
     fontSize: 10,
-    color: '#94a3b8',
+    color: COLORS.textMuted,
     fontWeight: '500',
   },
 });

@@ -1,7 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { Card, Badge } from './Card';
 import { Tank } from '../types';
+import { COLORS, RADIUS } from '../theme/tokens';
 import { getTankStatusCategory, formatKiloLiters } from '../utils/tankMetrics';
 
 interface TankCardProps {
@@ -15,26 +17,27 @@ export const TankCard: React.FC<TankCardProps> = ({ tank }) => {
   const minThreshold = Number(tank.minThresholdPercent || 30);
   const maxThreshold = Number(tank.maxThresholdPercent || 90);
 
-  // Menggunakan helper murni tankMetrics
   const { variant, statusText, barColor } = getTankStatusCategory(
     level,
     minThreshold
   );
 
-  // Identifikasi modul sensor utama jika ada
   const primaryNode = tank.nodes?.[0];
   const nodeLabel = primaryNode?.deviceCode || 'STM32';
   const rssiValue = primaryNode?.lastRssi != null ? `${primaryNode.lastRssi} dBm` : null;
 
   return (
-    <Card key={tank.id}>
+    <Card>
       {/* Header Kartu Tangki */}
       <View style={styles.cardHeader}>
         <View style={styles.titleArea}>
           <Text style={styles.tankName}>{tank.name}</Text>
-          <Text style={styles.location}>
-            📍 {tank.location || 'Lokasi belum disetel'}
-          </Text>
+          <View style={styles.locationRow}>
+            <Feather name="map-pin" size={12} color={COLORS.textMuted} />
+            <Text style={styles.location} numberOfLines={1}>
+              {tank.location || 'Lokasi belum disetel'}
+            </Text>
+          </View>
         </View>
         <Badge text={statusText} variant={variant} />
       </View>
@@ -49,6 +52,15 @@ export const TankCard: React.FC<TankCardProps> = ({ tank }) => {
               : styles.alertBannerWarning,
           ]}
         >
+          <Feather
+            name="alert-triangle"
+            size={13}
+            color={
+              tank.activeAlert.level === 'CRITICAL'
+                ? COLORS.criticalText
+                : COLORS.warningText
+            }
+          />
           <Text
             style={[
               styles.alertText,
@@ -57,7 +69,7 @@ export const TankCard: React.FC<TankCardProps> = ({ tank }) => {
                 : styles.alertTextWarning,
             ]}
           >
-            ⚠️ {tank.activeAlert.message}
+            {tank.activeAlert.message}
           </Text>
         </View>
       )}
@@ -76,7 +88,6 @@ export const TankCard: React.FC<TankCardProps> = ({ tank }) => {
           </View>
         </View>
 
-        {/* Visual Progress Bar */}
         <View style={styles.progressBarTrack}>
           <View
             style={[
@@ -104,9 +115,16 @@ export const TankCard: React.FC<TankCardProps> = ({ tank }) => {
         </View>
         <View style={styles.footerCol}>
           <Text style={styles.footerLabel}>Modul Sensor</Text>
-          <Text style={styles.footerValue} numberOfLines={1}>
-            {rssiValue ? `📶 ${nodeLabel}` : nodeLabel}
-          </Text>
+          <View style={styles.sensorRow}>
+            {rssiValue ? (
+              <Feather name="wifi" size={12} color={COLORS.primarySoft} />
+            ) : (
+              <Feather name="cpu" size={12} color={COLORS.textMuted} />
+            )}
+            <Text style={styles.footerValueInline} numberOfLines={1}>
+              {nodeLabel}
+            </Text>
+          </View>
         </View>
       </View>
     </Card>
@@ -126,45 +144,55 @@ const styles = StyleSheet.create({
   tankName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#0f172a',
+    color: COLORS.heading,
     letterSpacing: 0.2,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
   },
   location: {
     fontSize: 12,
-    color: '#64748b',
-    marginTop: 3,
+    color: COLORS.textSecondary,
+    flex: 1,
   },
   alertBanner: {
-    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: RADIUS.sm + 2,
     paddingHorizontal: 10,
     paddingVertical: 8,
     marginTop: 10,
     borderWidth: 1,
   },
   alertBannerWarning: {
-    backgroundColor: '#fffbeb',
+    backgroundColor: COLORS.warningBg,
     borderColor: '#fde68a',
   },
   alertBannerCritical: {
-    backgroundColor: '#fef2f2',
+    backgroundColor: COLORS.criticalBg,
     borderColor: '#fecaca',
   },
   alertText: {
+    flex: 1,
     fontSize: 12,
     fontWeight: '600',
   },
   alertTextWarning: {
-    color: '#92400e',
+    color: COLORS.warningText,
   },
   alertTextCritical: {
-    color: '#991b1b',
+    color: COLORS.criticalText,
   },
   levelContainer: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: COLORS.surfaceSubtle,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: COLORS.border,
     padding: 12,
-    borderRadius: 12,
+    borderRadius: RADIUS.lg,
     marginVertical: 12,
   },
   levelRow: {
@@ -183,17 +211,17 @@ const styles = StyleSheet.create({
   volumeText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1e293b',
+    color: COLORS.textPrimary,
   },
   volumeSub: {
     fontSize: 9,
-    color: '#64748b',
+    color: COLORS.textMuted,
     fontWeight: '700',
     letterSpacing: 0.5,
   },
   progressBarTrack: {
     height: 8,
-    backgroundColor: '#e2e8f0',
+    backgroundColor: COLORS.border,
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -205,15 +233,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
+    borderTopColor: COLORS.border,
     paddingTop: 10,
+    gap: 6,
   },
   footerCol: {
     flex: 1,
   },
   footerLabel: {
     fontSize: 10,
-    color: '#94a3b8',
+    color: COLORS.textMuted,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.3,
@@ -221,7 +250,19 @@ const styles = StyleSheet.create({
   footerValue: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#1e293b',
+    color: COLORS.textPrimary,
     marginTop: 2,
+  },
+  sensorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
+  footerValueInline: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    flex: 1,
   },
 });

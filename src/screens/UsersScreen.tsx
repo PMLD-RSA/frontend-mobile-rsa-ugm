@@ -12,10 +12,13 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { Badge, Card } from '../components/Card';
+import { EmptyState } from '../components/EmptyState';
 import { useAuthStore } from '../stores/authStore';
 import { useUserStore } from '../stores/userStore';
-import { User, UserRole } from '../types';
+import { COLORS, RADIUS } from '../theme/tokens';
+import { User } from '../types';
 import {
   formatUserDate,
   generateTempPassword,
@@ -153,14 +156,15 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ onNavigate }) => {
     return (
       <View style={[styles.accessDenied, { paddingBottom: Math.max(insets.bottom, 24) }]}>
         <View style={styles.accessIconContainer}>
-          <Text style={styles.accessIcon}>🔒</Text>
+          <Feather name="lock" size={28} color={COLORS.criticalText} />
         </View>
         <Text style={styles.accessTitle}>Akses Kelola Pengguna Ditolak</Text>
         <Text style={styles.accessText}>
           Halaman Manajemen Pengguna & Operator hanya dapat diakses oleh Administrator sistem.
         </Text>
         <TouchableOpacity style={styles.backButton} onPress={() => onNavigate('dashboard')}>
-          <Text style={styles.backText}>← Kembali ke Dashboard</Text>
+          <Feather name="arrow-left" size={15} color={COLORS.textSecondary} />
+          <Text style={styles.backText}>Kembali ke Dashboard</Text>
         </TouchableOpacity>
       </View>
     );
@@ -171,7 +175,7 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ onNavigate }) => {
       style={styles.container}
       contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 24) }]}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0a354c']} />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} tintColor={COLORS.primary} />
       }
     >
       {/* 2. Header Judul & Badge Mode Admin */}
@@ -179,7 +183,7 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ onNavigate }) => {
         <View style={styles.summaryText}>
           <Text style={styles.title}>Kelola Pengguna</Text>
           <Text style={styles.subtitle}>
-            F-07 • Manajemen Akun Operator & Hak Akses
+            Manajemen Akun Operator & Hak Akses
           </Text>
         </View>
         <Badge text="Administrator" variant="info" />
@@ -214,18 +218,20 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ onNavigate }) => {
       {/* 4. Feedback Pesan Sukses / Error */}
       {successMessage && (
         <View style={styles.successBox}>
-          <Text style={styles.successText}>✓ {successMessage}</Text>
-          <TouchableOpacity onPress={clearSuccessMessage}>
-            <Text style={styles.dismissText}>✕</Text>
+          <Feather name="check-circle" size={16} color={COLORS.normalText} />
+          <Text style={styles.successText}>{successMessage}</Text>
+          <TouchableOpacity onPress={clearSuccessMessage} accessibilityLabel="Tutup notifikasi">
+            <Feather name="x" size={16} color={COLORS.textSecondary} />
           </TouchableOpacity>
         </View>
       )}
 
       {error && (
         <View style={styles.errorBox}>
-          <Text style={styles.errorText}>⚠ {error}</Text>
-          <TouchableOpacity onPress={clearError}>
-            <Text style={styles.dismissText}>✕</Text>
+          <Feather name="alert-circle" size={16} color={COLORS.criticalText} />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity onPress={clearError} accessibilityLabel="Tutup pesan error">
+            <Feather name="x" size={16} color={COLORS.textSecondary} />
           </TouchableOpacity>
         </View>
       )}
@@ -262,20 +268,18 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ onNavigate }) => {
       {/* 6. Loading State */}
       {isLoading && !refreshing && (
         <View style={styles.stateBox}>
-          <ActivityIndicator size="large" color="#0a354c" />
+          <ActivityIndicator size="large" color={COLORS.primary} />
           <Text style={styles.stateText}>Memuat daftar akun pengguna...</Text>
         </View>
       )}
 
       {/* 7. Empty State */}
       {!isLoading && filteredUsers.length === 0 && (
-        <View style={styles.stateBox}>
-          <Text style={styles.emptyIcon}>👥</Text>
-          <Text style={styles.emptyTitle}>Tidak ada pengguna ditemukan</Text>
-          <Text style={styles.stateText}>
-            Tidak ada akun pengguna yang cocok dengan filter yang dipilih.
-          </Text>
-        </View>
+        <EmptyState
+          icon="users"
+          title="Tidak ada pengguna ditemukan"
+          description="Tidak ada akun pengguna yang cocok dengan filter yang dipilih."
+        />
       )}
 
       {/* 8. Daftar Kartu Pengguna */}
@@ -356,7 +360,8 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ onNavigate }) => {
                 onPress={() => openResetModal(item)}
                 accessibilityLabel={`Reset kata sandi ${item.username}`}
               >
-                <Text style={styles.resetButtonText}>🔑 Reset Sandi</Text>
+                <Feather name="key" size={13} color={COLORS.primary} />
+                <Text style={styles.resetButtonText}>Reset Sandi</Text>
               </TouchableOpacity>
             </View>
           </Card>
@@ -368,7 +373,8 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ onNavigate }) => {
         style={styles.backButton}
         onPress={() => onNavigate('dashboard')}
       >
-        <Text style={styles.backText}>← Kembali ke Dashboard</Text>
+        <Feather name="arrow-left" size={15} color={COLORS.textSecondary} />
+        <Text style={styles.backText}>Kembali ke Dashboard</Text>
       </TouchableOpacity>
 
       {/* 10. Modal Dialog Reset Kata Sandi Darurat */}
@@ -382,15 +388,16 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ onNavigate }) => {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Reset Sandi Darurat</Text>
-              <TouchableOpacity onPress={closeResetModal} style={styles.modalCloseBtn}>
-                <Text style={styles.modalCloseText}>✕</Text>
+              <TouchableOpacity onPress={closeResetModal} style={styles.modalCloseBtn} accessibilityLabel="Tutup modal">
+                <Feather name="x" size={18} color={COLORS.textSecondary} />
               </TouchableOpacity>
             </View>
 
             {resetCompletedPassword ? (
-              /* State Sukses: Menampilkan Sandi yang Berhasil Diganti */
               <View style={styles.modalSuccessBody}>
-                <Text style={styles.modalSuccessIcon}>✓</Text>
+                <View style={styles.modalSuccessIconBox}>
+                  <Feather name="check-circle" size={28} color={COLORS.normal} />
+                </View>
                 <Text style={styles.modalSuccessTitle}>Kata Sandi Berhasil Direset</Text>
                 <Text style={styles.modalDesc}>
                   Berikan kata sandi sementara berikut kepada operator{' '}
@@ -415,7 +422,6 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ onNavigate }) => {
                 </TouchableOpacity>
               </View>
             ) : (
-              /* State Form: Konfirmasi Pembuatan Sandi Sementara */
               <View style={styles.modalBody}>
                 <Text style={styles.modalDesc}>
                   Buat kata sandi sementara untuk akun operator{' '}
@@ -430,13 +436,17 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ onNavigate }) => {
                     style={styles.regenerateBtn}
                     onPress={() => setTempPassword(generateTempPassword())}
                   >
+                    <Feather name="refresh-cw" size={12} color={COLORS.textSecondary} />
                     <Text style={styles.regenerateBtnText}>Acak Ulang</Text>
                   </TouchableOpacity>
                 </View>
 
-                <Text style={styles.modalWarning}>
-                  ⚠ Sandi lama akan langsung tidak berlaku setelah Anda menekan tombol di bawah.
-                </Text>
+                <View style={styles.modalWarningBox}>
+                  <Feather name="alert-triangle" size={14} color={COLORS.warningText} />
+                  <Text style={styles.modalWarning}>
+                    Sandi lama akan langsung tidak berlaku setelah Anda menekan tombol di bawah.
+                  </Text>
+                </View>
 
                 <View style={styles.modalActions}>
                   <TouchableOpacity
@@ -471,7 +481,7 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ onNavigate }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: COLORS.background,
   },
   content: {
     padding: 16,
@@ -486,12 +496,12 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   title: {
-    color: '#0f172a',
+    color: COLORS.heading,
     fontSize: 20,
     fontWeight: '800',
   },
   subtitle: {
-    color: '#64748b',
+    color: COLORS.textSecondary,
     fontSize: 13,
     lineHeight: 18,
     marginTop: 4,
@@ -503,76 +513,69 @@ const styles = StyleSheet.create({
   },
   metricBox: {
     flex: 1,
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: COLORS.border,
     paddingVertical: 10,
     alignItems: 'center',
   },
   metricBoxBlue: {
-    backgroundColor: '#f0f9ff',
+    backgroundColor: COLORS.infoBg,
     borderColor: '#bae6fd',
   },
   metricBoxGreen: {
-    backgroundColor: '#ecfdf5',
+    backgroundColor: COLORS.normalBg,
     borderColor: '#a7f3d0',
   },
   metricBoxRed: {
-    backgroundColor: '#fef2f2',
+    backgroundColor: COLORS.criticalBg,
     borderColor: '#fecaca',
   },
   metricNumber: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#0f172a',
+    color: COLORS.heading,
   },
   metricLabel: {
     fontSize: 11,
-    color: '#64748b',
+    color: COLORS.textSecondary,
     fontWeight: '600',
     marginTop: 2,
   },
   successBox: {
-    backgroundColor: '#ecfdf5',
+    backgroundColor: COLORS.normalBg,
     borderWidth: 1,
     borderColor: '#a7f3d0',
-    borderRadius: 10,
+    borderRadius: RADIUS.md,
     padding: 12,
     marginBottom: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 8,
   },
   successText: {
-    color: '#065f46',
+    color: COLORS.normalText,
     fontSize: 13,
     fontWeight: '600',
     flex: 1,
-    marginRight: 8,
   },
   errorBox: {
-    backgroundColor: '#fef2f2',
+    backgroundColor: COLORS.criticalBg,
     borderWidth: 1,
     borderColor: '#fecaca',
-    borderRadius: 10,
+    borderRadius: RADIUS.md,
     padding: 12,
     marginBottom: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 8,
   },
   errorText: {
-    color: '#991b1b',
+    color: COLORS.criticalText,
     fontSize: 13,
     fontWeight: '600',
     flex: 1,
-    marginRight: 8,
-  },
-  dismissText: {
-    color: '#64748b',
-    fontSize: 14,
-    paddingHorizontal: 4,
   },
   filterRow: {
     flexDirection: 'row',
@@ -582,48 +585,39 @@ const styles = StyleSheet.create({
   filterButton: {
     minHeight: 40,
     paddingHorizontal: 12,
-    borderRadius: 10,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
-    backgroundColor: '#ffffff',
+    borderColor: COLORS.borderStrong,
+    backgroundColor: COLORS.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
   filterButtonActive: {
-    backgroundColor: '#0a354c',
-    borderColor: '#0a354c',
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
   },
   filterText: {
-    color: '#475569',
+    color: COLORS.textSecondary,
     fontSize: 12,
     fontWeight: '700',
   },
   filterTextActive: {
-    color: '#ffffff',
+    color: COLORS.textOnPrimary,
   },
   stateBox: {
     alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 14,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.xl,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: COLORS.border,
     padding: 32,
     marginBottom: 14,
   },
   stateText: {
-    color: '#64748b',
+    color: COLORS.textSecondary,
     marginTop: 10,
     textAlign: 'center',
     fontSize: 13,
-  },
-  emptyIcon: {
-    fontSize: 36,
-  },
-  emptyTitle: {
-    color: '#0f172a',
-    fontSize: 16,
-    fontWeight: '700',
-    marginTop: 8,
   },
   userCard: {
     padding: 16,
@@ -636,7 +630,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: 44,
     height: 44,
-    borderRadius: 12,
+    borderRadius: RADIUS.lg,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -657,41 +651,41 @@ const styles = StyleSheet.create({
   usernameText: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0f172a',
+    color: COLORS.heading,
   },
   selfPill: {
-    backgroundColor: '#e0f2fe',
-    borderRadius: 6,
+    backgroundColor: COLORS.infoBg,
+    borderRadius: RADIUS.sm,
     paddingHorizontal: 6,
     paddingVertical: 1,
   },
   selfPillText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#0369a1',
+    color: COLORS.infoText,
   },
   userJoinedText: {
     fontSize: 11,
-    color: '#64748b',
+    color: COLORS.textMuted,
     marginTop: 2,
   },
   statusRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
-    borderRadius: 10,
+    backgroundColor: COLORS.surfaceSubtle,
+    borderRadius: RADIUS.md,
     padding: 12,
     marginTop: 12,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: COLORS.border,
   },
   statusLabelCol: {
     flex: 1,
   },
   statusLabel: {
     fontSize: 11,
-    color: '#64748b',
+    color: COLORS.textMuted,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.3,
@@ -707,35 +701,40 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
+    borderTopColor: COLORS.border,
   },
   resetButton: {
+    flexDirection: 'row',
+    gap: 6,
     minHeight: 38,
     paddingHorizontal: 12,
-    backgroundColor: '#eff6ff',
+    backgroundColor: COLORS.infoBg,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
-    borderRadius: 8,
+    borderColor: '#bae6fd',
+    borderRadius: RADIUS.sm + 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   resetButtonText: {
-    color: '#1e40af',
+    color: COLORS.primary,
     fontSize: 12,
     fontWeight: '700',
   },
   backButton: {
+    flexDirection: 'row',
+    gap: 6,
     minHeight: 44,
-    borderRadius: 10,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
-    backgroundColor: '#ffffff',
+    borderColor: COLORS.borderStrong,
+    backgroundColor: COLORS.surface,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 12,
+    paddingHorizontal: 18,
   },
   backText: {
-    color: '#334155',
+    color: COLORS.textSecondary,
     fontWeight: '700',
     fontSize: 13,
   },
@@ -744,32 +743,29 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: COLORS.background,
   },
   accessIconContainer: {
     width: 64,
     height: 64,
     borderRadius: 20,
-    backgroundColor: '#fef2f2',
+    backgroundColor: COLORS.criticalBg,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#fecaca',
   },
-  accessIcon: {
-    fontSize: 30,
-  },
   accessTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#0f172a',
+    color: COLORS.heading,
     marginBottom: 8,
     textAlign: 'center',
   },
   accessText: {
     fontSize: 13,
-    color: '#64748b',
+    color: COLORS.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 24,
@@ -783,12 +779,12 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContent: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.xl,
     width: '100%',
     maxWidth: 360,
     overflow: 'hidden',
-    shadowColor: '#0f172a',
+    shadowColor: COLORS.textPrimary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
@@ -801,38 +797,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: COLORS.border,
   },
   modalTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0f172a',
+    color: COLORS.heading,
   },
   modalCloseBtn: {
     padding: 4,
-  },
-  modalCloseText: {
-    fontSize: 16,
-    color: '#64748b',
-    fontWeight: '700',
   },
   modalBody: {
     padding: 16,
   },
   modalDesc: {
     fontSize: 13,
-    color: '#475569',
+    color: COLORS.textSecondary,
     lineHeight: 18,
   },
   modalBold: {
     fontWeight: '800',
-    color: '#0f172a',
+    color: COLORS.heading,
   },
   passwordGeneratorBox: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 10,
+    backgroundColor: COLORS.surfaceSubtle,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: COLORS.border,
     padding: 14,
     marginVertical: 14,
     alignItems: 'center',
@@ -840,31 +831,40 @@ const styles = StyleSheet.create({
   generatedPasswordText: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#0a354c',
+    color: COLORS.primary,
     letterSpacing: 2,
     fontFamily: 'monospace',
     marginBottom: 8,
   },
   regenerateBtn: {
-    backgroundColor: '#ffffff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 6,
+    borderColor: COLORS.borderStrong,
+    borderRadius: RADIUS.sm,
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 5,
   },
   regenerateBtnText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#475569',
+    color: COLORS.textSecondary,
+  },
+  modalWarningBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: COLORS.warningBg,
+    borderRadius: RADIUS.sm,
+    padding: 10,
+    marginBottom: 16,
   },
   modalWarning: {
+    flex: 1,
     fontSize: 11,
-    color: '#b45309',
-    backgroundColor: '#fffbeb',
-    borderRadius: 6,
-    padding: 8,
-    marginBottom: 16,
+    color: COLORS.warningText,
     lineHeight: 16,
   },
   modalActions: {
@@ -874,52 +874,55 @@ const styles = StyleSheet.create({
   modalCancelBtn: {
     flex: 1,
     minHeight: 42,
-    borderRadius: 8,
+    borderRadius: RADIUS.sm + 2,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: COLORS.borderStrong,
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalCancelText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#475569',
+    color: COLORS.textSecondary,
   },
   modalSubmitBtn: {
     flex: 1,
     minHeight: 42,
-    borderRadius: 8,
-    backgroundColor: '#0a354c',
+    borderRadius: RADIUS.sm + 2,
+    backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalSubmitText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.textOnPrimary,
   },
   modalSuccessBody: {
     padding: 20,
     alignItems: 'center',
   },
-  modalSuccessIcon: {
-    fontSize: 36,
-    color: '#10b981',
-    fontWeight: '800',
-    marginBottom: 8,
+  modalSuccessIconBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: COLORS.normalBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
   },
   modalSuccessTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0f172a',
+    color: COLORS.heading,
     marginBottom: 8,
     textAlign: 'center',
   },
   passwordDisplayBox: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: COLORS.infoBg,
     borderWidth: 1.5,
-    borderColor: '#93c5fd',
-    borderRadius: 12,
+    borderColor: '#7dd3fc',
+    borderRadius: RADIUS.lg,
     paddingHorizontal: 20,
     paddingVertical: 12,
     marginVertical: 12,
@@ -927,26 +930,26 @@ const styles = StyleSheet.create({
   passwordDisplayText: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#1e40af',
+    color: COLORS.primary,
     letterSpacing: 2,
     fontFamily: 'monospace',
   },
   modalHint: {
     fontSize: 12,
-    color: '#64748b',
+    color: COLORS.textSecondary,
     textAlign: 'center',
     marginBottom: 16,
   },
   modalPrimaryBtn: {
-    backgroundColor: '#0a354c',
-    borderRadius: 8,
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.sm + 2,
     width: '100%',
     minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalPrimaryBtnText: {
-    color: '#ffffff',
+    color: COLORS.textOnPrimary,
     fontSize: 14,
     fontWeight: '700',
   },

@@ -9,9 +9,13 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { Badge, Card } from '../components/Card';
+import { EmptyState } from '../components/EmptyState';
+import { ErrorBanner } from '../components/ErrorBanner';
 import { useReportStore } from '../stores/reportStore';
 import { useTankStore } from '../stores/tankStore';
+import { COLORS, RADIUS } from '../theme/tokens';
 import { ReadingRange } from '../types';
 import { calculateReadingSummary, getValidReadings, normalizeReadingValues } from '../utils/reportMetrics';
 
@@ -54,7 +58,7 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({ onNavigate }) => {
     <ScrollView
       style={styles.container}
       contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 24) }]}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} colors={['#0a354c']} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} colors={[COLORS.primary]} tintColor={COLORS.primary} />}
     >
       <View style={styles.heading}>
         <View style={styles.headingText}>
@@ -93,27 +97,21 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({ onNavigate }) => {
       </View>
 
       {selectedTank && <Text style={styles.selectedLabel}>{selectedTank.name}</Text>}
-      {error && (
-        <View style={styles.errorBox}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity onPress={refresh} style={styles.retryButton}>
-            <Text style={styles.retryText}>Coba Lagi</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      {error && <ErrorBanner message={error} onRetry={refresh} />}
 
       {isLoading && !refreshing && (
         <View style={styles.stateBox}>
-          <ActivityIndicator size="large" color="#0a354c" />
+          <ActivityIndicator size="large" color={COLORS.primary} />
           <Text style={styles.stateText}>Memuat riwayat pembacaan...</Text>
         </View>
       )}
 
       {!isLoading && !error && validReadings.length === 0 && (
-        <View style={styles.stateBox}>
-          <Text style={styles.emptyTitle}>Belum ada riwayat pembacaan</Text>
-          <Text style={styles.stateText}>Belum tersedia data sensor untuk rentang waktu ini.</Text>
-        </View>
+        <EmptyState
+          icon="bar-chart-2"
+          title="Belum ada riwayat pembacaan"
+          description="Belum tersedia data sensor untuk rentang waktu ini."
+        />
       )}
 
       {!isLoading && validReadings.length > 0 && (
@@ -143,7 +141,8 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({ onNavigate }) => {
       )}
 
       <TouchableOpacity style={styles.backButton} onPress={() => onNavigate('dashboard')}>
-        <Text style={styles.backText}>← Kembali ke Dashboard</Text>
+        <Feather name="arrow-left" size={15} color={COLORS.textSecondary} />
+        <Text style={styles.backText}>Kembali ke Dashboard</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -157,42 +156,37 @@ const Metric: React.FC<{ label: string; value: number }> = ({ label, value }) =>
 );
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
+  container: { flex: 1, backgroundColor: COLORS.background },
   content: { padding: 16 },
   heading: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 },
   headingText: { flex: 1, marginRight: 8 },
-  title: { color: '#0f172a', fontSize: 20, fontWeight: '800' },
-  subtitle: { color: '#64748b', fontSize: 13, lineHeight: 18, marginTop: 4 },
-  sectionLabel: { color: '#334155', fontSize: 13, fontWeight: '700', marginBottom: 8 },
+  title: { color: COLORS.heading, fontSize: 20, fontWeight: '800' },
+  subtitle: { color: COLORS.textSecondary, fontSize: 13, lineHeight: 18, marginTop: 4 },
+  sectionLabel: { color: COLORS.textSecondary, fontSize: 13, fontWeight: '700', marginBottom: 8 },
   tankOptions: { gap: 8, paddingBottom: 4 },
-  tankOption: { minHeight: 44, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1, borderColor: '#cbd5e1', backgroundColor: '#fff', justifyContent: 'center' },
-  tankOptionActive: { backgroundColor: '#0a354c', borderColor: '#0a354c' },
-  tankOptionText: { color: '#475569', fontSize: 12, fontWeight: '700' },
-  tankOptionTextActive: { color: '#fff' },
+  tankOption: { minHeight: 44, paddingHorizontal: 14, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.borderStrong, backgroundColor: COLORS.surface, justifyContent: 'center' },
+  tankOptionActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  tankOptionText: { color: COLORS.textSecondary, fontSize: 12, fontWeight: '700' },
+  tankOptionTextActive: { color: COLORS.textOnPrimary },
   rangeRow: { flexDirection: 'row', gap: 8, marginVertical: 14 },
-  rangeButton: { flex: 1, minHeight: 44, borderRadius: 10, borderWidth: 1, borderColor: '#cbd5e1', backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
-  rangeButtonActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
-  rangeText: { color: '#475569', fontWeight: '700', fontSize: 13 },
-  rangeTextActive: { color: '#fff' },
-  selectedLabel: { color: '#64748b', fontSize: 12, marginBottom: 10 },
-  errorBox: { backgroundColor: '#fef2f2', borderWidth: 1, borderColor: '#fecaca', borderRadius: 10, padding: 12, marginBottom: 14, flexDirection: 'row', alignItems: 'center' },
-  errorText: { color: '#991b1b', flex: 1, fontSize: 12, marginRight: 8 },
-  retryButton: { minHeight: 44, backgroundColor: '#dc2626', borderRadius: 8, justifyContent: 'center', paddingHorizontal: 12 },
-  retryText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  stateBox: { alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, borderWidth: 1, borderColor: '#e2e8f0', padding: 32, marginBottom: 14 },
-  stateText: { color: '#64748b', marginTop: 10, textAlign: 'center' },
-  emptyTitle: { color: '#0f172a', fontSize: 16, fontWeight: '700' },
+  rangeButton: { flex: 1, minHeight: 44, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.borderStrong, backgroundColor: COLORS.surface, justifyContent: 'center', alignItems: 'center' },
+  rangeButtonActive: { backgroundColor: COLORS.primarySoft, borderColor: COLORS.primarySoft },
+  rangeText: { color: COLORS.textSecondary, fontWeight: '700', fontSize: 13 },
+  rangeTextActive: { color: COLORS.textOnPrimary },
+  selectedLabel: { color: COLORS.textMuted, fontSize: 12, marginBottom: 10 },
+  stateBox: { alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: RADIUS.xl, borderWidth: 1, borderColor: COLORS.border, padding: 32, marginBottom: 14 },
+  stateText: { color: COLORS.textSecondary, marginTop: 10, textAlign: 'center' },
   metricsRow: { flexDirection: 'row', gap: 6, marginBottom: 14 },
-  metric: { flex: 1, backgroundColor: '#fff', borderRadius: 10, borderWidth: 1, borderColor: '#e2e8f0', paddingVertical: 10, alignItems: 'center' },
-  metricValue: { color: '#0a354c', fontSize: 14, fontWeight: '800' },
-  metricLabel: { color: '#64748b', fontSize: 10, marginTop: 4 },
-  cardTitle: { color: '#0f172a', fontSize: 16, fontWeight: '700', marginBottom: 16 },
-  chart: { height: 150, flexDirection: 'row', alignItems: 'flex-end', gap: 2, borderBottomWidth: 1, borderLeftWidth: 1, borderColor: '#cbd5e1', paddingHorizontal: 4 },
+  metric: { flex: 1, backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, paddingVertical: 10, alignItems: 'center' },
+  metricValue: { color: COLORS.primary, fontSize: 14, fontWeight: '800' },
+  metricLabel: { color: COLORS.textMuted, fontSize: 10, marginTop: 4 },
+  cardTitle: { color: COLORS.heading, fontSize: 16, fontWeight: '700', marginBottom: 16 },
+  chart: { height: 150, flexDirection: 'row', alignItems: 'flex-end', gap: 2, borderBottomWidth: 1, borderLeftWidth: 1, borderColor: COLORS.borderStrong, paddingHorizontal: 4 },
   chartColumn: { flex: 1, height: '100%', justifyContent: 'flex-end' },
-  chartBar: { width: '100%', minHeight: 4, backgroundColor: '#2563eb', borderTopLeftRadius: 3, borderTopRightRadius: 3 },
+  chartBar: { width: '100%', minHeight: 4, backgroundColor: COLORS.primarySoft, borderTopLeftRadius: 3, borderTopRightRadius: 3 },
   chartLegend: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
-  legendText: { color: '#94a3b8', fontSize: 10 },
-  readingCount: { color: '#64748b', fontSize: 11, marginTop: 12, textAlign: 'center' },
-  backButton: { minHeight: 44, borderRadius: 10, borderWidth: 1, borderColor: '#cbd5e1', backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', marginTop: 8 },
-  backText: { color: '#334155', fontWeight: '700' },
+  legendText: { color: COLORS.textMuted, fontSize: 10 },
+  readingCount: { color: COLORS.textSecondary, fontSize: 11, marginTop: 12, textAlign: 'center' },
+  backButton: { flexDirection: 'row', gap: 6, minHeight: 44, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.borderStrong, backgroundColor: COLORS.surface, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
+  backText: { color: COLORS.textSecondary, fontWeight: '700', fontSize: 13 },
 });

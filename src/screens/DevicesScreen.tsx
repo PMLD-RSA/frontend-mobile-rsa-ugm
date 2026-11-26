@@ -9,10 +9,14 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { Badge, Card } from '../components/Card';
+import { EmptyState } from '../components/EmptyState';
+import { ErrorBanner } from '../components/ErrorBanner';
 import { ENV } from '../config/env';
 import { useDeviceStore } from '../stores/deviceStore';
 import { useTankStore } from '../stores/tankStore';
+import { COLORS, RADIUS } from '../theme/tokens';
 import { SensorNode } from '../types';
 import {
   formatDeviceTime,
@@ -99,7 +103,7 @@ export const DevicesScreen: React.FC<DevicesScreenProps> = ({ onNavigate }) => {
       style={styles.container}
       contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 24) }]}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0a354c']} />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} tintColor={COLORS.primary} />
       }
     >
       {/* 1. Header Judul & Badge Ringkas */}
@@ -120,7 +124,7 @@ export const DevicesScreen: React.FC<DevicesScreenProps> = ({ onNavigate }) => {
       <Card style={styles.gatewayCard}>
         <View style={styles.cardHeader}>
           <View style={styles.gatewayIconContainer}>
-            <Text style={styles.gatewayIcon}>📡</Text>
+            <Feather name="radio" size={22} color={COLORS.primary} />
           </View>
           <View style={styles.gatewayTitleCol}>
             <Text style={styles.gatewayDeviceCode}>
@@ -209,37 +213,30 @@ export const DevicesScreen: React.FC<DevicesScreenProps> = ({ onNavigate }) => {
 
       {/* 5. Error State */}
       {error && (
-        <View style={styles.errorBox}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity
-            onPress={() => {
-              clearError();
-              fetchDevices();
-            }}
-            style={styles.retryButton}
-          >
-            <Text style={styles.retryText}>Coba Lagi</Text>
-          </TouchableOpacity>
-        </View>
+        <ErrorBanner
+          message={error}
+          onRetry={() => {
+            clearError();
+            fetchDevices();
+          }}
+        />
       )}
 
       {/* 6. Loading State */}
       {isLoading && !refreshing && (
         <View style={styles.stateBox}>
-          <ActivityIndicator size="large" color="#0a354c" />
+          <ActivityIndicator size="large" color={COLORS.primary} />
           <Text style={styles.stateText}>Memindai status perangkat lapangan...</Text>
         </View>
       )}
 
       {/* 7. Empty State */}
       {!isLoading && filteredNodes.length === 0 && (
-        <View style={styles.stateBox}>
-          <Text style={styles.emptyIcon}>📶</Text>
-          <Text style={styles.emptyTitle}>Tidak ada perangkat ditemukan</Text>
-          <Text style={styles.stateText}>
-            Tidak ada modul sensor node yang cocok dengan filter yang dipilih.
-          </Text>
-        </View>
+        <EmptyState
+          icon="wifi-off"
+          title="Tidak ada perangkat ditemukan"
+          description="Tidak ada modul sensor node yang cocok dengan filter yang dipilih."
+        />
       )}
 
       {/* 8. Daftar Kartu Sensor Node LoRa STM32 */}
@@ -260,7 +257,10 @@ export const DevicesScreen: React.FC<DevicesScreenProps> = ({ onNavigate }) => {
                     </Text>
                   </View>
                 </View>
-                <Text style={styles.nodeTankName}>📍 {tankName}</Text>
+                <View style={styles.nodeTankRow}>
+                  <Feather name="map-pin" size={12} color={COLORS.textMuted} />
+                  <Text style={styles.nodeTankName}>{tankName}</Text>
+                </View>
               </View>
 
               <Badge
@@ -356,7 +356,8 @@ export const DevicesScreen: React.FC<DevicesScreenProps> = ({ onNavigate }) => {
         style={styles.backButton}
         onPress={() => onNavigate('dashboard')}
       >
-        <Text style={styles.backText}>← Kembali ke Dashboard</Text>
+        <Feather name="arrow-left" size={15} color={COLORS.textSecondary} />
+        <Text style={styles.backText}>Kembali ke Dashboard</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -365,7 +366,7 @@ export const DevicesScreen: React.FC<DevicesScreenProps> = ({ onNavigate }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: COLORS.background,
   },
   content: {
     padding: 16,
@@ -380,20 +381,20 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   title: {
-    color: '#0f172a',
+    color: COLORS.heading,
     fontSize: 20,
     fontWeight: '800',
   },
   subtitle: {
-    color: '#64748b',
+    color: COLORS.textSecondary,
     fontSize: 13,
     lineHeight: 18,
     marginTop: 4,
   },
   gatewayCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.surface,
     borderWidth: 1.5,
-    borderColor: '#e2e8f0',
+    borderColor: COLORS.border,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -402,14 +403,11 @@ const styles = StyleSheet.create({
   gatewayIconContainer: {
     width: 44,
     height: 44,
-    borderRadius: 12,
-    backgroundColor: '#eff6ff',
+    borderRadius: RADIUS.lg,
+    backgroundColor: COLORS.infoBg,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
-  },
-  gatewayIcon: {
-    fontSize: 22,
   },
   gatewayTitleCol: {
     flex: 1,
@@ -417,16 +415,16 @@ const styles = StyleSheet.create({
   gatewayDeviceCode: {
     fontSize: 17,
     fontWeight: '800',
-    color: '#0f172a',
+    color: COLORS.heading,
   },
   gatewaySubtitle: {
     fontSize: 12,
-    color: '#64748b',
+    color: COLORS.textSecondary,
     marginTop: 2,
   },
   gatewayDivider: {
     height: 1,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: COLORS.border,
     marginVertical: 14,
   },
   gatewayMetaRow: {
@@ -441,7 +439,7 @@ const styles = StyleSheet.create({
   },
   metaLabel: {
     fontSize: 11,
-    color: '#64748b',
+    color: COLORS.textMuted,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.3,
@@ -449,7 +447,7 @@ const styles = StyleSheet.create({
   metaValue: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1e293b',
+    color: COLORS.textPrimary,
     marginTop: 4,
   },
   metricsGrid: {
@@ -459,33 +457,33 @@ const styles = StyleSheet.create({
   },
   metricBox: {
     flex: 1,
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: COLORS.border,
     paddingVertical: 10,
     alignItems: 'center',
   },
   metricBoxGreen: {
-    backgroundColor: '#ecfdf5',
+    backgroundColor: COLORS.normalBg,
     borderColor: '#a7f3d0',
   },
   metricBoxAmber: {
-    backgroundColor: '#fffbeb',
+    backgroundColor: COLORS.warningBg,
     borderColor: '#fde68a',
   },
   metricBoxRed: {
-    backgroundColor: '#fef2f2',
+    backgroundColor: COLORS.criticalBg,
     borderColor: '#fecaca',
   },
   metricNumber: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#0f172a',
+    color: COLORS.heading,
   },
   metricLabel: {
     fontSize: 11,
-    color: '#64748b',
+    color: COLORS.textSecondary,
     fontWeight: '600',
     marginTop: 2,
   },
@@ -497,76 +495,39 @@ const styles = StyleSheet.create({
   filterButton: {
     minHeight: 40,
     paddingHorizontal: 12,
-    borderRadius: 10,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
-    backgroundColor: '#ffffff',
+    borderColor: COLORS.borderStrong,
+    backgroundColor: COLORS.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
   filterButtonActive: {
-    backgroundColor: '#0a354c',
-    borderColor: '#0a354c',
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
   },
   filterText: {
-    color: '#475569',
+    color: COLORS.textSecondary,
     fontSize: 12,
     fontWeight: '700',
   },
   filterTextActive: {
-    color: '#ffffff',
-  },
-  errorBox: {
-    backgroundColor: '#fef2f2',
-    borderWidth: 1,
-    borderColor: '#fecaca',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  errorText: {
-    color: '#991b1b',
-    flex: 1,
-    fontSize: 12,
-    marginRight: 8,
-  },
-  retryButton: {
-    minHeight: 40,
-    backgroundColor: '#dc2626',
-    borderRadius: 8,
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-  },
-  retryText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
+    color: COLORS.textOnPrimary,
   },
   stateBox: {
     alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 14,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.xl,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: COLORS.border,
     padding: 32,
     marginBottom: 14,
   },
   stateText: {
-    color: '#64748b',
+    color: COLORS.textSecondary,
     marginTop: 10,
     textAlign: 'center',
     fontSize: 13,
-  },
-  emptyIcon: {
-    fontSize: 36,
-  },
-  emptyTitle: {
-    color: '#0f172a',
-    fontSize: 16,
-    fontWeight: '700',
-    marginTop: 8,
   },
   nodeCard: {
     padding: 16,
@@ -589,33 +550,40 @@ const styles = StyleSheet.create({
   nodeCode: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0f172a',
+    color: COLORS.heading,
   },
   sensorTypePill: {
-    backgroundColor: '#f1f5f9',
+    backgroundColor: COLORS.surfaceSubtle,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     paddingHorizontal: 7,
     paddingVertical: 2,
-    borderRadius: 6,
+    borderRadius: RADIUS.sm,
   },
   sensorTypeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#475569',
+    color: COLORS.textSecondary,
     letterSpacing: 0.3,
+  },
+  nodeTankRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 5,
   },
   nodeTankName: {
     fontSize: 13,
-    color: '#475569',
-    marginTop: 4,
+    color: COLORS.textSecondary,
     fontWeight: '600',
   },
   signalContainer: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 12,
+    backgroundColor: COLORS.surfaceSubtle,
+    borderRadius: RADIUS.lg,
     padding: 12,
     marginTop: 12,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: COLORS.border,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -626,7 +594,7 @@ const styles = StyleSheet.create({
   signalHeading: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748b',
+    color: COLORS.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.3,
   },
@@ -648,12 +616,12 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   signalBarInactive: {
-    backgroundColor: '#cbd5e1',
+    backgroundColor: COLORS.borderStrong,
   },
   rssiValue: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0f172a',
+    color: COLORS.textPrimary,
   },
   nodeFooter: {
     flexDirection: 'row',
@@ -662,31 +630,31 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
+    borderTopColor: COLORS.border,
   },
   footerLabel: {
     fontSize: 11,
-    color: '#64748b',
+    color: COLORS.textMuted,
   },
   footerValue: {
-    color: '#1e293b',
+    color: COLORS.textPrimary,
     fontWeight: '700',
   },
   gatewayTag: {
     fontSize: 11,
-    color: '#64748b',
+    color: COLORS.textSecondary,
     fontWeight: '600',
   },
   networkInfoCard: {
-    backgroundColor: '#f8fafc',
-    borderColor: '#e2e8f0',
+    backgroundColor: COLORS.surface,
+    borderColor: COLORS.border,
     padding: 14,
     marginTop: 6,
   },
   networkInfoTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#475569',
+    color: COLORS.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
     marginBottom: 8,
@@ -699,26 +667,28 @@ const styles = StyleSheet.create({
   },
   networkLabel: {
     fontSize: 11,
-    color: '#64748b',
+    color: COLORS.textMuted,
   },
   networkValue: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#0a354c',
+    color: COLORS.primary,
     maxWidth: '65%',
   },
   backButton: {
+    flexDirection: 'row',
+    gap: 6,
     minHeight: 44,
-    borderRadius: 10,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
-    backgroundColor: '#ffffff',
+    borderColor: COLORS.borderStrong,
+    backgroundColor: COLORS.surface,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 12,
   },
   backText: {
-    color: '#334155',
+    color: COLORS.textSecondary,
     fontWeight: '700',
     fontSize: 13,
   },

@@ -9,9 +9,13 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { Badge, Card } from '../components/Card';
+import { EmptyState } from '../components/EmptyState';
+import { ErrorBanner } from '../components/ErrorBanner';
 import { useAuthStore } from '../stores/authStore';
 import { useAuditLogStore } from '../stores/auditLogStore';
+import { COLORS, RADIUS } from '../theme/tokens';
 import { AuditLogCategory } from '../types';
 import {
   formatRelativeTime,
@@ -57,13 +61,16 @@ export const AuditLogsScreen: React.FC<AuditLogsScreenProps> = ({ onNavigate }) 
   if (!canView) {
     return (
       <View style={[styles.accessDenied, { paddingBottom: Math.max(insets.bottom, 24) }]}>
-        <Text style={styles.accessIcon}>🔒</Text>
+        <View style={styles.accessIconBox}>
+          <Feather name="lock" size={28} color={COLORS.criticalText} />
+        </View>
         <Text style={styles.accessTitle}>Akses Audit Log Ditolak</Text>
         <Text style={styles.accessText}>
           Audit log hanya dapat diakses oleh Administrator.
         </Text>
         <TouchableOpacity style={styles.backButton} onPress={() => onNavigate('dashboard')}>
-          <Text style={styles.backText}>← Kembali ke Dashboard</Text>
+          <Feather name="arrow-left" size={15} color={COLORS.textSecondary} />
+          <Text style={styles.backText}>Kembali ke Dashboard</Text>
         </TouchableOpacity>
       </View>
     );
@@ -74,7 +81,7 @@ export const AuditLogsScreen: React.FC<AuditLogsScreenProps> = ({ onNavigate }) 
       style={styles.container}
       contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 24) }]}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={refresh} colors={['#0a354c']} />
+        <RefreshControl refreshing={refreshing} onRefresh={refresh} colors={[COLORS.primary]} tintColor={COLORS.primary} />
       }
     >
       <View style={styles.heading}>
@@ -86,33 +93,28 @@ export const AuditLogsScreen: React.FC<AuditLogsScreenProps> = ({ onNavigate }) 
       </View>
 
       {error && (
-        <View style={styles.errorBox}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={() => {
-              clearError();
-              fetchLogs();
-            }}
-          >
-            <Text style={styles.retryText}>Coba Lagi</Text>
-          </TouchableOpacity>
-        </View>
+        <ErrorBanner
+          message={error}
+          onRetry={() => {
+            clearError();
+            fetchLogs();
+          }}
+        />
       )}
 
       {isLoading && !refreshing && (
         <View style={styles.stateBox}>
-          <ActivityIndicator size="large" color="#0a354c" />
+          <ActivityIndicator size="large" color={COLORS.primary} />
           <Text style={styles.stateText}>Memuat aktivitas terbaru...</Text>
         </View>
       )}
 
       {!isLoading && !error && visibleLogs.length === 0 && (
-        <View style={styles.stateBox}>
-          <Text style={styles.emptyIcon}>📋</Text>
-          <Text style={styles.emptyTitle}>Belum ada aktivitas</Text>
-          <Text style={styles.stateText}>Aktivitas operasional akan muncul di sini.</Text>
-        </View>
+        <EmptyState
+          icon="clipboard"
+          title="Belum ada aktivitas"
+          description="Aktivitas operasional akan muncul di sini."
+        />
       )}
 
       {visibleLogs.map((log, index) => {
@@ -136,40 +138,35 @@ export const AuditLogsScreen: React.FC<AuditLogsScreenProps> = ({ onNavigate }) 
       })}
 
       <TouchableOpacity style={styles.backButton} onPress={() => onNavigate('dashboard')}>
-        <Text style={styles.backText}>← Kembali ke Dashboard</Text>
+        <Feather name="arrow-left" size={15} color={COLORS.textSecondary} />
+        <Text style={styles.backText}>Kembali ke Dashboard</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
+  container: { flex: 1, backgroundColor: COLORS.background },
   content: { padding: 16 },
   heading: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 },
   headingText: { flex: 1, marginRight: 8 },
-  title: { color: '#0f172a', fontSize: 20, fontWeight: '800' },
-  subtitle: { color: '#64748b', fontSize: 13, lineHeight: 18, marginTop: 4 },
+  title: { color: COLORS.heading, fontSize: 20, fontWeight: '800' },
+  subtitle: { color: COLORS.textSecondary, fontSize: 13, lineHeight: 18, marginTop: 4 },
   timelineRow: { flexDirection: 'row' },
   timelineRail: { width: 24, alignItems: 'center' },
-  timelineDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#2563eb', marginTop: 20 },
-  timelineLine: { width: 2, flex: 1, backgroundColor: '#bfdbfe', marginVertical: 2 },
+  timelineDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.primarySoft, marginTop: 20 },
+  timelineLine: { width: 2, flex: 1, backgroundColor: '#bae6fd', marginVertical: 2 },
   logCard: { flex: 1, marginLeft: 8 },
   logHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  time: { color: '#64748b', fontSize: 11 },
-  description: { color: '#0f172a', fontSize: 14, lineHeight: 20, marginTop: 12 },
-  actor: { color: '#64748b', fontSize: 11, marginTop: 8 },
-  errorBox: { backgroundColor: '#fef2f2', borderWidth: 1, borderColor: '#fecaca', borderRadius: 10, padding: 12, marginBottom: 14, flexDirection: 'row', alignItems: 'center' },
-  errorText: { color: '#991b1b', flex: 1, fontSize: 12, marginRight: 8 },
-  retryButton: { minHeight: 44, backgroundColor: '#dc2626', borderRadius: 8, justifyContent: 'center', paddingHorizontal: 12 },
-  retryText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  stateBox: { alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, borderWidth: 1, borderColor: '#e2e8f0', padding: 32, marginBottom: 14 },
-  stateText: { color: '#64748b', marginTop: 10, textAlign: 'center' },
-  emptyIcon: { fontSize: 32 },
-  emptyTitle: { color: '#0f172a', fontSize: 16, fontWeight: '700', marginTop: 8 },
-  accessDenied: { flex: 1, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  accessIcon: { fontSize: 42, marginBottom: 12 },
-  accessTitle: { color: '#0f172a', fontSize: 18, fontWeight: '800', textAlign: 'center' },
-  accessText: { color: '#64748b', fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 8, marginBottom: 20 },
-  backButton: { minHeight: 44, borderRadius: 10, borderWidth: 1, borderColor: '#cbd5e1', backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', marginTop: 12, paddingHorizontal: 18 },
-  backText: { color: '#334155', fontWeight: '700' },
+  time: { color: COLORS.textMuted, fontSize: 11 },
+  description: { color: COLORS.textPrimary, fontSize: 14, lineHeight: 20, marginTop: 12 },
+  actor: { color: COLORS.textSecondary, fontSize: 11, marginTop: 8 },
+  stateBox: { alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: RADIUS.xl, borderWidth: 1, borderColor: COLORS.border, padding: 32, marginBottom: 14 },
+  stateText: { color: COLORS.textSecondary, marginTop: 10, textAlign: 'center' },
+  accessDenied: { flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  accessIconBox: { width: 64, height: 64, borderRadius: 20, backgroundColor: COLORS.criticalBg, borderWidth: 1, borderColor: '#fecaca', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  accessTitle: { color: COLORS.heading, fontSize: 18, fontWeight: '800', textAlign: 'center' },
+  accessText: { color: COLORS.textSecondary, fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 8, marginBottom: 20 },
+  backButton: { flexDirection: 'row', gap: 6, minHeight: 44, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.borderStrong, backgroundColor: COLORS.surface, alignItems: 'center', justifyContent: 'center', marginTop: 12, paddingHorizontal: 18 },
+  backText: { color: COLORS.textSecondary, fontWeight: '700', fontSize: 13 },
 });
